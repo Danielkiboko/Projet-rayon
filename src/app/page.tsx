@@ -119,7 +119,7 @@ export default function Home() {
                 </span>
               )}
             </Link>
-            <Link href={user ? (user as any).role === "DELIVERY" ? "/delivery/dashboard" : user.role === "SUPPLIER" ? "/supplier/dashboard" : "/profile" : "https://admin.rayons.net"} className="hidden sm:flex items-center gap-2 px-4 py-2 text-sm font-bold text-gray-900 border-2 border-gray-200 hover:border-gray-900 rounded-full transition-colors">
+            <Link href={user ? (user as any).role === "DELIVERY" ? "/delivery/dashboard" : (user as any).role === "SUPPLIER" ? "/supplier/dashboard" : "/profile" : "https://admin.rayons.net"} className="hidden sm:flex items-center gap-2 px-4 py-2 text-sm font-bold text-gray-900 border-2 border-gray-200 hover:border-gray-900 rounded-full transition-colors">
               <span>{user ? user.displayName || "Mon compte" : "Se connecter"}</span>
             </Link>
           </div>

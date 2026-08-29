@@ -173,7 +173,7 @@ export default function ProductDetails({ params }: { params: { id: string } }) {
                 {lang === "fr" ? "Points clés" : "Key features"}
               </h3>
               <ul className="space-y-3">
-                {productData.features.map((feature, idx) => (
+                {productData.features.map((feature: any, idx: number) => (
                   <li key={idx} className="flex items-start">
                     <Check size={18} className="text-primary-light mr-3 mt-0.5 flex-shrink-0" />
                     <span className="text-gray-200 text-sm">{feature[lang]}</span>
@@ -191,7 +191,7 @@ export default function ProductDetails({ params }: { params: { id: string } }) {
                 {lang === "fr" ? "Tarifs de gros (B2B)" : "Bulk Pricing (B2B)"}
               </h3>
               <div className="flex flex-wrap gap-3">
-                {productData.bulkPricing.map((tier, idx) => {
+                {productData.bulkPricing.map((tier: any, idx: number) => {
                   // highlight current tier
                   const isActive = currentUnitPrice === tier.price;
                   return (

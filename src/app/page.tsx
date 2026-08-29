@@ -131,10 +131,13 @@ export default function Home() {
         
         {/* Hero Banner */}
         <section className="relative w-full h-[400px] sm:h-[500px] rounded-3xl overflow-hidden shadow-sm mt-4">
-          <img 
+          <Image 
             src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&q=80&w=2000" 
             alt="Hero Banner" 
-            className="absolute inset-0 w-full h-full object-cover"
+            fill
+            priority
+            className="absolute inset-0 object-cover"
+            sizes="100vw"
           />
           {/* Gradient Overlay */}
           <div className="absolute inset-0 bg-gradient-to-r from-gray-900/80 via-gray-900/50 to-transparent"></div>
@@ -240,10 +243,11 @@ export default function Home() {
                 <div key={product.id} className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col">
                   {/* Image Container */}
                   <div className="relative aspect-square overflow-hidden bg-gray-100">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
+                    <Image
                       src={product.image}
                       alt={product.name}
+                      fill
+                      sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
                       className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
                     />
                     <button className="absolute top-3 right-3 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-white shadow-sm transition-all active:scale-90">

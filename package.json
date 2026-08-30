@@ -19,7 +19,6 @@
     "react-dom": "19.2.8"
   },
   "devDependencies": {
-    "@firebase/rules-unit-testing": "^3.0.0",
     "@tailwindcss/postcss": "^4",
     "@types/jest": "^29.0.0",
     "@types/node": "^20",

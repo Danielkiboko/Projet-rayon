@@ -115,7 +115,7 @@ export default function Home() {
             </button>
             <Link href="/login" className="hidden sm:flex items-center gap-1 text-sm font-bold text-gray-700 hover:text-gray-900 bg-gray-100 px-4 py-2 rounded-full">
               <User size={18} />
-              {user ? "Dashboard" : "Se connecter"}
+              Se connecter
             </Link>
             <Link href="/checkout" className="relative p-2.5 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors group">
               <ShoppingCart size={22} className="group-hover:scale-110 transition-transform" />

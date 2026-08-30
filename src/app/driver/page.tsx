@@ -3,43 +3,87 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Package, MapPin, Clock, ChevronRight, User } from "lucide-react";
-import { collection, query, orderBy, onSnapshot, where } from "firebase/firestore";
+import { collection, query, orderBy, onSnapshot, where, doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { useAuth } from "@/context/AuthContext";
 
 export default function DriverDashboard() {
+  const { user, loading, userData } = useAuth();
   const [missions, setMissions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [driverInfo, setDriverInfo] = useState<any>(null);
 
   useEffect(() => {
-    // Écouter les commandes en temps réel
-    const q = query(
-      collection(db, "orders"), 
-      where("status", "in", ["EN_ATTENTE", "EN_ROUTE"]),
-      orderBy("createdAt", "desc")
-    );
+    if (loading || !user) return;
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const ordersData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setMissions(ordersData);
-      setIsLoading(false);
-    }, (error) => {
-      console.error("Erreur de récupération des missions :", error);
-      setIsLoading(false);
-    });
+    let unsubscribe: any = null;
 
-    return () => unsubscribe();
-  }, []);
+    const setupMissionsListener = async () => {
+      try {
+        // Fetch driver info to know who created them
+        const driverDoc = await getDoc(doc(db, "drivers", user.uid));
+        let supplierId = "admin";
+        
+        if (driverDoc.exists()) {
+          const data = driverDoc.data();
+          supplierId = data.supplierId || "admin";
+          setDriverInfo(data);
+        }
+
+        // Setup query based on creator
+        let q;
+        if (supplierId === "admin") {
+          // Admin-created drivers see all waiting/en-route orders
+          q = query(
+            collection(db, "orders"), 
+            where("status", "in", ["EN_ATTENTE", "EN_ROUTE"]),
+            orderBy("createdAt", "desc")
+          );
+        } else {
+          // Supplier-created drivers ONLY see orders for that supplier
+          q = query(
+            collection(db, "orders"), 
+            where("supplierId", "==", supplierId),
+            where("status", "in", ["EN_ATTENTE", "EN_ROUTE"]),
+            orderBy("createdAt", "desc")
+          );
+        }
+
+        unsubscribe = onSnapshot(q, (snapshot) => {
+          const ordersData = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }));
+          setMissions(ordersData);
+          setIsLoading(false);
+        }, (error) => {
+          console.error("Erreur de récupération des missions :", error);
+          setIsLoading(false);
+        });
+      } catch (error) {
+        console.error("Erreur initialisation listener:", error);
+        setIsLoading(false);
+      }
+    };
+
+    setupMissionsListener();
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [user, loading]);
 
   return (
     <div className="p-4 bg-[#0b061c] min-h-screen">
       {/* Header */}
       <div className="flex items-center justify-between mb-8 mt-2">
         <div>
-          <h1 className="text-2xl font-bold text-white">Bonjour, Alex</h1>
-          <p className="text-gray-400 text-sm">Prêt pour vos courses ?</p>
+          <h1 className="text-2xl font-bold text-white">Bonjour, {driverInfo?.displayName || userData?.name || "Livreur"}</h1>
+          <p className="text-gray-400 text-sm">
+            {driverInfo?.supplierId && driverInfo.supplierId !== "admin" 
+              ? "Livreur Exclusif (Fournisseur)" 
+              : "Livreur Indépendant (Admin)"}
+          </p>
         </div>
         <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center border border-primary/50">
           <User className="text-primary-light" />

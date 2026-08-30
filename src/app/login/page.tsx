@@ -22,42 +22,10 @@ export default function LoginPage() {
     setError("");
     
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-
-      // Hardcoded Super Admin Bypass
-      if (user.email === "danielkiboko218@gmail.com") {
-        router.push("/admin/dashboard");
-        return;
-      }
-
-      // Fetch user role from Firestore
-      const userDoc = await getDoc(doc(db, "users", user.uid));
-      
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-        if (userData.role === "DELIVERY") {
-          router.push("/delivery/dashboard");
-        } else if (userData.role === "SUPPLIER") {
-          router.push("/supplier/dashboard");
-        } else if (userData.role === "SUB_ADMIN") {
-          if (userData.permissions?.canViewDashboard) {
-            router.push("/admin/dashboard");
-          } else if (userData.permissions?.canManageProducts) {
-            router.push("/admin/products");
-          } else if (userData.permissions?.canManageDelivery) {
-            router.push("/admin/delivery/create");
-          } else {
-            router.push("/");
-          }
-        } else {
-          router.push("/");
-        }
-      } else {
-        router.push("/");
-      }
-    } catch (err: any) {
-      console.error(err);
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        router.replace("/dashboard");
+      } catch (err: any) {
+      console.log("Erreur de connexion :", err.message);
       setError("Email ou mot de passe incorrect.");
     } finally {
       setIsLoading(false);

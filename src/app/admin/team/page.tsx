@@ -13,7 +13,10 @@ import {
   ShieldAlert,
   Search,
   CheckCircle2,
-  XCircle
+  XCircle,
+  AlertTriangle,
+  Check,
+  X
 } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs, doc, updateDoc } from "firebase/firestore";
@@ -28,6 +31,7 @@ export default function AdminTeamPage() {
   const [searchError, setSearchError] = useState("");
   
   const [subAdmins, setSubAdmins] = useState<any[]>([]);
+  const [pendingDrivers, setPendingDrivers] = useState<any[]>([]);
   const [isUpdating, setIsUpdating] = useState(false);
 
   // Protect route strictly for Super Admin
@@ -57,9 +61,24 @@ export default function AdminTeamPage() {
     }
   };
 
+  const fetchPendingDrivers = async () => {
+    try {
+      const q = query(collection(db, "drivers"), where("status", "==", "pending_deletion"));
+      const querySnapshot = await getDocs(q);
+      const drivers: any[] = [];
+      querySnapshot.forEach((doc) => {
+        drivers.push({ id: doc.id, ...doc.data() });
+      });
+      setPendingDrivers(drivers);
+    } catch (error) {
+      console.error("Error fetching pending drivers:", error);
+    }
+  };
+
   useEffect(() => {
     if (isSuperAdmin) {
       fetchSubAdmins();
+      fetchPendingDrivers();
     }
   }, [isSuperAdmin]);
 
@@ -145,6 +164,51 @@ export default function AdminTeamPage() {
       fetchSubAdmins();
     } catch (error) {
       console.error("Error revoking user:", error);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleApproveDeletion = async (driverId: string) => {
+    if (!confirm("Voulez-vous vraiment supprimer définitivement ce livreur ?")) return;
+    setIsUpdating(true);
+    try {
+      const { getAuth } = await import("firebase/auth");
+      const auth = getAuth();
+      const token = await auth.currentUser?.getIdToken();
+      
+      const res = await fetch('/api/users/delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ uid: driverId, collectionName: 'drivers' })
+      });
+      
+      if (!res.ok) throw new Error("Erreur lors de la suppression backend");
+      
+      alert("Livreur supprimé avec succès.");
+      fetchPendingDrivers();
+    } catch (error) {
+      console.error("Error deleting driver:", error);
+      alert("Erreur lors de la suppression.");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleRejectDeletion = async (driverId: string) => {
+    if (!confirm("Voulez-vous annuler la demande et réactiver ce livreur ?")) return;
+    setIsUpdating(true);
+    try {
+      await updateDoc(doc(db, "drivers", driverId), { status: "active" });
+      await updateDoc(doc(db, "users", driverId), { status: "active" });
+      alert("Livreur réactivé avec succès.");
+      fetchPendingDrivers();
+    } catch (error) {
+      console.error("Error rejecting deletion:", error);
+      alert("Erreur lors de l'annulation de la suppression.");
     } finally {
       setIsUpdating(false);
     }
@@ -322,6 +386,57 @@ export default function AdminTeamPage() {
               </div>
             )}
           </div>
+
+          {/* Pending Drivers Approvals */}
+          {pendingDrivers.length > 0 && (
+            <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-orange-200 overflow-hidden mb-10">
+              <div className="p-6 border-b border-orange-100 bg-orange-50 flex items-center">
+                <AlertTriangle className="text-orange-500 mr-3" />
+                <h3 className="text-lg font-black text-gray-900">Approbations de suppression en attente</h3>
+              </div>
+              
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-gray-50/50 text-xs uppercase tracking-wider text-gray-500 font-bold">
+                      <th className="p-5">Nom / Email du Livreur</th>
+                      <th className="p-5">Fournisseur (Demandeur)</th>
+                      <th className="p-5 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-sm">
+                    {pendingDrivers.map((driver) => (
+                      <tr key={driver.id} className="border-b border-gray-50 hover:bg-gray-50/80 transition-colors">
+                        <td className="p-5">
+                          <p className="font-bold text-gray-900">{driver.displayName || "Sans nom"}</p>
+                          <p className="text-xs text-gray-500">{driver.email}</p>
+                        </td>
+                        <td className="p-5 text-gray-600 font-medium">
+                          {driver.supplierId === "admin" ? "Admin" : driver.supplierId}
+                        </td>
+                        <td className="p-5 text-right flex justify-end gap-2">
+                          <button 
+                            onClick={() => handleRejectDeletion(driver.id)}
+                            disabled={isUpdating}
+                            className="flex items-center text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded-lg transition-all"
+                          >
+                            <X size={14} className="mr-1" /> Refuser
+                          </button>
+                          <button 
+                            onClick={() => handleApproveDeletion(driver.id)}
+                            disabled={isUpdating}
+                            className="flex items-center text-xs font-bold text-white bg-red-500 hover:bg-red-600 px-3 py-2 rounded-lg transition-all"
+                          >
+                            <Check size={14} className="mr-1" /> Approuver et Supprimer
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
           {/* List of Sub-Admins */}
           <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 overflow-hidden">

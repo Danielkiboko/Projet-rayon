@@ -92,7 +92,7 @@ export default function ConnectPage() {
   const [lang, setLang] = useState<"fr" | "en">("fr");
   const t = DICT[lang];
   const { addToCart, setIsCartOpen, cartTotalCount } = useCart();
-  const { user, signOut } = useAuth();
+  const { user, loading, signOut } = useAuth();
   const [products, setProducts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -182,15 +182,9 @@ export default function ConnectPage() {
                 </span>
               )}
             </button>
-            {user ? (
-              <button onClick={signOut} className="text-sm font-semibold leading-6 border border-red-200 px-4 py-1.5 rounded-lg text-red-600 hover:bg-red-50 transition-colors flex items-center">
-                Déconnexion
-              </button>
-            ) : (
-              <Link href="https://admin.rayons.net" className="text-sm font-semibold leading-6 border border-gray-300 px-4 py-1.5 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors flex items-center">
-                {t.login}
-              </Link>
-            )}
+            <Link href="/login" className="text-sm font-semibold leading-6 border border-gray-300 px-4 py-1.5 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors flex items-center">
+              {t.login}
+            </Link>
           </div>
         </nav>
       </header>

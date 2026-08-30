@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { onAuthStateChanged, User, signOut as firebaseSignOut } from "firebase/auth";
+import { onAuthStateChanged, User, signOut as firebaseSignOut, getIdTokenResult } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { doc, onSnapshot } from "firebase/firestore";
 
@@ -30,15 +30,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (currentUser) {
         // Fetch real-time user data from Firestore
-        const unsubscribeDoc = onSnapshot(doc(db, "users", currentUser.uid), (docSnap) => {
+        const unsubscribeDoc = onSnapshot(doc(db, "users", currentUser.uid), async (docSnap) => {
           if (docSnap.exists()) {
-            setUserData(docSnap.data());
+            const data = docSnap.data();
+            // Try to read role from custom claims if not present in Firestore
+            let role = data.role;
+            if (!role) {
+              const tokenResult = await getIdTokenResult(currentUser);
+              role = tokenResult.claims.role as string | undefined;
+            }
+            setUserData({ ...data, role });
           } else {
-            setUserData(null);
+            // No doc – fallback to custom claims
+            const tokenResult = await getIdTokenResult(currentUser);
+            const role = tokenResult.claims.role as string | undefined;
+            setUserData(role ? { role } : null);
           }
           setLoading(false);
-        }, (error) => {
-          console.error("Error fetching user data:", error);
+        }, async (error) => {
+          console.error("Error fetching user data, falling back to claims:", error);
+          try {
+            const tokenResult = await getIdTokenResult(currentUser);
+            const role = tokenResult.claims.role as string | undefined;
+            setUserData(role ? { role } : null);
+          } catch (e) {
+            console.error("Error fetching claims:", e);
+            setUserData(null);
+          }
           setLoading(false);
         });
         

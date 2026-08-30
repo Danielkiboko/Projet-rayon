@@ -2,8 +2,12 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ChevronLeft, ShoppingCart, ShieldCheck, Check, Truck, PackageOpen, Minus, Plus } from "lucide-react";
+import { OptimizedImage } from "@/components/OptimizedImage";
+import { ChevronLeft, ShoppingCart, ShieldCheck, Check, Truck, PackageOpen, Minus, Plus, MessageSquare } from "lucide-react";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
+import { ClientChatBox } from "@/components/ClientChatBox";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
@@ -11,8 +15,12 @@ export default function ProductDetails({ params }: { params: { id: string } }) {
   const [lang, setLang] = useState<"fr" | "en">("fr");
   const [quantity, setQuantity] = useState(1);
   const { addToCart, setIsCartOpen, cartTotalCount } = useCart();
+  const { user } = useAuth();
+  const router = useRouter();
+  
   const [productData, setProductData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -81,6 +89,15 @@ export default function ProductDetails({ params }: { params: { id: string } }) {
     }
   };
 
+  const handleOpenChat = () => {
+    if (!user) {
+      alert("Veuillez vous connecter pour contacter le vendeur.");
+      router.push("/login");
+      return;
+    }
+    setIsChatOpen(true);
+  };
+
   return (
     <div className="min-h-screen bg-[#0b061c] text-white">
       {/* Header simple */}
@@ -120,9 +137,10 @@ export default function ProductDetails({ params }: { params: { id: string } }) {
           <div className="lg:w-1/2">
             <div className="sticky top-24">
               <div className="relative aspect-square md:aspect-video lg:aspect-square bg-[#140b2e] rounded-3xl overflow-hidden border border-white/10">
-                <img 
-                  src={productData.image} 
+                <OptimizedImage
+                  src={productData.image}
                   alt={productData.title[lang]}
+                  fill
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute top-4 left-4">
@@ -250,9 +268,30 @@ export default function ProductDetails({ params }: { params: { id: string } }) {
               </div>
             </div>
 
+            {/* Contact Supplier */}
+            <div className="mt-4 text-center">
+              <button 
+                onClick={handleOpenChat}
+                className="text-sm font-bold text-gray-400 hover:text-white transition-colors flex items-center justify-center mx-auto"
+              >
+                <MessageSquare size={16} className="mr-2" />
+                {lang === "fr" ? "Contacter le fournisseur" : "Contact Supplier"}
+              </button>
+            </div>
+
           </div>
         </div>
       </main>
+
+      {/* Render ChatBox */}
+      {isChatOpen && (
+        <ClientChatBox 
+          supplierId={productData.supplierId || "admin"} // Fallback
+          productId={productData.id}
+          productName={productData.title[lang]}
+          onClose={() => setIsChatOpen(false)}
+        />
+      )}
     </div>
   );
 }

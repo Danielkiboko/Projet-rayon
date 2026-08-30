@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { Store, Package, ShoppingBag, Plus, LogOut, Edit, Trash2 } from "lucide-react";
+import { Store, Package, ShoppingBag, Plus, LogOut, Edit, Trash2, Truck, UserX, Clock, MessageSquare, Send } from "lucide-react";
 import { db } from "@/lib/firebase";
-import { collection, query, where, onSnapshot, addDoc, serverTimestamp, deleteDoc, doc } from "firebase/firestore";
+import { collection, query, where, onSnapshot, addDoc, serverTimestamp, deleteDoc, doc, orderBy } from "firebase/firestore";
 
 type Product = {
   id: string;
@@ -15,12 +15,26 @@ type Product = {
   category: string;
 };
 
+type Driver = {
+  id: string;
+  displayName: string;
+  email: string;
+  status: string;
+};
+
 export default function SupplierDashboardPage() {
   const { user, loading, signOut } = useAuth();
   const router = useRouter();
 
-  const [activeTab, setActiveTab] = useState<"catalogue" | "commandes">("catalogue");
+  const [activeTab, setActiveTab] = useState<"catalogue" | "commandes" | "livreurs" | "messages">("catalogue");
   const [products, setProducts] = useState<Product[]>([]);
+  const [drivers, setDrivers] = useState<Driver[]>([]);
+  
+  // Chat States
+  const [chats, setChats] = useState<any[]>([]);
+  const [activeChatId, setActiveChatId] = useState<string | null>(null);
+  const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [newChatMessage, setNewChatMessage] = useState("");
   
   // Add Product State
   const [isAdding, setIsAdding] = useState(false);
@@ -48,6 +62,50 @@ export default function SupplierDashboardPage() {
         prods.push({ id: doc.id, ...doc.data() } as Product);
       });
       setProducts(prods);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  // Fetch Chats
+  useEffect(() => {
+    if (!user) return;
+    const q = query(collection(db, "chats"), where("supplierId", "==", user.uid), orderBy("updatedAt", "desc"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const c: any[] = [];
+      snapshot.forEach((d) => {
+        c.push({ id: d.id, ...d.data() });
+      });
+      setChats(c);
+    });
+    return () => unsubscribe();
+  }, [user]);
+
+  // Fetch Messages for active chat
+  useEffect(() => {
+    if (!activeChatId) {
+      setChatMessages([]);
+      return;
+    }
+    const q = query(collection(db, `chats/${activeChatId}/messages`), orderBy("createdAt", "asc"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const msgs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      setChatMessages(msgs);
+    });
+    return () => unsubscribe();
+  }, [activeChatId]);
+
+  // Fetch Supplier Drivers
+  useEffect(() => {
+    if (!user) return;
+
+    const q = query(collection(db, "drivers"), where("supplierId", "==", user.uid));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const drvs: Driver[] = [];
+      snapshot.forEach((doc) => {
+        drvs.push({ id: doc.id, ...doc.data() } as Driver);
+      });
+      setDrivers(drvs);
     });
 
     return () => unsubscribe();
@@ -93,6 +151,51 @@ export default function SupplierDashboardPage() {
     }
   };
 
+  const handleRequestDeleteDriver = async (id: string) => {
+    if (confirm("Voulez-vous vraiment demander la suppression de ce livreur ? L'administration devra approuver.")) {
+      try {
+        // We only change the status to pending_deletion
+        const { updateDoc } = await import("firebase/firestore");
+        await updateDoc(doc(db, "drivers", id), {
+          status: "pending_deletion"
+        });
+        await updateDoc(doc(db, "users", id), {
+          status: "pending_deletion"
+        });
+        alert("Demande de suppression envoyée à l'administrateur.");
+      } catch (error) {
+        console.error("Error requesting driver deletion", error);
+        alert("Erreur lors de la demande de suppression.");
+      }
+    }
+  };
+
+  const handleSendChatMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newChatMessage.trim() || !user || !activeChatId) return;
+
+    try {
+      const msg = newChatMessage;
+      setNewChatMessage("");
+
+      await addDoc(collection(db, `chats/${activeChatId}/messages`), {
+        text: msg,
+        senderId: user.uid,
+        createdAt: serverTimestamp()
+      });
+
+      const { updateDoc } = await import("firebase/firestore");
+      await updateDoc(doc(db, "chats", activeChatId), {
+        lastMessage: msg,
+        lastMessageTime: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        unreadClient: true
+      });
+    } catch (error) {
+      console.error("Error sending message:", error);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
       
@@ -126,6 +229,22 @@ export default function SupplierDashboardPage() {
               }`}
             >
               <ShoppingBag size={18} className="mr-3" /> Commandes
+            </button>
+            <button
+              onClick={() => setActiveTab("livreurs")}
+              className={`w-full flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-colors ${
+                activeTab === "livreurs" ? "bg-gray-100 text-gray-900" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              }`}
+            >
+              <Truck size={18} className="mr-3" /> Mes Livreurs
+            </button>
+            <button
+              onClick={() => setActiveTab("messages")}
+              className={`w-full flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-colors ${
+                activeTab === "messages" ? "bg-gray-100 text-gray-900" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              }`}
+            >
+              <MessageSquare size={18} className="mr-3" /> Messages
             </button>
           </nav>
         </div>
@@ -252,6 +371,151 @@ export default function SupplierDashboardPage() {
             <p className="text-gray-500 max-w-md mx-auto">
               C'est ici que vous verrez les commandes clients contenant vos produits. (En cours de développement).
             </p>
+          </div>
+        )}
+
+        {/* Tab Content: Livreurs */}
+        {activeTab === "livreurs" && (
+          <div>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold text-gray-900">Mes Livreurs</h2>
+              <button 
+                onClick={() => alert("La création de livreur ouvrira bientôt un formulaire.")}
+                className="bg-gray-900 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center hover:bg-gray-800 transition-colors shadow-sm"
+              >
+                <Plus size={16} className="mr-1" /> Ajouter un livreur
+              </button>
+            </div>
+
+            {drivers.length === 0 ? (
+              <div className="text-center py-12 bg-white rounded-2xl border border-gray-100">
+                <Truck size={48} className="mx-auto text-gray-300 mb-3" />
+                <p className="text-gray-500 font-medium">Vous n'avez pas encore de livreurs affiliés.</p>
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-100 text-sm text-gray-500">
+                      <th className="p-4 font-bold">Nom</th>
+                      <th className="p-4 font-bold">Email</th>
+                      <th className="p-4 font-bold">Statut</th>
+                      <th className="p-4 font-bold text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {drivers.map(driver => (
+                      <tr key={driver.id} className="border-b border-gray-50 hover:bg-gray-50/50">
+                        <td className="p-4 font-medium text-gray-900">{driver.displayName || "Sans nom"}</td>
+                        <td className="p-4 text-gray-600">{driver.email}</td>
+                        <td className="p-4">
+                          {driver.status === "pending_deletion" ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                              <Clock size={12} className="mr-1" /> En attente de suppression
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              Actif
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-4 text-right">
+                          <button 
+                            onClick={() => handleRequestDeleteDriver(driver.id)}
+                            disabled={driver.status === "pending_deletion"}
+                            className="p-2 text-red-500 bg-red-50 rounded-xl hover:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Demander la suppression"
+                          >
+                            <UserX size={16} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Tab Content: Messages */}
+        {activeTab === "messages" && (
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col md:flex-row h-[600px] gap-6">
+            
+            {/* Chats List */}
+            <div className="w-full md:w-1/3 flex flex-col border-r border-gray-100 pr-4">
+              <div className="flex items-center mb-4 pb-4 border-b border-gray-100">
+                <MessageSquare className="text-blue-500 mr-2" size={20} />
+                <h3 className="text-md font-bold text-gray-900">Conversations</h3>
+              </div>
+              <div className="flex-1 overflow-y-auto space-y-2">
+                {chats.length === 0 ? (
+                  <p className="text-xs text-gray-400 text-center mt-4">Aucune conversation</p>
+                ) : (
+                  chats.map(chat => (
+                    <div 
+                      key={chat.id} 
+                      onClick={() => setActiveChatId(chat.id)}
+                      className={`p-3 rounded-xl cursor-pointer transition-colors ${activeChatId === chat.id ? 'bg-blue-50 border border-blue-100' : 'bg-gray-50 hover:bg-gray-100 border border-transparent'}`}
+                    >
+                      <p className="text-sm font-bold text-gray-900 truncate">Client: {chat.clientId.substring(0,6)}...</p>
+                      <p className="text-xs text-gray-500 truncate">{chat.lastMessage || "Nouveau chat"}</p>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Chat Box */}
+            <div className="flex-1 flex flex-col">
+              {!activeChatId ? (
+                <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 rounded-xl border border-gray-100">
+                  <MessageSquare className="text-gray-300 mb-3" size={40} />
+                  <p className="text-gray-500 font-medium">Sélectionnez une conversation pour commencer</p>
+                </div>
+              ) : (
+                <>
+                  {/* Message History */}
+                  <div className="flex-1 overflow-y-auto bg-gray-50 rounded-xl p-4 flex flex-col space-y-3 mb-4 border border-gray-100">
+                    {chatMessages.length === 0 ? (
+                      <div className="text-center text-gray-400 text-sm my-auto">
+                        Aucun message.
+                      </div>
+                    ) : (
+                      chatMessages.map(msg => {
+                        const isMe = msg.senderId === user?.uid;
+                        return (
+                          <div key={msg.id} className={`flex flex-col max-w-[80%] ${isMe ? 'self-end' : 'self-start'}`}>
+                            <div className={`p-3 rounded-2xl text-sm ${isMe ? 'bg-gray-900 text-white rounded-br-sm' : 'bg-white border border-gray-200 text-gray-900 rounded-bl-sm'}`}>
+                              {msg.text}
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+
+                  {/* Input Form */}
+                  <form onSubmit={handleSendChatMessage} className="flex gap-2">
+                    <input 
+                      type="text" 
+                      value={newChatMessage}
+                      onChange={(e) => setNewChatMessage(e.target.value)}
+                      placeholder="Écrivez un message..." 
+                      className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                    <button 
+                      type="submit"
+                      disabled={!newChatMessage.trim()}
+                      className="bg-blue-600 text-white p-3 rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50"
+                    >
+                      <Send size={20} />
+                    </button>
+                  </form>
+                </>
+              )}
+            </div>
+            
           </div>
         )}
 

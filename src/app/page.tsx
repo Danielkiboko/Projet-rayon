@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Image from "next/image";
+import { OptimizedImage } from "@/components/OptimizedImage";
 import Link from "next/link";
 import { Search, ShoppingCart, User, Menu, MapPin, ChevronRight, Star, Heart, TrendingUp, Home as HomeIcon, Wifi, Building, Globe, ArrowRight, Infinity, Shirt } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { CartDrawer } from "@/components/CartDrawer";
+import { Footer } from "@/components/Footer";
 import { useCart } from "@/context/CartContext";
 import { db } from "@/lib/firebase";
 import { collection, onSnapshot } from "firebase/firestore";
@@ -119,9 +121,6 @@ export default function Home() {
                 </span>
               )}
             </Link>
-            <Link href={user ? (user as any).role === "DELIVERY" ? "/delivery/dashboard" : (user as any).role === "SUPPLIER" ? "/supplier/dashboard" : "/profile" : "/login"} className="hidden sm:flex items-center gap-2 px-4 py-2 text-sm font-bold text-gray-900 border-2 border-gray-200 hover:border-gray-900 rounded-full transition-colors">
-              <span>{user ? user.displayName || "Mon compte" : "Se connecter"}</span>
-            </Link>
           </div>
         </div>
       </header>
@@ -131,7 +130,7 @@ export default function Home() {
         
         {/* Hero Banner */}
         <section className="relative w-full h-[400px] sm:h-[500px] rounded-3xl overflow-hidden shadow-sm mt-4">
-          <Image 
+          <OptimizedImage 
             src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&q=80&w=2000" 
             alt="Hero Banner" 
             fill
@@ -243,7 +242,7 @@ export default function Home() {
                 <div key={product.id} className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col">
                   {/* Image Container */}
                   <div className="relative aspect-square overflow-hidden bg-gray-100">
-                    <Image
+                    <OptimizedImage
                       src={product.image}
                       alt={product.name}
                       fill
@@ -291,28 +290,7 @@ export default function Home() {
 
       </main>
 
-      {/* Mobile Bottom Navigation */}
-      <nav className="fixed bottom-0 w-full bg-white border-t border-gray-200 pb-safe sm:hidden z-50">
-        <div className="flex justify-around p-3">
-          <Link href="/" className="flex flex-col items-center gap-1 text-gray-900">
-            <div className="p-1"><TrendingUp size={24} /></div>
-            <span className="text-[10px] font-bold">Explorer</span>
-          </Link>
-          <Link href="/checkout" className="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-900 transition-colors relative">
-            <div className="p-1"><ShoppingCart size={24} /></div>
-            <span className="text-[10px] font-bold">Panier</span>
-            {cartTotalCount > 0 && (
-              <span className="absolute top-0 right-3 w-4 h-4 bg-gray-900 text-white text-[9px] font-bold flex items-center justify-center rounded-full">
-                {cartTotalCount}
-              </span>
-            )}
-          </Link>
-          <Link href={user ? "/profile" : "/login"} className="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-900 transition-colors">
-            <div className="p-1"><User size={24} /></div>
-            <span className="text-[10px] font-bold">Profil</span>
-          </Link>
-        </div>
-      </nav>
+      <Footer />
     </div>
   );
 }

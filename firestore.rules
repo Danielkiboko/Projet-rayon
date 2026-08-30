@@ -1,0 +1,86 @@
+rules_version = '2';
+
+service cloud.firestore {
+  // Helper to check role
+  function isSuperAdmin() {
+    return request.auth.token.role == 'superAdmin';
+  }
+  function isAdmin() {
+    return request.auth.token.role == 'admin' || isSuperAdmin();
+  }
+  function isSupplier() {
+    return request.auth.token.role == 'supplier';
+  }
+  function isDriver() {
+    return request.auth.token.role == 'driver';
+  }
+
+  match /databases/{database}/documents {
+    // Suppliers can manage their own supplier document
+    match /suppliers/{supplierId} {
+      allow read, write: if isSuperAdmin() || isAdmin() || (
+        isSupplier() && request.auth.uid == supplierId
+      );
+    }
+
+    // Drivers collection – top‑level with supplierId field
+    match /drivers/{driverId} {
+      // Creation allowed for a supplier creating its own driver
+      allow create: if isSupplier() && request.resource.data.supplierId == request.auth.uid;
+      // Supplier can read/write its drivers, admin/superadmin can manage all, driver can manage own
+      allow read, update, delete: if (
+        isSuperAdmin() || isAdmin() || (
+          isSupplier() && resource.data.supplierId == request.auth.uid
+        ) || (
+          isDriver() && request.auth.uid == driverId
+        )
+      );
+    }
+
+    // Orders collection – each order contains supplierId and optional driverId
+    match /orders/{orderId} {
+      // Suppliers and admins can create orders for their supplier
+      allow create: if isSuperAdmin() || isAdmin() || (
+        isSupplier() && request.resource.data.supplierId == request.auth.uid
+      );
+
+      // Read/write for the supplier that owns the order
+      allow read, update, delete: if (
+        isSuperAdmin() || isAdmin() || (
+          isSupplier() && resource.data.supplierId == request.auth.uid
+        )
+      );
+
+      // Drivers can read the order assigned to them and optionally update status
+      allow read: if isDriver() && resource.data.driverId == request.auth.uid;
+      allow update: if isDriver() && request.resource.data.driverId == request.auth.uid &&
+                     request.auth.uid == resource.data.driverId;
+    }
+
+    // Users collection
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if isSuperAdmin() || isAdmin();
+    }
+
+    // Chats collection
+    match /chats/{chatId} {
+      allow read, update: if request.auth != null && (
+        resource.data.clientId == request.auth.uid || 
+        resource.data.supplierId == request.auth.uid ||
+        isSuperAdmin() || isAdmin()
+      );
+      allow create: if request.auth != null; 
+
+      match /messages/{messageId} {
+        allow read, write: if request.auth != null && (
+          get(/databases/$(database)/documents/chats/$(chatId)).data.clientId == request.auth.uid ||
+          get(/databases/$(database)/documents/chats/$(chatId)).data.supplierId == request.auth.uid ||
+          isSuperAdmin() || isAdmin()
+        );
+      }
+    }
+
+    // Add additional collections (products, etc.) with similar scoping if needed.
+  }
+}

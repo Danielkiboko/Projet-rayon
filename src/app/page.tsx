@@ -113,6 +113,10 @@ export default function Home() {
               <Globe size={16} />
               FR
             </button>
+            <Link href="/login" className="hidden sm:flex items-center gap-1 text-sm font-bold text-gray-700 hover:text-gray-900 bg-gray-100 px-4 py-2 rounded-full">
+              <User size={18} />
+              {user ? "Dashboard" : "Se connecter"}
+            </Link>
             <Link href="/checkout" className="relative p-2.5 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors group">
               <ShoppingCart size={22} className="group-hover:scale-110 transition-transform" />
               {cartTotalCount > 0 && (
@@ -208,85 +212,93 @@ export default function Home() {
             </Link>
           </div>
         </section>
-        {/* Products Grid */}
-        <section>
-          <div className="flex flex-col mb-4 px-1 gap-2 mt-8">
-            <div>
-              <span className="bg-[#4F46E5]/10 text-[#4F46E5] text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider">
-                Sélection Premium
-              </span>
-            </div>
-            <div className="flex flex-wrap items-end justify-between gap-4">
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
-                Nouveautés & Tendances
-              </h2>
-              <Link href="#" className="text-sm font-bold text-gray-500 hover:text-gray-900 flex items-center gap-1 transition-colors">
-                Voir tout le catalogue <ChevronRight size={16} />
-              </Link>
-            </div>
-          </div>
-          
-          {loading ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-              {[1, 2, 3, 4].map(i => (
-                <div key={i} className="animate-pulse bg-white rounded-2xl h-64 border border-gray-100"></div>
-              ))}
-            </div>
-          ) : filteredProducts.length === 0 ? (
-            <div className="text-center py-12 bg-white rounded-2xl border border-gray-100">
-              <p className="text-gray-500 font-medium">Aucun produit dans cette catégorie pour le moment.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-              {filteredProducts.map((product) => (
-                <div key={product.id} className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col">
-                  {/* Image Container */}
-                  <div className="relative aspect-square overflow-hidden bg-gray-100">
-                    <OptimizedImage
-                      src={product.image}
-                      alt={product.name}
-                      fill
-                      sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
-                      className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
-                    />
-                    <button className="absolute top-3 right-3 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-white shadow-sm transition-all active:scale-90">
-                      <Heart size={16} />
-                    </button>
-                    {product.rating && (
-                      <div className="absolute bottom-3 left-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg flex items-center gap-1 shadow-sm">
-                        <Star size={12} className="fill-orange-400 text-orange-400" />
-                        <span className="text-xs font-bold text-gray-900">{product.rating}</span>
-                      </div>
-                    )}
+        {/* Product Sections by Rayon */}
+        
+        {/* Helper function to render a product grid */}
+        {(() => {
+          const renderProductGrid = (title: string, subtitle: string, categoryFilter: string, link: string) => {
+            const products = allProducts.filter(p => p.category?.toLowerCase().includes(categoryFilter.toLowerCase())).slice(0, 4);
+            
+            return (
+              <section className="mt-12">
+                <div className="flex flex-col mb-4 px-1 gap-2">
+                  <div>
+                    <span className="bg-[#4F46E5]/10 text-[#4F46E5] text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider">
+                      {subtitle}
+                    </span>
                   </div>
-                  
-                  {/* Content */}
-                  <div className="p-4 flex flex-col flex-1">
-                    <p className="text-xs font-bold text-gray-500 mb-1 line-clamp-1">{product.category}</p>
-                    <h3 className="font-bold text-gray-900 text-sm sm:text-base line-clamp-2 leading-tight mb-2 group-hover:text-blue-600 transition-colors">
-                      {product.name}
-                    </h3>
-                    
-                    <div className="mt-auto flex items-center justify-between pt-3 border-t border-gray-50">
-                      <span className="font-bold text-lg text-gray-900">{parseFloat(product.price).toFixed(2)} AED</span>
-                      <button 
-                        onClick={() => addToCart({
-                          id: product.id,
-                          title: product.name,
-                          price: product.price.toString(),
-                          image: product.image
-                        })}
-                        className="w-8 h-8 rounded-full bg-gray-100 text-gray-900 flex items-center justify-center hover:bg-gray-900 hover:text-white transition-colors active:scale-90 shadow-sm"
-                      >
-                        <ShoppingCart size={16} />
-                      </button>
-                    </div>
+                  <div className="flex flex-wrap items-end justify-between gap-4">
+                    <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
+                      {title}
+                    </h2>
+                    <Link href={link} className="text-sm font-bold text-gray-500 hover:text-gray-900 flex items-center gap-1 transition-colors">
+                      Voir le rayon <ChevronRight size={16} />
+                    </Link>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </section>
+                
+                {loading ? (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+                    {[1, 2, 3, 4].map(i => (
+                      <div key={i} className="animate-pulse bg-white rounded-2xl h-64 border border-gray-100"></div>
+                    ))}
+                  </div>
+                ) : products.length === 0 ? (
+                  <div className="text-center py-12 bg-white rounded-2xl border border-gray-100">
+                    <p className="text-gray-500 font-medium">Bientôt de nouveaux produits dans ce rayon.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+                    {products.map((product) => (
+                      <div key={product.id} className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col">
+                        <div className="relative aspect-square overflow-hidden bg-gray-100">
+                          <OptimizedImage
+                            src={product.image || "https://images.unsplash.com/photo-1522071820081-009f0129c71c"}
+                            alt={product.name}
+                            fill
+                            sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+                            className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
+                          />
+                          <button className="absolute top-3 right-3 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-white shadow-sm transition-all active:scale-90">
+                            <Heart size={16} />
+                          </button>
+                        </div>
+                        <div className="p-4 flex flex-col flex-1">
+                          <p className="text-xs font-bold text-gray-500 mb-1 line-clamp-1">{product.category}</p>
+                          <h3 className="font-bold text-gray-900 text-sm sm:text-base line-clamp-2 leading-tight mb-2 group-hover:text-blue-600 transition-colors">
+                            {product.name}
+                          </h3>
+                          <div className="mt-auto flex items-center justify-between pt-3 border-t border-gray-50">
+                            <span className="font-bold text-lg text-gray-900">{parseFloat(product.price).toFixed(2)} AED</span>
+                            <button 
+                              onClick={() => addToCart({
+                                id: product.id,
+                                title: product.name,
+                                price: product.price.toString(),
+                                image: product.image
+                              })}
+                              className="w-8 h-8 rounded-full bg-gray-100 text-gray-900 flex items-center justify-center hover:bg-gray-900 hover:text-white transition-colors active:scale-90 shadow-sm"
+                            >
+                              <ShoppingCart size={16} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            );
+          };
+
+          return (
+            <>
+              {renderProductGrid("Populaire en Rayon Mode", "Mode & Accessoires", "Mode", "/rayon/mode")}
+              {renderProductGrid("Nouveautés Rayon Connect", "Tech & Services", "Connect", "/rayon/connect")}
+              {renderProductGrid("Exclusivités Rayon Immo", "Immobilier", "Immo", "/rayon/immo")}
+            </>
+          );
+        })()}
 
       </main>
 

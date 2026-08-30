@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ShoppingCart, ShieldCheck, ChevronRight, Home as HomeIcon, Wifi, Building2, Globe, Shirt } from "lucide-react";
+import { ShoppingCart, ShieldCheck, ChevronRight, Home as HomeIcon, Wifi, Building2, Globe, Shirt, User } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { db } from "@/lib/firebase";
 import { ProductSkeleton } from "@/components/ui/Skeleton";
@@ -182,7 +182,8 @@ export default function ConnectPage() {
                 </span>
               )}
             </button>
-            <Link href="/login" className="text-sm font-semibold leading-6 border border-gray-300 px-4 py-1.5 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors flex items-center">
+            <Link href="/login" className="hidden sm:flex items-center gap-1 text-sm font-bold text-gray-700 hover:text-gray-900 bg-gray-100 px-4 py-2 rounded-full">
+              <User size={18} />
               {t.login}
             </Link>
           </div>

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Home as HomeIcon, Wifi, Building2, Globe, MapPin, Maximize, BedDouble, Bath, ChevronRight, Shirt } from "lucide-react";
+import { Home as HomeIcon, Wifi, Building2, Globe, MapPin, Maximize, BedDouble, Bath, ChevronRight, Shirt, User } from "lucide-react";
 import { ImmoContactModal } from "@/components/ImmoContactModal";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -168,7 +168,8 @@ export default function ImmoPage() {
             >
               <Globe size={14} className="mr-1" /> {lang.toUpperCase()}
             </button>
-            <Link href="/login" className="text-sm font-semibold leading-6 border border-gray-300 px-4 py-1.5 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors flex items-center">
+            <Link href="/login" className="hidden sm:flex items-center gap-1 text-sm font-bold text-gray-700 hover:text-gray-900 bg-gray-100 px-4 py-2 rounded-full">
+              <User size={18} />
               {t.login}
             </Link>
           </div>

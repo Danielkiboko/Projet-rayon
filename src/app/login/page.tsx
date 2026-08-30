@@ -35,7 +35,7 @@ export default function LoginPage() {
         router.replace("/dashboard");
       } catch (err: any) {
       console.log("Erreur de connexion :", err.message);
-      setError("Email ou mot de passe incorrect.");
+      setError(err.message);
     } finally {
       setIsLoading(false);
     }

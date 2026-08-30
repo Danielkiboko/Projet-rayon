@@ -1,24 +1,127 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, X, Search, Store } from "lucide-react";
+import { auth, db } from "@/lib/firebase";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { sendPasswordResetEmail } from "firebase/auth";
 
-// Mock data for display purposes
-const MOCK_SUPPLIERS = [
-  { id: "1", name: "Starlink DRC", email: "contact@starlink.cd", rayon: "Rayon Connect", status: "Actif" },
-  { id: "2", name: "Immo Luxe", email: "hello@immoluxe.com", rayon: "Rayon Immo", status: "Actif" },
-];
+interface Supplier {
+  id: string;
+  name: string;
+  email: string;
+  rayon: string;
+  status: string;
+}
 
 export default function SuppliersPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [successMessage, setSuccessMessage] = useState("");
 
-  const handleCreateSupplier = (e: React.FormEvent) => {
-    e.preventDefault();
-    // TODO: Connect to Firebase to create Supplier account
-    setIsModalOpen(false);
+  // Form states
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [rayon, setRayon] = useState("");
+  const [role, setRole] = useState("supplier");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  const fetchSuppliers = async () => {
+    setIsLoading(true);
+    try {
+      const q = query(collection(db, "users"), where("role", "==", "supplier"));
+      const querySnapshot = await getDocs(q);
+      const suppliersData: Supplier[] = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        suppliersData.push({
+          id: doc.id,
+          name: data.displayName || "Sans nom",
+          email: data.email || "",
+          rayon: data.rayon || "Non assigné",
+          status: data.status === "active" ? "Actif" : "Inactif",
+        });
+      });
+      setSuppliers(suppliersData);
+    } catch (err) {
+      console.error("Error fetching suppliers:", err);
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  useEffect(() => {
+    fetchSuppliers();
+  }, []);
+
+  const handleCreateSupplier = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setError("");
+    setSuccessMessage("");
+
+    try {
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) {
+        throw new Error("Vous devez être connecté pour effectuer cette action.");
+      }
+
+      // Generate a strong random password since the user will reset it anyway
+      const randomPassword = Math.random().toString(36).slice(-10) + "A1@";
+
+      // 1. Create the user account via API
+      const response = await fetch("/api/users/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          email,
+          password: randomPassword,
+          displayName: name,
+          roleToCreate: role,
+          extraData: { rayon },
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Erreur lors de la création du fournisseur.");
+      }
+
+      // 2. Send the password reset email so they can choose their own password
+      await sendPasswordResetEmail(auth, email);
+
+      // Reset form and close modal
+      setName("");
+      setEmail("");
+      setRayon("");
+      setRole("supplier");
+      setIsModalOpen(false);
+      setSuccessMessage(`Le compte fournisseur a été créé. Un e-mail a été envoyé à ${email} pour qu'il configure son mot de passe.`);
+      
+      // Refresh list
+      fetchSuppliers();
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Une erreur est survenue.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const filteredSuppliers = suppliers.filter(
+    (s) =>
+      s.name.toLowerCase().includes(search.toLowerCase()) ||
+      s.email.toLowerCase().includes(search.toLowerCase()) ||
+      s.rayon.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <div className="space-y-6">
@@ -28,13 +131,23 @@ export default function SuppliersPage() {
           <p className="text-sm text-gray-400">Gérez les comptes fournisseurs et leurs rayons associés.</p>
         </div>
         <button
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => {
+            setIsModalOpen(true);
+            setSuccessMessage("");
+            setError("");
+          }}
           className="flex items-center space-x-2 bg-primary hover:bg-primary-light text-white px-4 py-2 rounded-lg transition-colors"
         >
           <Plus size={20} />
           <span>Nouveau Fournisseur</span>
         </button>
       </div>
+      
+      {successMessage && (
+        <div className="p-4 bg-green-500/20 border border-green-500/50 rounded-xl text-green-400">
+          {successMessage}
+        </div>
+      )}
 
       <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
         <div className="p-4 border-b border-white/10">
@@ -62,28 +175,44 @@ export default function SuppliersPage() {
               </tr>
             </thead>
             <tbody>
-              {MOCK_SUPPLIERS.map((supplier) => (
-                <tr key={supplier.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                  <td className="px-6 py-4 font-medium text-white flex items-center space-x-3">
-                    <div className="w-8 h-8 rounded bg-primary/20 flex items-center justify-center text-primary-light">
-                      <Store size={16} />
-                    </div>
-                    <span>{supplier.name}</span>
-                  </td>
-                  <td className="px-6 py-4">{supplier.email}</td>
-                  <td className="px-6 py-4">
-                    <span className="px-3 py-1 bg-white/10 rounded-full text-xs font-medium">
-                      {supplier.rayon}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="text-green-400">{supplier.status}</span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <button className="text-primary-light hover:text-white transition-colors">Gérer</button>
+              {isLoading ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-8 text-center text-gray-400">
+                    Chargement des fournisseurs...
                   </td>
                 </tr>
-              ))}
+              ) : filteredSuppliers.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-8 text-center text-gray-400">
+                    Aucun fournisseur trouvé.
+                  </td>
+                </tr>
+              ) : (
+                filteredSuppliers.map((supplier) => (
+                  <tr key={supplier.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                    <td className="px-6 py-4 font-medium text-white flex items-center space-x-3">
+                      <div className="w-8 h-8 rounded bg-primary/20 flex items-center justify-center text-primary-light">
+                        <Store size={16} />
+                      </div>
+                      <span>{supplier.name}</span>
+                    </td>
+                    <td className="px-6 py-4">{supplier.email}</td>
+                    <td className="px-6 py-4">
+                      <span className="px-3 py-1 bg-white/10 rounded-full text-xs font-medium">
+                        {supplier.rayon}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={supplier.status === "Actif" ? "text-green-400" : "text-red-400"}>
+                        {supplier.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <button className="text-primary-light hover:text-white transition-colors">Gérer</button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -107,11 +236,23 @@ export default function SuppliersPage() {
               </div>
 
               <form onSubmit={handleCreateSupplier} className="p-6 space-y-4">
+                {error && (
+                  <div className="p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-400 text-sm">
+                    {error}
+                  </div>
+                )}
+                
+                <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-blue-300 text-sm mb-2">
+                  Un e-mail de configuration de mot de passe sera automatiquement envoyé à l'adresse indiquée une fois le compte créé.
+                </div>
+
                 <div className="space-y-1">
                   <label className="text-sm font-medium text-gray-300">Nom de l'entreprise</label>
                   <input
                     type="text"
                     required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
                     className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white"
                   />
                 </div>
@@ -121,28 +262,37 @@ export default function SuppliersPage() {
                   <input
                     type="email"
                     required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-sm font-medium text-gray-300">Mot de passe temporaire</label>
-                  <input
-                    type="text"
+                  <label className="text-sm font-medium text-gray-300">Type d'accès</label>
+                  <select
                     required
-                    className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white"
-                  />
+                    value={role}
+                    onChange={(e) => setRole(e.target.value)}
+                    className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white [&>option]:bg-[#0b061c]"
+                  >
+                    <option value="supplier">Fournisseur (Accès basique)</option>
+                    <option value="SUB_ADMIN">Sous-administrateur (Accès étendu)</option>
+                  </select>
                 </div>
 
                 <div className="space-y-1">
                   <label className="text-sm font-medium text-gray-300">Rayon d'affectation</label>
                   <select
                     required
+                    value={rayon}
+                    onChange={(e) => setRayon(e.target.value)}
                     className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white [&>option]:bg-[#0b061c]"
                   >
                     <option value="">Sélectionner un rayon...</option>
                     <option value="connect">Rayon Connect (Matériel)</option>
                     <option value="immo">Rayon Immo (Immobilier)</option>
+                    <option value="mode">Rayon Mode (Vêtements)</option>
                   </select>
                 </div>
 
@@ -150,15 +300,17 @@ export default function SuppliersPage() {
                   <button
                     type="button"
                     onClick={() => setIsModalOpen(false)}
-                    className="px-4 py-2 text-gray-400 hover:text-white transition-colors"
+                    disabled={isSubmitting}
+                    className="px-4 py-2 text-gray-400 hover:text-white transition-colors disabled:opacity-50"
                   >
                     Annuler
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-2 bg-primary hover:bg-primary-light text-white font-semibold rounded-lg transition-colors"
+                    disabled={isSubmitting}
+                    className="px-6 py-2 bg-primary hover:bg-primary-light text-white font-semibold rounded-lg transition-colors flex items-center disabled:opacity-50"
                   >
-                    Créer le compte
+                    {isSubmitting ? "Création en cours..." : "Créer le compte"}
                   </button>
                 </div>
               </form>
@@ -169,3 +321,4 @@ export default function SuppliersPage() {
     </div>
   );
 }
+

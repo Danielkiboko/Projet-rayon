@@ -27,5 +27,5 @@ if (!getApps().length) {
   }
 }
 
-export const adminDb = getApps().length > 0 ? getFirestore() : ({} as any);
+export const adminDb = getApps().length > 0 ? getFirestore('default') : ({} as any);
 export const adminAuth = getApps().length > 0 ? getAuth() : ({} as any);

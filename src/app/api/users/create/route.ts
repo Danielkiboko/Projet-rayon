@@ -13,12 +13,19 @@ export async function POST(req: Request) {
     let decodedToken;
     try {
       decodedToken = await adminAuth.verifyIdToken(token);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Verify ID token error:', error);
       return NextResponse.json({ error: 'Unauthorized: Invalid token' }, { status: 401 });
     }
 
-    const callerRole = decodedToken.role;
+    let callerRole = decodedToken.role;
     const callerUid = decodedToken.uid;
+    const callerEmail = decodedToken.email;
+
+    // Bootstrap rule: If the main admin hasn't got the custom claim yet, allow them as superAdmin
+    if (!callerRole && callerEmail === 'danielkiboko218@gmail.com') {
+      callerRole = 'superAdmin';
+    }
 
     if (!['superAdmin', 'admin', 'supplier'].includes(callerRole)) {
       return NextResponse.json({ error: 'Forbidden: Insufficient privileges to create users' }, { status: 403 });

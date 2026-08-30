@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 import { motion } from "framer-motion";
 import { 
   LayoutDashboard, 
@@ -27,6 +28,7 @@ export default function SupplierLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const { signOut } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
@@ -79,7 +81,10 @@ export default function SupplierLayout({
             <p className="text-xs text-gray-400 uppercase font-semibold">Rayon Associé</p>
             <p className="text-sm text-primary-light font-medium truncate">Rayon Connect</p>
           </div>
-          <button className="flex items-center space-x-3 px-4 py-3 w-full rounded-lg text-red-400 hover:bg-red-400/10 transition-colors">
+          <button 
+            onClick={() => signOut()}
+            className="flex items-center space-x-3 px-4 py-3 w-full rounded-lg text-red-400 hover:bg-red-400/10 transition-colors"
+          >
             <LogOut size={20} />
             <span className="font-medium">Déconnexion</span>
           </button>

@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Store, Package, ShoppingBag, Plus, LogOut, Edit, Trash2, Truck, UserX, Clock, MessageSquare, Send } from "lucide-react";
-import { db } from "@/lib/firebase";
+import { db, storage, auth } from "@/lib/firebase";
 import { collection, query, where, onSnapshot, addDoc, serverTimestamp, deleteDoc, doc, orderBy } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 type Product = {
   id: string;
@@ -40,9 +41,16 @@ export default function SupplierDashboardPage() {
   const [isAdding, setIsAdding] = useState(false);
   const [newName, setNewName] = useState("");
   const [newPrice, setNewPrice] = useState("");
-  const [newImage, setNewImage] = useState("");
+  const [newImage, setNewImage] = useState<File | null>(null);
   const [newCategory, setNewCategory] = useState("Général");
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // Add Driver State
+  const [isAddingDriver, setIsAddingDriver] = useState(false);
+  const [newDriverName, setNewDriverName] = useState("");
+  const [newDriverEmail, setNewDriverEmail] = useState("");
+  const [newDriverPassword, setNewDriverPassword] = useState("");
+  const [isProcessingDriver, setIsProcessingDriver] = useState(false);
 
   // Protect route
   useEffect(() => {
@@ -115,24 +123,73 @@ export default function SupplierDashboardPage() {
     return <div className="min-h-screen bg-gray-50 flex items-center justify-center">Chargement...</div>;
   }
 
+  const handleAddDriver = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    setIsProcessingDriver(true);
+
+    try {
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) throw new Error("Non authentifié");
+
+      const response = await fetch('/api/users/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          email: newDriverEmail,
+          password: newDriverPassword,
+          displayName: newDriverName,
+          roleToCreate: 'driver'
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Erreur lors de la création");
+      }
+
+      setIsAddingDriver(false);
+      setNewDriverName("");
+      setNewDriverEmail("");
+      setNewDriverPassword("");
+      alert("Livreur ajouté avec succès !");
+    } catch (error: any) {
+      console.error("Error adding driver", error);
+      alert(error.message || "Erreur lors de l'ajout du livreur.");
+    } finally {
+      setIsProcessingDriver(false);
+    }
+  };
+
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
     setIsProcessing(true);
 
     try {
+      let imageUrl = "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=400";
+      
+      if (newImage) {
+        const fileRef = ref(storage, `products/${user.uid}_${Date.now()}_${newImage.name}`);
+        await uploadBytes(fileRef, newImage);
+        imageUrl = await getDownloadURL(fileRef);
+      }
+
       await addDoc(collection(db, "products"), {
         supplierId: user.uid,
         name: newName,
         price: parseFloat(newPrice),
-        image: newImage || "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=400",
+        image: imageUrl,
         category: newCategory,
         createdAt: serverTimestamp(),
       });
       setIsAdding(false);
       setNewName("");
       setNewPrice("");
-      setNewImage("");
+      setNewImage(null);
     } catch (error) {
       console.error("Error adding product", error);
       alert("Erreur lors de l'ajout du produit.");
@@ -312,8 +369,12 @@ export default function SupplierDashboardPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1">URL de l'image (Optionnel)</label>
-                    <input type="url" value={newImage} onChange={(e) => setNewImage(e.target.value)} className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 outline-none" placeholder="https://..." />
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Image du produit</label>
+                    <input type="file" accept="image/*" onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        setNewImage(e.target.files[0]);
+                      }
+                    }} className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 outline-none file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-50 file:text-gray-700 hover:file:bg-gray-100" />
                   </div>
                   <div className="md:col-span-2 flex justify-end gap-2 mt-2">
                     <button type="button" onClick={() => setIsAdding(false)} className="px-4 py-2 text-gray-600 font-bold hover:bg-gray-100 rounded-xl">Annuler</button>
@@ -380,12 +441,40 @@ export default function SupplierDashboardPage() {
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold text-gray-900">Mes Livreurs</h2>
               <button 
-                onClick={() => alert("La création de livreur ouvrira bientôt un formulaire.")}
+                onClick={() => setIsAddingDriver(true)}
                 className="bg-gray-900 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center hover:bg-gray-800 transition-colors shadow-sm"
               >
                 <Plus size={16} className="mr-1" /> Ajouter un livreur
               </button>
             </div>
+
+            {isAddingDriver && (
+              <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl">
+                  <h3 className="text-xl font-bold text-gray-900 mb-4">Créer un profil Livreur</h3>
+                  <form onSubmit={handleAddDriver} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-1">Nom du livreur</label>
+                      <input type="text" required value={newDriverName} onChange={(e) => setNewDriverName(e.target.value)} className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 outline-none" placeholder="Jean Dupont" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-1">Email</label>
+                      <input type="email" required value={newDriverEmail} onChange={(e) => setNewDriverEmail(e.target.value)} className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 outline-none" placeholder="jean.dupont@email.com" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-1">Mot de passe temporaire</label>
+                      <input type="text" required value={newDriverPassword} onChange={(e) => setNewDriverPassword(e.target.value)} className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 outline-none" placeholder="Mot de passe" />
+                    </div>
+                    <div className="flex justify-end gap-2 mt-6">
+                      <button type="button" onClick={() => setIsAddingDriver(false)} className="px-4 py-2 text-gray-600 font-bold hover:bg-gray-100 rounded-xl">Annuler</button>
+                      <button type="submit" disabled={isProcessingDriver} className="px-4 py-2 bg-gray-900 text-white font-bold rounded-xl hover:bg-gray-800 disabled:opacity-50">
+                        {isProcessingDriver ? "Création..." : "Ajouter"}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
 
             {drivers.length === 0 ? (
               <div className="text-center py-12 bg-white rounded-2xl border border-gray-100">

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
@@ -16,6 +16,8 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectUrl = searchParams.get("redirect") || "/";
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,8 +41,8 @@ export default function RegisterPage() {
         createdAt: serverTimestamp(),
       });
 
-      // 4. Redirect to home
-      router.push("/");
+      // 4. Redirect
+      router.push(redirectUrl);
     } catch (err: any) {
       console.error(err);
       if (err.code === "auth/email-already-in-use") {
@@ -136,7 +138,7 @@ export default function RegisterPage() {
 
           <div className="text-center text-sm text-gray-500 mt-8">
             Vous avez déjà un compte ?{" "}
-            <Link href="/login" className="font-bold text-primary hover:text-primary-dark transition-colors">
+            <Link href={redirectUrl !== "/" ? `/login?redirect=${redirectUrl}` : "/login"} className="font-bold text-primary hover:text-primary-dark transition-colors">
               Se connecter
             </Link>
           </div>

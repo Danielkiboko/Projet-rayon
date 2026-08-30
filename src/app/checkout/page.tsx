@@ -8,9 +8,19 @@ import { useCart } from "@/context/CartContext";
 import { db } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
+import { useAuth } from "@/context/AuthContext";
+import { useEffect } from "react";
+
 export default function CheckoutPage() {
   const { items: cartItems, cartTotalCount, clearCart } = useCart();
+  const { user, loading } = useAuth();
   const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push("/register?redirect=/checkout");
+    }
+  }, [user, loading, router]);
 
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
@@ -71,6 +81,8 @@ export default function CheckoutPage() {
 
       // 1. Create order in Firestore
       const orderRef = await addDoc(collection(db, "orders"), {
+        clientId: user.uid,
+        supplierId: cartItems[0]?.supplierId || "admin",
         clientPhone: phone,
         clientAddress: address,
         location: location || null,
@@ -78,12 +90,13 @@ export default function CheckoutPage() {
           id: item.id,
           name: item.title,
           quantity: item.quantity,
-          price: parseFloat(item.price)
+          price: parseFloat(item.price),
+          supplierId: item.supplierId || "admin"
         })),
         itemsTotal: itemsTotal,
         feePaid: DISPATCH_FEE,
         remainingBalance: itemsTotal, // The rest of the items price
-        status: "CONFIRMED_AWAITING_DRIVER", // Waiting for driver to accept
+        status: "EN_ATTENTE", // Waiting for driver to accept
         createdAt: serverTimestamp(),
       });
 
@@ -112,6 +125,14 @@ export default function CheckoutPage() {
         <Link href="/" className="px-6 py-3 bg-gray-900 text-white font-bold rounded-xl hover:bg-gray-800 transition-colors">
           Retour à l'accueil
         </Link>
+      </div>
+    );
+  }
+
+  if (loading || !user) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-gray-300 border-t-gray-900 rounded-full animate-spin"></div>
       </div>
     );
   }

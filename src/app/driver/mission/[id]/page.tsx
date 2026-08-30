@@ -1,38 +1,161 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ChevronLeft, MapPin, Phone, MessageSquare, Navigation, CheckCircle2 } from "lucide-react";
+import { auth, db } from "@/lib/firebase";
+import { doc, getDoc, updateDoc, collection, addDoc, serverTimestamp, setDoc } from "firebase/firestore";
 
 export default function MissionDetails({ params }: { params: { id: string } }) {
+  const router = useRouter();
+  const [order, setOrder] = useState<any>(null);
   const [status, setStatus] = useState<"EN_ATTENTE" | "EN_ROUTE" | "LIVRE">("EN_ATTENTE");
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [driverLocation, setDriverLocation] = useState<{lat: number, lng: number} | null>(null);
 
-  const handleStatusChange = () => {
-    if (status === "EN_ATTENTE") setStatus("EN_ROUTE");
-    else if (status === "EN_ROUTE") setStatus("LIVRE");
+  useEffect(() => {
+    const fetchOrder = async () => {
+      try {
+        const docRef = doc(db, "orders", params.id);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setOrder({ id: docSnap.id, ...data });
+          setStatus(data.status as any || "EN_ATTENTE");
+        } else {
+          setError("Mission introuvable");
+        }
+      } catch (err: any) {
+        console.error(err);
+        setError("Erreur de chargement");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchOrder();
+  }, [params.id]);
+
+  const handleStatusChange = async () => {
+    if (!order) return;
+    setIsUpdating(true);
+    
+    try {
+      const user = auth.currentUser;
+      if (!user) throw new Error("Non connecté");
+
+      const orderRef = doc(db, "orders", order.id);
+      let newStatus = status;
+
+      if (status === "EN_ATTENTE") {
+        newStatus = "EN_ROUTE";
+        
+        // Try to get geolocation
+        let lat = 0;
+        let lng = 0;
+        if ("geolocation" in navigator) {
+          try {
+            const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+              navigator.geolocation.getCurrentPosition(resolve, reject);
+            });
+            lat = position.coords.latitude;
+            lng = position.coords.longitude;
+            setDriverLocation({ lat, lng });
+          } catch (e) {
+            console.warn("Geolocation non autorisée ou erreur");
+          }
+        }
+
+        await updateDoc(orderRef, {
+          status: "EN_ROUTE",
+          driverId: user.uid,
+          updatedAt: serverTimestamp()
+        });
+        
+        // Send chat message to client portal
+        if (order.clientId && order.supplierId) {
+          const chatId = `${order.clientId}_${order.supplierId}`;
+          const chatRef = doc(db, "chats", chatId);
+          
+          // Make sure chat doc exists
+          await setDoc(chatRef, {
+            clientId: order.clientId,
+            supplierId: order.supplierId,
+            updatedAt: serverTimestamp()
+          }, { merge: true });
+          
+          let mapLink = "";
+          if (lat !== 0 && lng !== 0) {
+            mapLink = `\nMa position actuelle : https://maps.google.com/?q=${lat},${lng}`;
+          }
+
+          // Send message
+          await addDoc(collection(db, `chats/${chatId}/messages`), {
+            text: `📍 Votre livreur a pris en charge votre commande et est en route !${mapLink}`,
+            senderId: user.uid,
+            createdAt: serverTimestamp(),
+            isSystem: true // Can be used to style it differently in chat
+          });
+        }
+        
+      } else if (status === "EN_ROUTE") {
+        newStatus = "LIVRE";
+        await updateDoc(orderRef, {
+          status: "LIVRE",
+          deliveredAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+      }
+      
+      setStatus(newStatus as any);
+    } catch (err: any) {
+      console.error(err);
+      alert("Erreur lors de la mise à jour du statut.");
+    } finally {
+      setIsUpdating(false);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="bg-[#0b061c] min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-white/20 border-t-primary rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  if (error || !order) {
+    return (
+      <div className="bg-[#0b061c] min-h-screen flex flex-col items-center justify-center p-4 text-center">
+        <h2 className="text-white text-xl font-bold mb-4">{error || "Erreur"}</h2>
+        <Link href="/driver" className="px-6 py-2 bg-primary text-white rounded-lg">Retour</Link>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-[#0b061c] min-h-screen flex flex-col relative pb-20">
       {/* Header Over Map */}
       <div className="absolute top-0 w-full z-10 bg-gradient-to-b from-black/80 to-transparent p-4 flex items-center justify-between">
-        <Link href="/driver" className="w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center text-white">
+        <button onClick={() => router.back()} className="w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center text-white">
           <ChevronLeft size={24} />
-        </Link>
+        </button>
         <span className="text-white font-bold text-sm bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
-          Mission {params.id}
+          Mission {params.id.substring(0,6)}...
         </span>
-        <div className="w-10" /> {/* Spacer */}
+        <div className="w-10" />
       </div>
 
-      {/* Map Placeholder (Simulated view of 2 people) */}
+      {/* Map Placeholder */}
       <div className="h-[45vh] bg-[#1a1f35] relative overflow-hidden flex items-center justify-center">
         {/* Fake Map Grid */}
         <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "linear-gradient(#ffffff 1px, transparent 1px), linear-gradient(90deg, #ffffff 1px, transparent 1px)", backgroundSize: "20px 20px" }}></div>
         
         {/* Route Line */}
         <svg className="absolute inset-0 w-full h-full" style={{ strokeDasharray: "5,5" }}>
-          <path d="M 100 150 Q 200 50 300 200" fill="none" stroke="#a78bfa" strokeWidth="4" className="animate-pulse" />
+          <path d="M 100 150 Q 200 50 300 200" fill="none" stroke="#a78bfa" strokeWidth="4" className={status === "EN_ROUTE" ? "animate-pulse" : ""} />
         </svg>
 
         {/* Driver Marker */}
@@ -58,16 +181,13 @@ export default function MissionDetails({ params }: { params: { id: string } }) {
 
         <div className="flex justify-between items-start mb-6">
           <div>
-            <h2 className="text-2xl font-bold text-white mb-1">Jean Dupont</h2>
-            <p className="text-gray-400 text-sm">Client Rayons Connect</p>
+            <h2 className="text-2xl font-bold text-white mb-1">Client: {order.clientId ? order.clientId.substring(0,8) : "Inconnu"}</h2>
+            <p className="text-gray-400 text-sm">{order.clientPhone}</p>
           </div>
           <div className="flex space-x-3">
-            <button className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-colors">
-              <MessageSquare size={18} />
-            </button>
-            <button className="w-10 h-10 bg-green-500/20 text-green-400 rounded-full flex items-center justify-center hover:bg-green-500/30 transition-colors border border-green-500/30">
+            <a href={`tel:${order.clientPhone}`} className="w-10 h-10 bg-green-500/20 text-green-400 rounded-full flex items-center justify-center hover:bg-green-500/30 transition-colors border border-green-500/30">
               <Phone size={18} />
-            </button>
+            </a>
           </div>
         </div>
 
@@ -78,19 +198,25 @@ export default function MissionDetails({ params }: { params: { id: string } }) {
             </div>
             <div>
               <p className="text-xs text-gray-400 font-medium mb-1">Adresse de livraison</p>
-              <p className="text-sm font-bold text-white">Quartier Ma Campagne, Avenue de la Paix N° 45</p>
-              <p className="text-xs text-gray-500 mt-1">Garder la porte de la parcelle fermée.</p>
+              <p className="text-sm font-bold text-white">{order.clientAddress}</p>
+              {order.location && (
+                <p className="text-xs text-blue-400 mt-1">Coordonnées GPS: {order.location.lat.toFixed(4)}, {order.location.lng.toFixed(4)}</p>
+              )}
             </div>
           </div>
 
           <div className="flex justify-between p-4 bg-black/20 rounded-2xl border border-white/5">
             <div>
               <p className="text-xs text-gray-400 mb-1">Colis</p>
-              <p className="text-sm font-bold text-white">1x Kit Starlink Standard</p>
+              <div className="space-y-1">
+                {order.items?.map((item: any, idx: number) => (
+                  <p key={idx} className="text-sm font-bold text-white">{item.quantity}x {item.name}</p>
+                ))}
+              </div>
             </div>
             <div className="text-right">
               <p className="text-xs text-gray-400 mb-1">À encaisser</p>
-              <p className="text-sm font-bold text-green-400">Payé en ligne</p>
+              <p className="text-sm font-bold text-green-400">{order.remainingBalance} AED</p>
             </div>
           </div>
         </div>
@@ -105,13 +231,16 @@ export default function MissionDetails({ params }: { params: { id: string } }) {
           ) : (
             <button 
               onClick={handleStatusChange}
-              className={`w-full py-4 text-white font-bold rounded-2xl transition-all shadow-lg flex items-center justify-center space-x-2 ${
+              disabled={isUpdating}
+              className={`w-full py-4 text-white font-bold rounded-2xl transition-all shadow-lg flex items-center justify-center space-x-2 disabled:opacity-50 ${
                 status === "EN_ATTENTE" 
                   ? "bg-primary hover:bg-primary-light shadow-primary/20" 
                   : "bg-orange-500 hover:bg-orange-400 shadow-orange-500/20"
               }`}
             >
-              {status === "EN_ATTENTE" ? (
+              {isUpdating ? (
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : status === "EN_ATTENTE" ? (
                 <>
                   <Navigation size={20} />
                   <span>Démarrer la course</span>

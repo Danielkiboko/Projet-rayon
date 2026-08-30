@@ -14,13 +14,14 @@ import {
   Settings,
   LogOut,
   Menu,
-  X
+  X,
+  MessageSquare
 } from "lucide-react";
 
 const NAV_ITEMS = [
   { name: "Tableau de bord", href: "/c-panel", icon: LayoutDashboard },
   { name: "Fournisseurs", href: "/c-panel/suppliers", icon: Store },
-  { name: "Clients", href: "/c-panel/clients", icon: Users },
+  { name: "Support", href: "/c-panel/support", icon: MessageSquare },
   { name: "Commandes", href: "/c-panel/orders", icon: ShoppingCart },
   { name: "Livreurs", href: "/c-panel/drivers", icon: Truck },
   { name: "Paramètres", href: "/c-panel/settings", icon: Settings },

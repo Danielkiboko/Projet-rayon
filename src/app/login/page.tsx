@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
@@ -17,13 +17,15 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectUrl = searchParams.get("redirect") || "/dashboard";
   const { user, loading } = useAuth();
 
   useEffect(() => {
     if (!loading && user) {
-      router.replace("/dashboard");
+      router.replace(redirectUrl);
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, redirectUrl]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,7 +34,8 @@ export default function LoginPage() {
     
     try {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        router.replace("/dashboard");
+        // Handled by useEffect above, but we can also push directly if preferred:
+        router.replace(redirectUrl);
       } catch (err: any) {
       console.log("Erreur de connexion :", err.message);
       setError(err.message);
@@ -83,7 +86,7 @@ export default function LoginPage() {
             <div className="space-y-1">
               <div className="flex justify-between items-center">
                 <label className="text-sm font-bold text-gray-700">Mot de passe</label>
-                <Link href="#" className="text-xs font-semibold text-primary hover:text-primary-dark transition-colors">
+                <Link href="/forgot-password" className="text-xs font-semibold text-primary hover:text-primary-dark transition-colors">
                   Mot de passe oublié ?
                 </Link>
               </div>
@@ -114,7 +117,7 @@ export default function LoginPage() {
 
           <div className="text-center text-sm text-gray-500 mt-8">
             Pas encore de compte ?{" "}
-            <Link href="/register" className="font-bold text-primary hover:text-primary-dark transition-colors">
+            <Link href={redirectUrl !== "/dashboard" ? `/register?redirect=${redirectUrl}` : "/register"} className="font-bold text-primary hover:text-primary-dark transition-colors">
               Créer un compte
             </Link>
           </div>

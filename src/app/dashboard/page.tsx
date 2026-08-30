@@ -3,6 +3,7 @@
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/context/AuthContext"
+import { motion } from "framer-motion"
 
 export default function DashboardRedirect() {
   const router = useRouter()
@@ -29,7 +30,7 @@ export default function DashboardRedirect() {
         break
       case "SUPPLIER":
       case "FOURNISSEUR":
-        router.replace("/supplier/dashboard")
+        router.replace("/supplier")
         break
       case "SUB_ADMIN":
         if (userData?.permissions?.canViewDashboard) {
@@ -54,8 +55,31 @@ export default function DashboardRedirect() {
   }, [loading, user, userData, router])
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 text-gray-900">
-      <p className="text-lg font-medium">Redirection en cours…</p>
+    <div className="flex min-h-screen flex-col items-center justify-center bg-[#0b061c] text-white">
+      <div className="relative">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+          className="w-24 h-24 rounded-full border-4 border-white/10 border-t-primary border-l-primary"
+        />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <motion.div
+            animate={{ scale: [1, 1.1, 1] }}
+            transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
+            className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center backdrop-blur-sm border border-primary/50"
+          >
+            <span className="text-xl font-bold text-white tracking-wider">R<span className="text-primary-light">.</span></span>
+          </motion.div>
+        </div>
+      </div>
+      <motion.p
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+        className="mt-8 text-lg font-medium text-gray-400 tracking-wide"
+      >
+        Préparation de votre espace...
+      </motion.p>
     </div>
   )
 }

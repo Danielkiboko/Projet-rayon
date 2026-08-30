@@ -62,6 +62,11 @@ export default function CheckoutPage() {
 
   const handlePayment = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) {
+      setError("Vous devez être connecté pour passer commande.");
+      return;
+    }
+
     if (cartTotalCount === 0) {
       setError("Votre panier est vide.");
       return;
@@ -81,7 +86,7 @@ export default function CheckoutPage() {
 
       // 1. Create order in Firestore
       const orderRef = await addDoc(collection(db, "orders"), {
-        clientId: user.uid,
+        clientId: user?.uid || "",
         supplierId: cartItems[0]?.supplierId || "admin",
         clientPhone: phone,
         clientAddress: address,

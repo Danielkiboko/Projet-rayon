@@ -12,13 +12,17 @@ import {
   Settings,
   LogOut,
   Menu,
-  X
+  X,
+  Truck,
+  MessageSquare
 } from "lucide-react";
 
 const NAV_ITEMS = [
   { name: "Tableau de bord", href: "/supplier", icon: LayoutDashboard },
   { name: "Mes Produits/Biens", href: "/supplier/products", icon: Package },
   { name: "Commandes", href: "/supplier/orders", icon: ShoppingCart },
+  { name: "Livreurs", href: "/supplier/drivers", icon: Truck },
+  { name: "Messages", href: "/supplier/messages", icon: MessageSquare },
   { name: "Paramètres", href: "/supplier/settings", icon: Settings },
 ];
 

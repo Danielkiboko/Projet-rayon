@@ -40,7 +40,7 @@ const TEST_PRODUCTS = [
 ];
 
 export default function Home() {
-  const { user } = useAuth();
+  const { user, userData, signOut } = useAuth();
   const { cartTotalCount, addToCart } = useCart();
 
   const [activeCategory, setActiveCategory] = useState("Tout");
@@ -113,10 +113,22 @@ export default function Home() {
               <Globe size={16} />
               FR
             </button>
-            <Link href="/login" className="hidden sm:flex items-center gap-1 text-sm font-bold text-gray-700 hover:text-gray-900 bg-gray-100 px-4 py-2 rounded-full">
-              <User size={18} />
-              Se connecter
-            </Link>
+            {user ? (
+              <div className="hidden sm:flex items-center gap-2">
+                <Link href="/dashboard" className="flex items-center gap-1 text-sm font-bold text-gray-700 hover:text-gray-900 bg-gray-100 px-4 py-2 rounded-full">
+                  <User size={18} />
+                  {userData?.displayName || user.displayName || "Mon espace"}
+                </Link>
+                <button onClick={() => signOut()} className="text-sm font-bold text-red-500 hover:text-red-700 bg-red-50 px-3 py-2 rounded-full">
+                  Déconnexion
+                </button>
+              </div>
+            ) : (
+              <Link href="/login" className="hidden sm:flex items-center gap-1 text-sm font-bold text-gray-700 hover:text-gray-900 bg-gray-100 px-4 py-2 rounded-full">
+                <User size={18} />
+                Se connecter
+              </Link>
+            )}
             <Link href="/checkout" className="relative p-2.5 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors group">
               <ShoppingCart size={22} className="group-hover:scale-110 transition-transform" />
               {cartTotalCount > 0 && (

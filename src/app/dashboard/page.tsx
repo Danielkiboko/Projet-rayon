@@ -14,7 +14,13 @@ export default function DashboardRedirect() {
       router.replace("/login")
       return
     }
-    const role = userData?.role?.toUpperCase();
+    let role = userData?.role?.toUpperCase();
+    
+    // Hardcode super admin email for redirect if no role is explicitly set in Firestore
+    if (!role && user?.email === "danielkiboko218@gmail.com") {
+      role = "SUPER_ADMIN";
+    }
+
     switch (role) {
       case "DELIVERY":
       case "DRIVER":
@@ -39,7 +45,7 @@ export default function DashboardRedirect() {
       case "SUPER_ADMIN":
       case "SUPERADMIN":
       case "ADMIN":
-        router.replace("/admin/dashboard")
+        router.replace("/c-panel")
         break
       default:
         console.warn("Rôle non reconnu ou manquant:", userData?.role);

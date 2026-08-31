@@ -81,17 +81,19 @@ export default function SupplierLayout({
         </nav>
 
         <div className="p-4 border-t border-white/10">
-          <div className="px-4 py-3 mb-2 bg-white/5 rounded-lg border border-white/10">
+          <div className="px-4 py-3 mb-4 bg-white/5 rounded-lg border border-white/10">
             <p className="text-xs text-gray-400 uppercase font-semibold">Rayon Associé</p>
             <p className="text-sm text-primary-light font-medium truncate">Rayon Connect</p>
           </div>
-          <button 
+          <motion.button 
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.95 }}
             onClick={() => signOut()}
-            className="flex items-center space-x-3 px-4 py-3 w-full rounded-lg text-red-400 hover:bg-red-400/10 transition-colors"
+            className="flex items-center space-x-3 px-4 py-3 w-full rounded-lg text-red-400 bg-red-400/5 hover:bg-red-400/15 border border-transparent hover:border-red-400/20 transition-all shadow-sm"
           >
             <LogOut size={20} />
             <span className="font-medium">Déconnexion</span>
-          </button>
+          </motion.button>
         </div>
       </motion.aside>
 

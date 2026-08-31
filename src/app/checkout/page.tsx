@@ -10,10 +10,12 @@ import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
 import { useAuth } from "@/context/AuthContext";
 import { useEffect } from "react";
+import { useCurrency } from "@/context/CurrencyContext";
 
 export default function CheckoutPage() {
   const { items: cartItems, cartTotalCount, clearCart } = useCart();
   const { user, loading } = useAuth();
+  const { formatPrice } = useCurrency();
   const router = useRouter();
 
   useEffect(() => {
@@ -205,7 +207,7 @@ export default function CheckoutPage() {
               </h3>
               <p className="text-xs text-blue-800">
                 Vous allez être débité de <strong>3 USD</strong> pour confirmer la course du livreur. 
-                Le solde de {itemsTotal} AED sera à payer à l'arrivée.
+                Le solde de {formatPrice(itemsTotal)} sera à payer à l'arrivée.
               </p>
             </div>
 
@@ -240,7 +242,7 @@ export default function CheckoutPage() {
                   <span className="text-sm font-bold text-gray-500 mr-3">{item.quantity}x</span>
                   <span className="text-sm text-gray-900">{item.title}</span>
                 </div>
-                <span className="text-sm font-medium text-gray-900">{parseFloat(item.price) * item.quantity} AED</span>
+                <span className="text-sm font-medium text-gray-900">{formatPrice(parseFloat(item.price) * item.quantity)}</span>
               </div>
             ))}
           </div>
@@ -248,7 +250,7 @@ export default function CheckoutPage() {
           <div className="border-t border-gray-100 pt-4 space-y-2">
             <div className="flex justify-between items-center text-sm">
               <span className="text-gray-500">Sous-total produits</span>
-              <span className="font-bold text-gray-900">{itemsTotal} AED</span>
+              <span className="font-bold text-gray-900">{formatPrice(itemsTotal)}</span>
             </div>
             <div className="flex justify-between items-center text-sm text-orange-600 font-bold">
               <span>Frais d'approche (À payer maintenant)</span>

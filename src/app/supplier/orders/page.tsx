@@ -5,10 +5,10 @@ import { Search, MoreVertical, Package, Clock, CheckCircle, Truck, XCircle } fro
 import { motion } from "framer-motion";
 
 const MOCK_ORDERS = [
-  { id: "#ORD-8901", date: "28 Aout 2026", customer: "Alice D.", total: "280,000 FCFA", status: "Livrée", items: 1 },
-  { id: "#ORD-8902", date: "28 Aout 2026", customer: "Jean M.", total: "45,000 FCFA", status: "En attente", items: 1 },
-  { id: "#ORD-8903", date: "27 Aout 2026", customer: "Sarah K.", total: "90,000 FCFA", status: "Expédiée", items: 2 },
-  { id: "#ORD-8904", date: "25 Aout 2026", customer: "Paul B.", total: "15,000 FCFA", status: "Annulée", items: 1 },
+  { id: "#ORD-8901", date: "28 Aout 2026", customer: "Alice D.", total: "280,000 FC", status: "Livrée", items: 1 },
+  { id: "#ORD-8902", date: "28 Aout 2026", customer: "Jean M.", total: "45,000 FC", status: "En attente", items: 1 },
+  { id: "#ORD-8903", date: "27 Aout 2026", customer: "Sarah K.", total: "90,000 FC", status: "Expédiée", items: 2 },
+  { id: "#ORD-8904", date: "25 Aout 2026", customer: "Paul B.", total: "15,000 FC", status: "Annulée", items: 1 },
 ];
 
 const getStatusBadge = (status: string) => {

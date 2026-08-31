@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { Package, ShoppingCart, TrendingUp } from "lucide-react";
 
 const STATS = [
-  { name: "Ventes du mois", value: "84,000 FCFA", icon: TrendingUp, color: "text-green-400", bg: "bg-green-400/10" },
+  { name: "Ventes du mois", value: "84,000 FC", icon: TrendingUp, color: "text-green-400", bg: "bg-green-400/10" },
   { name: "Commandes à traiter", value: "3", icon: ShoppingCart, color: "text-blue-400", bg: "bg-blue-400/10" },
   { name: "Produits en ligne", value: "24", icon: Package, color: "text-purple-400", bg: "bg-purple-400/10" },
 ];

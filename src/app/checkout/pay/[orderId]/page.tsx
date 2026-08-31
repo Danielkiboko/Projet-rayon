@@ -6,10 +6,12 @@ import Link from "next/link";
 import { ArrowLeft, CreditCard, ShieldCheck, Heart } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { useCurrency } from "@/context/CurrencyContext";
 
 export default function FinalPaymentPage() {
   const { orderId } = useParams();
   const router = useRouter();
+  const { formatPrice } = useCurrency();
 
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -150,7 +152,7 @@ export default function FinalPaymentPage() {
             <div className="border-t border-gray-100 pt-4 space-y-2">
               <div className="flex justify-between items-center text-sm">
                 <span className="text-gray-500">Sous-total articles</span>
-                <span className="text-gray-900">{order.itemsTotal} AED</span>
+                <span className="text-gray-900">{formatPrice(order.itemsTotal)}</span>
               </div>
               <div className="flex justify-between items-center text-sm">
                 <span className="text-gray-500">Frais d'approche (Déjà payé)</span>
@@ -159,7 +161,7 @@ export default function FinalPaymentPage() {
               
               <div className="flex justify-between items-center text-lg font-bold pt-4 mt-2 border-t border-gray-200">
                 <span className="text-gray-900">Reste à payer</span>
-                <span className="text-blue-600 text-2xl">{order.remainingBalance} AED</span>
+                <span className="text-blue-600 text-2xl">{formatPrice(order.remainingBalance)}</span>
               </div>
             </div>
           </div>
@@ -170,7 +172,7 @@ export default function FinalPaymentPage() {
               Paiement Sécurisé (Simulation)
             </h3>
             <p className="text-xs text-blue-800">
-              Le paiement de {order.remainingBalance} AED débloquera votre commande auprès du livreur.
+              Le paiement de {formatPrice(order.remainingBalance)} débloquera votre commande auprès du livreur.
             </p>
           </div>
 
@@ -188,7 +190,7 @@ export default function FinalPaymentPage() {
             {isProcessing ? (
               <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
             ) : (
-              `Payer le solde (${order.remainingBalance} AED)`
+              `Payer le solde (${formatPrice(order.remainingBalance)})`
             )}
           </button>
         </div>

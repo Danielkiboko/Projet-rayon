@@ -19,7 +19,14 @@ function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectUrl = searchParams.get("redirect") || "/dashboard";
+  const reason = searchParams.get("reason");
   const { user, loading } = useAuth();
+
+  useEffect(() => {
+    if (reason === "inactivity") {
+      setError("Nous avons remarqué votre inactivité pendant 10 minutes, c'est pourquoi nous vous avons déconnecté automatiquement.");
+    }
+  }, [reason]);
 
   useEffect(() => {
     if (!loading && user) {

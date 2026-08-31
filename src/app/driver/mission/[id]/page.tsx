@@ -6,9 +6,11 @@ import { useRouter } from "next/navigation";
 import { ChevronLeft, MapPin, Phone, MessageSquare, Navigation, CheckCircle2 } from "lucide-react";
 import { auth, db } from "@/lib/firebase";
 import { doc, getDoc, updateDoc, collection, addDoc, serverTimestamp, setDoc } from "firebase/firestore";
+import { useCurrency } from "@/context/CurrencyContext";
 
 export default function MissionDetails({ params }: { params: { id: string } }) {
   const router = useRouter();
+  const { formatPrice } = useCurrency();
   const [order, setOrder] = useState<any>(null);
   const [status, setStatus] = useState<"EN_ATTENTE" | "EN_ROUTE" | "LIVRE">("EN_ATTENTE");
   const [isLoading, setIsLoading] = useState(true);
@@ -216,7 +218,7 @@ export default function MissionDetails({ params }: { params: { id: string } }) {
             </div>
             <div className="text-right">
               <p className="text-xs text-gray-400 mb-1">À encaisser</p>
-              <p className="text-sm font-bold text-green-400">{order.remainingBalance} AED</p>
+              <p className="text-sm font-bold text-green-400">{formatPrice(order.remainingBalance)}</p>
             </div>
           </div>
         </div>

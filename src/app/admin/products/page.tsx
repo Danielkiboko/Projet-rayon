@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { collection, onSnapshot, query, orderBy, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
+import { useCurrency } from "@/context/CurrencyContext";
 
 type Product = {
   id: string;
@@ -32,6 +33,7 @@ type Product = {
 export default function AdminProductsPage() {
   const { user, userData, loading, signOut } = useAuth();
   const router = useRouter();
+  const { formatPrice, currency } = useCurrency();
 
   const [products, setProducts] = useState<Product[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -281,7 +283,7 @@ export default function AdminProductsPage() {
                           </span>
                         </td>
                         <td className="p-5 font-black text-gray-900 text-base">
-                          {product.price} <span className="text-xs text-gray-400 font-bold">AED</span>
+                          {formatPrice(product.price)}
                         </td>
                         <td className="p-5 text-right space-x-3">
                           <button 
@@ -346,7 +348,7 @@ export default function AdminProductsPage() {
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Prix (AED)</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Prix (Valeur de Base: {currency})</label>
                   <input 
                     type="number" 
                     step="0.01" 

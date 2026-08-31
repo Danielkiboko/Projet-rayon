@@ -15,6 +15,7 @@ export const metadata: Metadata = {
 };
 
 import { AuthProvider } from "@/context/AuthContext";
+import { CurrencyProvider } from "@/context/CurrencyContext";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -25,10 +26,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     >
       <body className="min-h-full flex flex-col bg-gray-50 text-gray-900" suppressHydrationWarning>
         <AuthProvider>
-          <CartProvider>
-            {children}
-            <CartDrawer />
-          </CartProvider>
+          <CurrencyProvider>
+            <CartProvider>
+              {children}
+              <CartDrawer />
+            </CartProvider>
+          </CurrencyProvider>
         </AuthProvider>
       </body>
     </html>

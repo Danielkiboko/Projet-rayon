@@ -4,12 +4,16 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Trash2, Plus, Minus, ShoppingBag, ChevronRight } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 
+import { useCurrency } from "@/context/CurrencyContext";
+
 export function CartDrawer() {
   const { isCartOpen, setIsCartOpen, items, updateQuantity, removeFromCart, cartTotalCount } = useCart();
+  const { formatPrice } = useCurrency();
 
-  // Helper to parse price (e.g. "$ 581,67" -> 581.67) for calculating total
-  const getNumericPrice = (priceStr: string) => {
-    const cleaned = priceStr.replace(/[^0-9,]/g, "").replace(",", ".");
+  // Helper to parse price (e.g. "1200", "$ 581,67" -> 581.67) for calculating total
+  const getNumericPrice = (priceStr: string | number) => {
+    if (typeof priceStr === "number") return priceStr;
+    const cleaned = priceStr.replace(/[^0-9,.]/g, "").replace(",", ".");
     return parseFloat(cleaned) || 0;
   };
 
@@ -79,7 +83,7 @@ export function CartDrawer() {
                       <h4 className="text-sm font-bold text-gray-900 line-clamp-2 leading-tight">
                         {item.title}
                       </h4>
-                      <p className="text-primary font-bold mt-1">{item.price}</p>
+                      <p className="text-primary font-bold mt-1">{formatPrice(getNumericPrice(item.price))}</p>
                       
                       <div className="mt-auto flex items-center justify-between pt-2">
                         <div className="flex items-center space-x-3 bg-gray-50 rounded-lg p-1 border border-gray-200">
@@ -119,7 +123,7 @@ export function CartDrawer() {
                 <div className="flex items-center justify-between mb-4">
                   <span className="text-gray-600 font-medium">Sous-total</span>
                   <span className="text-xl font-bold text-gray-900">
-                    $ {totalPrice.toFixed(2).replace(".", ",")}
+                    {formatPrice(totalPrice)}
                   </span>
                 </div>
                 <button 

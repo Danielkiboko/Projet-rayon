@@ -6,10 +6,12 @@ import { useAuth } from "@/context/AuthContext";
 import { Package, MapPin, CheckCircle, LogOut, Navigation } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { collection, query, where, onSnapshot, doc, updateDoc } from "firebase/firestore";
+import { useCurrency } from "@/context/CurrencyContext";
 
 export default function DeliveryDashboardPage() {
   const { user, loading, signOut } = useAuth();
   const router = useRouter();
+  const { formatPrice } = useCurrency();
 
   const [availableOrders, setAvailableOrders] = useState<any[]>([]);
   const [myOrder, setMyOrder] = useState<any | null>(null);
@@ -85,7 +87,7 @@ export default function DeliveryDashboardPage() {
 
       // 2. Send SMS to client with payment link
       const paymentLink = `${window.location.origin}/checkout/pay/${myOrder.id}`;
-      const message = `Rayon: Votre livreur est arrivé ! Veuillez payer le solde de ${myOrder.remainingBalance} AED pour récupérer votre commande. Lien: ${paymentLink}`;
+      const message = `Rayon: Votre livreur est arrivé ! Veuillez payer le solde de ${formatPrice(myOrder.remainingBalance)} pour récupérer votre commande. Lien: ${paymentLink}`;
       
       await fetch("/api/sms", {
         method: "POST",
@@ -141,7 +143,7 @@ export default function DeliveryDashboardPage() {
               <div className="p-4 border-b border-gray-100 bg-blue-50">
                 <div className="flex justify-between items-center mb-1">
                   <span className="font-bold text-blue-900 text-sm">#ORD-{myOrder.id.slice(0, 6).toUpperCase()}</span>
-                  <span className="font-bold text-gray-900">{myOrder.remainingBalance} AED</span>
+                  <span className="font-bold text-gray-900">{formatPrice(myOrder.remainingBalance)}</span>
                 </div>
                 <p className="text-xs text-blue-800 font-medium">Statut: {myOrder.status === "ACCEPTED" ? "En route vers le client" : "Arrivé - En attente du paiement"}</p>
               </div>
@@ -206,7 +208,7 @@ export default function DeliveryDashboardPage() {
                   <div className="p-4 border-b border-gray-100 bg-orange-50">
                     <div className="flex justify-between items-center mb-1">
                       <span className="font-bold text-orange-700 text-sm">#ORD-{order.id.slice(0, 6).toUpperCase()}</span>
-                      <span className="font-bold text-gray-900">{order.remainingBalance} AED</span>
+                      <span className="font-bold text-gray-900">{formatPrice(order.remainingBalance)}</span>
                     </div>
                   </div>
                   

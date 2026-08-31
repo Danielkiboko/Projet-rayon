@@ -20,6 +20,7 @@ import {
 
 const NAV_ITEMS = [
   { name: "Tableau de bord", href: "/c-panel", icon: LayoutDashboard },
+  { name: "Clients", href: "/c-panel/clients", icon: Users },
   { name: "Fournisseurs", href: "/c-panel/suppliers", icon: Store },
   { name: "Support", href: "/c-panel/support", icon: MessageSquare },
   { name: "Commandes", href: "/c-panel/orders", icon: ShoppingCart },
@@ -82,13 +83,15 @@ export default function CPanelLayout({
         </nav>
 
         <div className="p-4 border-t border-white/10">
-          <button 
+          <motion.button 
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.95 }}
             onClick={() => signOut()}
-            className="flex items-center space-x-3 px-4 py-3 w-full rounded-lg text-red-400 hover:bg-red-400/10 transition-colors"
+            className="flex items-center space-x-3 px-4 py-3 w-full rounded-lg text-red-400 bg-red-400/5 hover:bg-red-400/15 border border-transparent hover:border-red-400/20 transition-all shadow-sm"
           >
             <LogOut size={20} />
             <span className="font-medium">Déconnexion</span>
-          </button>
+          </motion.button>
         </div>
       </motion.aside>
 

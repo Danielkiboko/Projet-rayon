@@ -24,6 +24,8 @@ export default function SuppliersPage() {
 
   // Form states
   const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [rayon, setRayon] = useState("");
   const [role, setRole] = useState("supplier");
@@ -72,6 +74,8 @@ export default function SuppliersPage() {
 
       // Generate a strong random password since the user will reset it anyway
       const randomPassword = Math.random().toString(36).slice(-10) + "A1@";
+      
+      const displayName = name || `${firstName} ${lastName}`.trim();
 
       // 1. Create the user account via API
       const response = await fetch("/api/users/create", {
@@ -83,9 +87,9 @@ export default function SuppliersPage() {
         body: JSON.stringify({
           email,
           password: randomPassword,
-          displayName: name,
+          displayName: displayName,
           roleToCreate: role,
-          extraData: { rayon },
+          extraData: { rayon, firstName, lastName },
         }),
       });
 
@@ -100,6 +104,8 @@ export default function SuppliersPage() {
 
       // Reset form and close modal
       setName("");
+      setFirstName("");
+      setLastName("");
       setEmail("");
       setRayon("");
       setRole("supplier");
@@ -167,7 +173,7 @@ export default function SuppliersPage() {
           <table className="w-full text-left text-sm text-gray-300">
             <thead className="text-xs uppercase bg-black/20 text-gray-400">
               <tr>
-                <th className="px-6 py-4">Nom de l'entreprise</th>
+                <th className="px-6 py-4">Nom</th>
                 <th className="px-6 py-4">Email</th>
                 <th className="px-6 py-4">Rayon associé</th>
                 <th className="px-6 py-4">Statut</th>
@@ -226,10 +232,10 @@ export default function SuppliersPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-lg bg-[#140b2e] border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+              className="w-full max-w-lg bg-[#140b2e] border border-white/10 rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto"
             >
-              <div className="flex items-center justify-between p-6 border-b border-white/10">
-                <h2 className="text-xl font-semibold text-white">Créer un compte Fournisseur</h2>
+              <div className="flex items-center justify-between p-6 border-b border-white/10 sticky top-0 bg-[#140b2e] z-10">
+                <h2 className="text-xl font-semibold text-white">Créer un compte</h2>
                 <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-white">
                   <X size={24} />
                 </button>
@@ -246,11 +252,33 @@ export default function SuppliersPage() {
                   Un e-mail de configuration de mot de passe sera automatiquement envoyé à l'adresse indiquée une fois le compte créé.
                 </div>
 
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium text-gray-300">Prénom</label>
+                    <input
+                      type="text"
+                      required
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium text-gray-300">Nom (Post-nom)</label>
+                    <input
+                      type="text"
+                      required
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white"
+                    />
+                  </div>
+                </div>
+
                 <div className="space-y-1">
-                  <label className="text-sm font-medium text-gray-300">Nom de l'entreprise</label>
+                  <label className="text-sm font-medium text-gray-300">Nom de l'entreprise (Optionnel)</label>
                   <input
                     type="text"
-                    required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white"

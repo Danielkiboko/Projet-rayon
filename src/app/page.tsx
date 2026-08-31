@@ -8,6 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { CartDrawer } from "@/components/CartDrawer";
 import { Footer } from "@/components/Footer";
 import { useCart } from "@/context/CartContext";
+import { useCurrency, CurrencyCode } from "@/context/CurrencyContext";
 import { db } from "@/lib/firebase";
 import { collection, onSnapshot } from "firebase/firestore";
 
@@ -42,6 +43,7 @@ const TEST_PRODUCTS = [
 export default function Home() {
   const { user, userData, signOut } = useAuth();
   const { cartTotalCount, addToCart } = useCart();
+  const { currency, setCurrency, formatPrice } = useCurrency();
 
   const [activeCategory, setActiveCategory] = useState("Tout");
   const [dbProducts, setDbProducts] = useState<any[]>([]);
@@ -109,10 +111,28 @@ export default function Home() {
           </nav>
 
           <div className="flex items-center gap-3 sm:gap-4">
-            <button className="hidden sm:flex items-center gap-1 text-sm font-bold text-gray-700 hover:text-gray-900 bg-gray-100 px-3 py-1.5 rounded-full">
-              <Globe size={16} />
-              FR
-            </button>
+            {/* Currency Selector */}
+            <div className="relative group/currency">
+              <button className="hidden sm:flex items-center gap-1 text-sm font-bold text-gray-700 hover:text-gray-900 bg-gray-100 px-3 py-1.5 rounded-full transition-colors">
+                <Globe size={16} />
+                {currency}
+              </button>
+              {/* Dropdown menu */}
+              <div className="absolute right-0 mt-2 w-24 bg-white rounded-xl shadow-lg border border-gray-100 opacity-0 invisible group-hover/currency:opacity-100 group-hover/currency:visible transition-all duration-200 z-50 overflow-hidden">
+                {(["FC", "USD", "EUR"] as CurrencyCode[]).map((code) => (
+                  <button
+                    key={code}
+                    onClick={() => setCurrency(code)}
+                    className={`block w-full text-left px-4 py-2 text-sm font-bold hover:bg-gray-50 transition-colors ${
+                      currency === code ? "text-[#4F46E5] bg-[#4F46E5]/5" : "text-gray-700"
+                    }`}
+                  >
+                    {code}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {user ? (
               <div className="hidden sm:flex items-center gap-2">
                 <Link href="/dashboard" className="flex items-center gap-1 text-sm font-bold text-gray-700 hover:text-gray-900 bg-gray-100 px-4 py-2 rounded-full">
@@ -281,7 +301,7 @@ export default function Home() {
                             {product.name}
                           </h3>
                           <div className="mt-auto flex items-center justify-between pt-3 border-t border-gray-50">
-                            <span className="font-bold text-lg text-gray-900">{parseFloat(product.price).toFixed(2)} AED</span>
+                            <span className="font-bold text-lg text-gray-900">{formatPrice(product.price)}</span>
                             <button 
                               onClick={() => addToCart({
                                 id: product.id,

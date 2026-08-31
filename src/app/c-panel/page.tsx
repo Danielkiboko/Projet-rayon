@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { Users, Store, ShoppingCart, TrendingUp, Truck } from "lucide-react";
 
 const STATS = [
-  { name: "Ventes du jour", value: "245,000 FCFA", icon: TrendingUp, color: "text-green-400", bg: "bg-green-400/10" },
+  { name: "Ventes du jour", value: "245,000 FC", icon: TrendingUp, color: "text-green-400", bg: "bg-green-400/10" },
   { name: "Commandes Actives", value: "12", icon: ShoppingCart, color: "text-blue-400", bg: "bg-blue-400/10" },
   { name: "Fournisseurs", value: "45", icon: Store, color: "text-purple-400", bg: "bg-purple-400/10" },
   { name: "Livreurs Actifs", value: "34", icon: Truck, color: "text-orange-400", bg: "bg-orange-400/10" },

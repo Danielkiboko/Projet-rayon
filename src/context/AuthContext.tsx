@@ -72,8 +72,86 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => unsubscribeAuth();
   }, []);
 
+  useEffect(() => {
+    let inactivityTimer: NodeJS.Timeout;
+
+    const resetTimer = () => {
+      clearTimeout(inactivityTimer);
+      // 10 minutes = 10 * 60 * 1000 ms
+      inactivityTimer = setTimeout(() => {
+        if (user && userData && (userData.role === 'admin' || userData.role === 'SUB_ADMIN' || userData.role === 'supplier')) {
+          firebaseSignOut(auth).then(() => {
+            router.push("/login?reason=inactivity");
+          });
+        }
+      }, 10 * 60 * 1000);
+    };
+
+    if (user && userData && (userData.role === 'admin' || userData.role === 'SUB_ADMIN' || userData.role === 'supplier')) {
+      window.addEventListener('mousemove', resetTimer);
+      window.addEventListener('keydown', resetTimer);
+      window.addEventListener('scroll', resetTimer);
+      window.addEventListener('touchstart', resetTimer);
+      resetTimer();
+    }
+    
+    // PRESENCE TRACKING
+    const setPresenceOffline = () => {
+      if (user) {
+        import("firebase/firestore").then(({ setDoc, doc, serverTimestamp }) => {
+          setDoc(doc(db, "users", user.uid), {
+            isOnline: false,
+            lastConnection: serverTimestamp()
+          }, { merge: true }).catch(console.error);
+        });
+      }
+    };
+
+    const setPresenceOnline = () => {
+      if (user) {
+        import("firebase/firestore").then(({ setDoc, doc, serverTimestamp }) => {
+          setDoc(doc(db, "users", user.uid), {
+            isOnline: true,
+            lastConnection: serverTimestamp()
+          }, { merge: true }).catch(console.error);
+        });
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        setPresenceOffline();
+      } else {
+        setPresenceOnline();
+      }
+    };
+
+    if (user) {
+      setPresenceOnline();
+      window.addEventListener("visibilitychange", handleVisibilityChange);
+      window.addEventListener("beforeunload", setPresenceOffline);
+    }
+
+    return () => {
+      clearTimeout(inactivityTimer);
+      window.removeEventListener('mousemove', resetTimer);
+      window.removeEventListener('keydown', resetTimer);
+      window.removeEventListener('scroll', resetTimer);
+      window.removeEventListener('touchstart', resetTimer);
+      window.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("beforeunload", setPresenceOffline);
+    };
+  }, [user, userData, router]);
+
   const signOut = async () => {
     try {
+      if (user) {
+        const { setDoc, doc, serverTimestamp } = await import("firebase/firestore");
+        await setDoc(doc(db, "users", user.uid), {
+          isOnline: false,
+          lastConnection: serverTimestamp()
+        }, { merge: true }).catch(console.error);
+      }
       await firebaseSignOut(auth);
       router.push("/login");
     } catch (error) {

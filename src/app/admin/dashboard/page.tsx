@@ -16,10 +16,12 @@ import {
 } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
+import { useCurrency } from "@/context/CurrencyContext";
 
 export default function AdminDashboardPage() {
   const { user, userData, loading, signOut } = useAuth();
   const router = useRouter();
+  const { formatPrice } = useCurrency();
 
   const [orders, setOrders] = useState<any[]>([]);
   const [totalRevenue, setTotalRevenue] = useState(0);
@@ -179,7 +181,7 @@ export default function AdminDashboardPage() {
                 </div>
                 <div>
                   <p className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Chiffre d'affaires</p>
-                  <p className="text-4xl font-black text-gray-900">{totalRevenue.toFixed(2)} <span className="text-lg text-gray-400">AED</span></p>
+                  <p className="text-4xl font-black text-gray-900">{formatPrice(totalRevenue)}</p>
                 </div>
               </div>
             </div>
@@ -269,7 +271,7 @@ export default function AdminDashboardPage() {
                           {order.createdAt ? new Date(order.createdAt.seconds * 1000).toLocaleString('fr-FR') : "À l'instant"}
                         </td>
                         <td className="p-5 text-gray-900 font-medium">{order.clientPhone}</td>
-                        <td className="p-5 font-black text-gray-900">{order.itemsTotal} <span className="text-xs text-gray-400 font-bold">AED</span></td>
+                        <td className="p-5 font-black text-gray-900">{formatPrice(order.itemsTotal)}</td>
                         <td className="p-5">{getStatusBadge(order.status)}</td>
                         <td className="p-5 text-right">
                           <button className="text-gray-400 hover:text-blue-600 font-bold flex items-center justify-end w-full group-hover:translate-x-1 transition-all">

@@ -14,14 +14,26 @@ import {
   Menu,
   X,
   Truck,
-  MessageSquare
+  MessageSquare,
+  Home,
+  Users,
+  PieChart
 } from "lucide-react";
 
-const NAV_ITEMS = [
+const NAV_ITEMS_COMMERCE = [
   { name: "Tableau de bord", href: "/supplier", icon: LayoutDashboard },
   { name: "Mes Produits/Biens", href: "/supplier/products", icon: Package },
   { name: "Commandes", href: "/supplier/orders", icon: ShoppingCart },
   { name: "Livreurs", href: "/supplier/drivers", icon: Truck },
+  { name: "Messages", href: "/supplier/messages", icon: MessageSquare },
+  { name: "Paramètres", href: "/supplier/settings", icon: Settings },
+];
+
+const NAV_ITEMS_IMMO = [
+  { name: "Tableau de bord", href: "/supplier", icon: LayoutDashboard },
+  { name: "Mes Propriétés", href: "/supplier/properties", icon: Home },
+  { name: "Mes Locataires", href: "/supplier/tenants", icon: Users },
+  { name: "Rapports Financiers", href: "/supplier/reports", icon: PieChart },
   { name: "Messages", href: "/supplier/messages", icon: MessageSquare },
   { name: "Paramètres", href: "/supplier/settings", icon: Settings },
 ];
@@ -32,8 +44,12 @@ export default function SupplierLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const { signOut } = useAuth();
+  const { signOut, userData } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // Determine which navigation to show based on role or businessType
+  const isImmo = userData?.role === "SUPPLIER_IMMO" || userData?.businessType === "IMMOBILIER";
+  const navItems = isImmo ? NAV_ITEMS_IMMO : NAV_ITEMS_COMMERCE;
 
   return (
     <div className="flex h-screen bg-[#0b061c] overflow-hidden">
@@ -61,7 +77,7 @@ export default function SupplierLayout({
         </div>
 
         <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-2">
-          {NAV_ITEMS.map((item) => {
+          {navItems.map((item) => {
             const isActive = pathname === item.href;
             const Icon = item.icon;
             

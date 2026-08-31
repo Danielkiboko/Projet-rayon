@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Save, Phone } from "lucide-react";
+import { Save, Phone, Palette, Image as ImageIcon } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
 import { doc, updateDoc } from "firebase/firestore";
@@ -10,13 +10,20 @@ import { db } from "@/lib/firebase";
 export default function SupplierSettingsPage() {
   const { user, userData } = useAuth();
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [primaryColor, setPrimaryColor] = useState("#8b5cf6");
+  const [logoUrl, setLogoUrl] = useState("");
+  
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
 
+  const isImmo = userData?.role === "SUPPLIER_IMMO" || userData?.businessType === "IMMOBILIER";
+
   useEffect(() => {
-    if (userData && userData.phone) {
-      setPhoneNumber(userData.phone);
+    if (userData) {
+      if (userData.phone) setPhoneNumber(userData.phone);
+      if (userData.primaryColor) setPrimaryColor(userData.primaryColor);
+      if (userData.logoUrl) setLogoUrl(userData.logoUrl);
     }
   }, [userData]);
 
@@ -30,10 +37,18 @@ export default function SupplierSettingsPage() {
 
     try {
       const userRef = doc(db, "users", user.uid);
-      await updateDoc(userRef, {
+      
+      const updateData: any = {
         phone: phoneNumber
-      });
-      setSuccess("Votre numéro de téléphone a été mis à jour avec succès.");
+      };
+
+      if (isImmo) {
+        updateData.primaryColor = primaryColor;
+        updateData.logoUrl = logoUrl;
+      }
+
+      await updateDoc(userRef, updateData);
+      setSuccess("Vos paramètres ont été mis à jour avec succès.");
     } catch (err: any) {
       console.error(err);
       setError("Erreur lors de la mise à jour : " + err.message);
@@ -49,7 +64,7 @@ export default function SupplierSettingsPage() {
         <p className="text-sm text-gray-400">Gérez les informations de votre compte fournisseur.</p>
       </div>
 
-      <div className="max-w-xl">
+      <div className="max-w-xl space-y-6">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -71,7 +86,7 @@ export default function SupplierSettingsPage() {
               </div>
             )}
 
-            <form onSubmit={handleSave} className="space-y-4">
+            <form onSubmit={handleSave} className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1">Numéro de téléphone</label>
                 <div className="relative">
@@ -87,16 +102,65 @@ export default function SupplierSettingsPage() {
                     className="w-full pl-10 pr-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white" 
                   />
                 </div>
-                <p className="mt-2 text-xs text-gray-400">
-                  C'est le seul paramètre que vous pouvez modifier pour le moment.
-                </p>
               </div>
+
+              {isImmo && (
+                <div className="pt-4 border-t border-white/10 space-y-4">
+                  <h3 className="text-lg font-medium text-white mb-2">Marque Blanche (Agence)</h3>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">Couleur Principale</label>
+                    <div className="flex items-center space-x-3">
+                      <input 
+                        type="color" 
+                        value={primaryColor}
+                        onChange={(e) => setPrimaryColor(e.target.value)}
+                        className="h-10 w-10 rounded cursor-pointer bg-transparent border-0" 
+                      />
+                      <div className="relative flex-1">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <Palette size={18} className="text-gray-400" />
+                        </div>
+                        <input 
+                          type="text" 
+                          value={primaryColor}
+                          onChange={(e) => setPrimaryColor(e.target.value)}
+                          placeholder="#8b5cf6" 
+                          className="w-full pl-10 pr-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white uppercase" 
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">Logo URL (Optionnel)</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <ImageIcon size={18} className="text-gray-400" />
+                      </div>
+                      <input 
+                        type="url" 
+                        value={logoUrl}
+                        onChange={(e) => setLogoUrl(e.target.value)}
+                        placeholder="https://votre-site.com/logo.png" 
+                        className="w-full pl-10 pr-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white" 
+                      />
+                    </div>
+                    {logoUrl && (
+                      <div className="mt-3 p-3 bg-white/5 rounded-lg border border-white/10 flex justify-center">
+                        <img src={logoUrl} alt="Logo Preview" className="max-h-16 object-contain" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <div className="pt-4 flex justify-end">
                 <button 
                   type="submit"
                   disabled={isLoading}
                   className="flex items-center space-x-2 px-6 py-2 bg-primary hover:bg-primary-light text-white font-semibold rounded-lg transition-colors disabled:opacity-50"
+                  style={isImmo && primaryColor ? { backgroundColor: primaryColor } : {}}
                 >
                   {isLoading ? (
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

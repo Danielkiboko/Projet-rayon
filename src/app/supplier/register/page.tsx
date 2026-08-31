@@ -24,6 +24,7 @@ export default function SupplierRegisterPage() {
   const [company, setCompany] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [businessType, setBusinessType] = useState("COMMERCE"); // "COMMERCE" or "IMMOBILIER"
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -54,7 +55,8 @@ export default function SupplierRegisterPage() {
         company: company,
         email: email,
         phone: phone,
-        role: "SUPPLIER", // Distinct role for suppliers
+        role: businessType === "IMMOBILIER" ? "SUPPLIER_IMMO" : "SUPPLIER", 
+        businessType: businessType,
         status: "PENDING_APPROVAL", // Maybe requires admin validation?
         createdAt: serverTimestamp(),
       });
@@ -190,6 +192,18 @@ export default function SupplierRegisterPage() {
                 className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-gray-900 transition-all shadow-sm"
                 placeholder="971501234567"
               />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-sm font-bold text-gray-700">Type d'Activité</label>
+              <select
+                value={businessType}
+                onChange={(e) => setBusinessType(e.target.value)}
+                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-gray-900 transition-all shadow-sm"
+              >
+                <option value="COMMERCE">Commerce (Produits, Vêtements, etc.)</option>
+                <option value="IMMOBILIER">Agence Immobilière / Bailleur</option>
+              </select>
             </div>
 
             <motion.button

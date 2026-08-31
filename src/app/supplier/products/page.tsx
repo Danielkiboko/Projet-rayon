@@ -1,17 +1,17 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, X, Search, Package, Image as ImageIcon, AlertCircle, Send, Bot, User } from "lucide-react";
 import imageCompression from 'browser-image-compression';
-
-const MOCK_PRODUCTS = [
-  { id: "1", title: "Kit Starlink Standard", price: "280,000 FC", stock: 15, status: "En ligne", category: "Électronique" },
-  { id: "2", title: "Caméra de sécurité PTZ", price: "45,000 FC", stock: 8, status: "En ligne", category: "Sécurité" },
-  { id: "3", title: "Routeur 4G LTE", price: "25,000 FC", stock: 2, status: "Stock Faible", category: "Réseau" },
-];
+import { useAuth } from "@/context/AuthContext";
+import { db } from "@/lib/firebase";
+import { collection, query, where, getDocs, addDoc, serverTimestamp } from "firebase/firestore";
 
 export default function SupplierProductsPage() {
+  const { user } = useAuth();
+  const [products, setProducts] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [search, setSearch] = useState("");
 
@@ -147,13 +147,55 @@ export default function SupplierProductsPage() {
      }
   };
 
-  const handleCreateProduct = (e: React.FormEvent) => {
+  const fetchProducts = async () => {
+    if (!user) return;
+    try {
+      const q = query(collection(db, "products"), where("supplierId", "==", user.uid));
+      const snapshot = await getDocs(q);
+      const prods: any[] = [];
+      snapshot.forEach(doc => prods.push({ id: doc.id, ...doc.data() }));
+      setProducts(prods);
+    } catch (error) {
+      console.error("Error fetching products", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts();
+  }, [user]);
+
+  const handleCreateProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Connect to Firebase to add a new product
-    setIsModalOpen(false);
-    setImageFile(null);
-    setImagePreview(null);
-    setChatMessages([]);
+    if (!user) return;
+
+    try {
+      await addDoc(collection(db, "products"), {
+        title: productTitle,
+        category: productCategory,
+        price: parseFloat(productPrice),
+        stock: parseInt(productStock, 10),
+        description: productDesc,
+        image: imagePreview || "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=400",
+        supplierId: user.uid,
+        status: "pending_approval",
+        createdAt: serverTimestamp()
+      });
+      setIsModalOpen(false);
+      setImageFile(null);
+      setImagePreview(null);
+      setChatMessages([]);
+      setProductTitle("");
+      setProductCategory("");
+      setProductPrice("");
+      setProductStock("");
+      setProductDesc("");
+      fetchProducts(); // Refresh list
+    } catch (error) {
+      console.error("Erreur lors de l'ajout du produit", error);
+      alert("Erreur quota dépassé ou autre erreur Firebase.");
+    }
   };
 
   return (
@@ -226,27 +268,49 @@ export default function SupplierProductsPage() {
               </tr>
             </thead>
             <tbody>
-              {MOCK_PRODUCTS.map((product) => (
-                <tr key={product.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                  <td className="px-6 py-4 font-medium text-white flex items-center space-x-3">
-                    <div className="w-8 h-8 rounded bg-primary/20 flex items-center justify-center text-primary-light">
-                      <Package size={16} />
-                    </div>
-                    <span>{product.title}</span>
-                  </td>
-                  <td className="px-6 py-4">{product.category}</td>
-                  <td className="px-6 py-4">{product.price}</td>
-                  <td className="px-6 py-4">{product.stock} unités</td>
-                  <td className="px-6 py-4">
-                    <span className={product.status === "En ligne" ? "text-green-400" : "text-orange-400"}>
-                      {product.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <button className="text-primary-light hover:text-white transition-colors">Modifier</button>
-                  </td>
+              {isLoading ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-4 text-center text-gray-400">Chargement...</td>
                 </tr>
-              ))}
+              ) : products.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-4 text-center text-gray-400">Aucun produit. Ajoutez-en un !</td>
+                </tr>
+              ) : (
+                products.map((product) => (
+                  <tr key={product.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                    <td className="px-6 py-4 font-medium text-white flex items-center space-x-3">
+                      <div className="w-10 h-10 rounded bg-black/20 flex items-center justify-center overflow-hidden shrink-0">
+                        {product.image ? (
+                          <img src={product.image} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <Package size={16} className="text-primary-light" />
+                        )}
+                      </div>
+                      <span className="line-clamp-1">{product.title?.fr || product.title || "Sans titre"}</span>
+                    </td>
+                    <td className="px-6 py-4 capitalize">{product.category || "-"}</td>
+                    <td className="px-6 py-4">{product.price} FC</td>
+                    <td className="px-6 py-4">{product.stock || 0} unités</td>
+                    <td className="px-6 py-4">
+                      {product.status === "pending_approval" ? (
+                        <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-orange-400/10 text-orange-400 rounded-lg border border-orange-400/20">
+                          Sous examen
+                        </span>
+                      ) : product.status === "published" ? (
+                        <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-400/10 text-green-400 rounded-lg border border-green-400/20">
+                          En ligne
+                        </span>
+                      ) : (
+                        <span className="text-gray-400">{product.status || "Brouillon"}</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <button className="text-primary-light hover:text-white transition-colors">Modifier</button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

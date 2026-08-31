@@ -35,7 +35,8 @@ export default function SuppliersPage() {
   const fetchSuppliers = async () => {
     setIsLoading(true);
     try {
-      const q = query(collection(db, "users"), where("role", "==", "supplier"));
+      const { limit } = await import("firebase/firestore");
+      const q = query(collection(db, "users"), where("role", "==", "supplier"), limit(50));
       const querySnapshot = await getDocs(q);
       const suppliersData: Supplier[] = [];
       querySnapshot.forEach((doc) => {

@@ -16,6 +16,7 @@ export const metadata: Metadata = {
 
 import { AuthProvider } from "@/context/AuthContext";
 import { CurrencyProvider } from "@/context/CurrencyContext";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -24,15 +25,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${montserrat.variable} font-sans h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col bg-gray-50 text-gray-900" suppressHydrationWarning>
-        <AuthProvider>
-          <CurrencyProvider>
-            <CartProvider>
-              {children}
-              <CartDrawer />
-            </CartProvider>
-          </CurrencyProvider>
-        </AuthProvider>
+      <body className="min-h-full flex flex-col bg-gray-50 dark:bg-[#0b061c] text-gray-900 dark:text-gray-100 transition-colors" suppressHydrationWarning>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          <AuthProvider>
+            <CurrencyProvider>
+              <CartProvider>
+                {children}
+                <CartDrawer />
+              </CartProvider>
+            </CurrencyProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

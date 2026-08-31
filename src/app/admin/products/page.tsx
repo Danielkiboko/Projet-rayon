@@ -2,19 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { 
-  LayoutDashboard, 
-  Users, 
-  Truck, 
-  Package, 
-  LogOut,
   ShieldAlert,
   Plus,
   Edit,
   Trash2,
-  X
+  X,
+  Check
 } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { collection, onSnapshot, query, orderBy, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
@@ -31,7 +26,7 @@ type Product = {
 };
 
 export default function AdminProductsPage() {
-  const { user, userData, loading, signOut } = useAuth();
+  const { user, userData, loading } = useAuth();
   const router = useRouter();
   const { formatPrice, currency } = useCurrency();
 
@@ -152,7 +147,20 @@ export default function AdminProductsPage() {
     }
   };
 
-  const getTitle = (titleObj: any) => {
+  const handleApproveProduct = async (id: string) => {
+    if (confirm("Approuver et publier ce produit ?")) {
+      try {
+        await updateDoc(doc(db, "products", id), {
+          status: "published"
+        });
+      } catch (error) {
+        console.error("Error approving product", error);
+        alert("Erreur lors de l'approbation.");
+      }
+    }
+  };
+
+  const getTitle = (titleObj: Record<string, string> | string | null | undefined) => {
     if (typeof titleObj === 'object' && titleObj !== null) {
       return titleObj.fr || titleObj.en || "Sans titre";
     }
@@ -164,7 +172,7 @@ export default function AdminProductsPage() {
 
   if (loading || !user || (!isSuperAdmin && !isAuthorizedSubAdmin)) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-white flex flex-col items-center">
           <ShieldAlert size={48} className="text-gray-500 mb-4 animate-pulse" />
           <p>Vérification des accès sécurisés...</p>
@@ -174,150 +182,116 @@ export default function AdminProductsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] flex flex-col md:flex-row font-sans text-gray-900">
-      
-      {/* Sidebar - Sleek Dark Mode */}
-      <div className="w-full md:w-72 bg-[#0A0A0A] text-white flex flex-col shadow-2xl z-10 relative">
-        <div className="p-8 border-b border-white/10">
-          <h1 className="text-3xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
-            RAYON<span className="text-blue-500">.</span>
-          </h1>
-          <p className="text-xs text-gray-400 mt-2 font-medium uppercase tracking-widest">Admin Control</p>
+    <>
+      <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-white tracking-tight">Gestion des Produits</h2>
+          <p className="text-gray-400 mt-1 text-sm">Gérez le catalogue complet de Rayons.</p>
         </div>
-        
-        <nav className="p-6 flex-1 space-y-3">
-          {(isSuperAdmin || userData?.permissions?.canViewDashboard) && (
-            <Link href="/admin/dashboard" className="flex items-center px-4 py-3.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all font-medium group">
-              <LayoutDashboard size={20} className="mr-4 group-hover:scale-110 transition-transform" /> Dashboard
-            </Link>
-          )}
-          <Link href="/admin/products" className="flex items-center px-4 py-3.5 bg-blue-600/10 text-blue-500 rounded-xl font-bold border border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.1)] transition-all">
-            <Package size={20} className="mr-4" /> Produits
-          </Link>
-          {(isSuperAdmin || userData?.permissions?.canManageDelivery) && (
-            <Link href="/admin/delivery/create" className="flex items-center px-4 py-3.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all font-medium group">
-              <Truck size={20} className="mr-4 group-hover:scale-110 transition-transform" /> Créer un Livreur
-            </Link>
-          )}
-          {isSuperAdmin && (
-            <Link href="/admin/team" className="flex items-center px-4 py-3.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all font-medium group">
-              <ShieldAlert size={20} className="mr-4 group-hover:scale-110 transition-transform" /> Équipe (Sous-Admins)
-            </Link>
-          )}
-          <div className="flex items-center px-4 py-3.5 text-gray-600 rounded-xl font-medium cursor-not-allowed">
-            <Users size={20} className="mr-4" /> Fournisseurs (Bientôt)
-          </div>
-        </nav>
-
-        <div className="p-6 border-t border-white/10 bg-white/5">
-          <div className="flex items-center mb-6">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 flex items-center justify-center font-bold shadow-lg text-white mr-4">
-              D
-            </div>
-            <div>
-              <p className="text-sm font-bold text-white">{userData?.name || "Admin"}</p>
-              <p className="text-xs text-blue-400 font-medium">{isSuperAdmin ? "Super Admin" : "Sous-Admin"}</p>
-            </div>
-          </div>
-          <button 
-            onClick={() => signOut()}
-            className="w-full flex items-center justify-center px-4 py-3 text-sm font-bold text-gray-300 bg-white/5 hover:bg-red-500 hover:text-white rounded-xl transition-all border border-white/5 hover:border-red-500"
-          >
-            <LogOut size={16} className="mr-2" /> Déconnexion
-          </button>
-        </div>
+        <button 
+          onClick={openAddModal}
+          className="bg-blue-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center hover:bg-blue-700 transition-colors shadow-sm"
+        >
+          <Plus size={18} className="mr-2" /> Ajouter un produit
+        </button>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 overflow-auto bg-[#F8F9FA]">
-        <div className="p-6 md:p-10 max-w-7xl mx-auto">
-          
-          <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
-            <div>
-              <h2 className="text-3xl font-black text-gray-900 tracking-tight">Gestion des Produits</h2>
-              <p className="text-gray-500 mt-1">Gérez le catalogue complet de Rayons.</p>
-            </div>
-            <button 
-              onClick={openAddModal}
-              className="bg-gray-900 text-white px-6 py-3.5 rounded-2xl text-sm font-bold flex items-center hover:bg-gray-800 transition-colors shadow-lg hover:shadow-xl hover:-translate-y-0.5"
-            >
-              <Plus size={18} className="mr-2" /> Ajouter un produit
-            </button>
-          </div>
-
-          {/* Products Table */}
-          <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-gray-50/50 text-xs uppercase tracking-wider text-gray-500 font-bold">
-                    <th className="p-5 w-16">Image</th>
-                    <th className="p-5">Titre (FR / EN)</th>
-                    <th className="p-5">Catégorie</th>
-                    <th className="p-5">Prix</th>
-                    <th className="p-5 text-right">Actions</th>
+      {/* Products Table */}
+      <div className="bg-[#1a1a1a] rounded-2xl shadow-sm border border-white/5 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-white/5 text-xs uppercase tracking-wider text-gray-400 font-semibold">
+                <th className="p-4 w-16">Image</th>
+                <th className="p-4">Titre (FR / EN)</th>
+                <th className="p-4">Catégorie</th>
+                <th className="p-4">Prix</th>
+                <th className="p-4">Statut</th>
+                <th className="p-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="text-sm text-gray-300">
+              {products.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="p-12 text-center text-gray-500 font-medium">
+                    Aucun produit n&apos;a été trouvé dans le catalogue.
+                  </td>
+                </tr>
+              ) : (
+                products.map((product) => (
+                  <tr key={product.id} className="border-b border-white/5 hover:bg-white/5 transition-colors group">
+                    <td className="p-4">
+                      <div className="w-12 h-12 bg-white/5 rounded-lg overflow-hidden border border-white/10">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={product.image} alt="produit" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                      </div>
+                    </td>
+                    <td className="p-4 font-semibold text-white">
+                      {getTitle(product.title)}
+                    </td>
+                    <td className="p-4">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-blue-500/10 text-blue-500 uppercase tracking-wider">
+                        {product.category}
+                      </span>
+                    </td>
+                    <td className="p-4 font-bold text-white">
+                      {formatPrice(product.price)}
+                    </td>
+                    <td className="p-4">
+                      {product.status === "pending_approval" ? (
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-orange-500/10 text-orange-500 uppercase tracking-wider">
+                          En attente
+                        </span>
+                      ) : product.status === "published" ? (
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-green-500/10 text-green-500 uppercase tracking-wider">
+                          Publié
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-white/10 text-gray-300 uppercase tracking-wider">
+                          Brouillon
+                        </span>
+                      )}
+                    </td>
+                    <td className="p-4 text-right space-x-2">
+                      {product.status === "pending_approval" && (
+                        <button 
+                          onClick={() => handleApproveProduct(product.id)}
+                          title="Approuver et Publier"
+                          className="inline-flex p-2 bg-white/5 text-orange-500 hover:text-white rounded-lg hover:bg-orange-500 transition-colors border border-transparent hover:border-orange-500"
+                        >
+                          <Check size={16} />
+                        </button>
+                      )}
+                      <button 
+                        onClick={() => openEditModal(product)}
+                        className="inline-flex p-2 bg-white/5 text-gray-400 hover:text-blue-500 rounded-lg hover:bg-blue-500/10 transition-colors"
+                      >
+                        <Edit size={16} />
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteProduct(product.id)}
+                        className="inline-flex p-2 bg-white/5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-500/10 transition-colors"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="text-sm">
-                  {products.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="p-12 text-center text-gray-400 font-medium">
-                        Aucun produit trouvé dans le catalogue.
-                      </td>
-                    </tr>
-                  ) : (
-                    products.map((product) => (
-                      <tr key={product.id} className="border-b border-gray-50 hover:bg-gray-50/80 transition-colors group">
-                        <td className="p-5">
-                          <div className="w-14 h-14 bg-gray-100 rounded-xl overflow-hidden shadow-sm">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={product.image} alt="produit" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                          </div>
-                        </td>
-                        <td className="p-5 font-bold text-gray-900 text-base">
-                          {getTitle(product.title)}
-                        </td>
-                        <td className="p-5">
-                          <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold bg-blue-50 text-blue-600 uppercase tracking-wider border border-blue-100">
-                            {product.category}
-                          </span>
-                        </td>
-                        <td className="p-5 font-black text-gray-900 text-base">
-                          {formatPrice(product.price)}
-                        </td>
-                        <td className="p-5 text-right space-x-3">
-                          <button 
-                            onClick={() => openEditModal(product)}
-                            className="inline-flex p-2.5 bg-gray-50 text-gray-400 hover:text-blue-600 rounded-xl hover:bg-blue-50 transition-colors border border-transparent hover:border-blue-100"
-                          >
-                            <Edit size={18} />
-                          </button>
-                          <button 
-                            onClick={() => handleDeleteProduct(product.id)}
-                            className="inline-flex p-2.5 bg-gray-50 text-gray-400 hover:text-red-600 rounded-xl hover:bg-red-50 transition-colors border border-transparent hover:border-red-100"
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 
       {/* Product Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl w-full max-w-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-center p-6 border-b border-gray-100">
-              <h3 className="text-xl font-bold text-gray-900">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-[#1a1a1a] rounded-2xl w-full max-w-2xl shadow-xl overflow-hidden border border-white/10 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center p-6 border-b border-white/5">
+              <h3 className="text-xl font-bold text-white">
                 {editingId ? "Modifier le produit" : "Ajouter un produit"}
               </h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-900 transition-colors">
+              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-white transition-colors">
                 <X size={24} />
               </button>
             </div>
@@ -325,79 +299,79 @@ export default function AdminProductsPage() {
             <form onSubmit={handleSaveProduct} className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Titre (Français)</label>
+                  <label className="block text-sm font-semibold text-gray-300 mb-2">Titre (Français)</label>
                   <input 
                     type="text" 
                     required 
                     value={titleFr} 
                     onChange={(e) => setTitleFr(e.target.value)} 
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 outline-none" 
+                    className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-white placeholder-gray-500" 
                     placeholder="Ex: Veste en cuir" 
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Titre (Anglais)</label>
+                  <label className="block text-sm font-semibold text-gray-300 mb-2">Titre (Anglais)</label>
                   <input 
                     type="text" 
                     required 
                     value={titleEn} 
                     onChange={(e) => setTitleEn(e.target.value)} 
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 outline-none" 
+                    className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-white placeholder-gray-500" 
                     placeholder="Ex: Leather Jacket" 
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Prix (Valeur de Base: {currency})</label>
+                  <label className="block text-sm font-semibold text-gray-300 mb-2">Prix (Valeur de Base: {currency})</label>
                   <input 
                     type="number" 
                     step="0.01" 
                     required 
                     value={price} 
                     onChange={(e) => setPrice(e.target.value)} 
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 outline-none" 
+                    className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-white placeholder-gray-500" 
                     placeholder="Ex: 199.99" 
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Rayon / Catégorie</label>
+                  <label className="block text-sm font-semibold text-gray-300 mb-2">Rayon / Catégorie</label>
                   <select 
                     value={category} 
                     onChange={(e) => setCategory(e.target.value)} 
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 outline-none bg-white"
+                    className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-white appearance-none"
                   >
-                    <option value="mode">Mode</option>
-                    <option value="connect">Connect</option>
-                    <option value="immo">Immo</option>
-                    <option value="General">Général</option>
+                    <option className="bg-[#1a1a1a]" value="mode">Mode</option>
+                    <option className="bg-[#1a1a1a]" value="connect">Connect</option>
+                    <option className="bg-[#1a1a1a]" value="immo">Immo</option>
+                    <option className="bg-[#1a1a1a]" value="General">Général</option>
                   </select>
                 </div>
                 
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-bold text-gray-700 mb-2">URL de l'image</label>
+                  <label className="block text-sm font-semibold text-gray-300 mb-2">URL de l'image</label>
                   <input 
                     type="url" 
                     required
                     value={image} 
                     onChange={(e) => setImage(e.target.value)} 
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 outline-none" 
+                    className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-white placeholder-gray-500" 
                     placeholder="https://..." 
                   />
                 </div>
               </div>
               
-              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+              <div className="flex justify-end gap-3 pt-6 border-t border-white/5">
                 <button 
                   type="button" 
                   onClick={() => setIsModalOpen(false)} 
-                  className="px-6 py-2.5 text-gray-600 font-bold hover:bg-gray-100 rounded-xl transition-colors"
+                  className="px-5 py-2.5 text-gray-300 font-semibold hover:bg-white/5 rounded-xl transition-colors"
                 >
                   Annuler
                 </button>
                 <button 
                   type="submit" 
                   disabled={isProcessing} 
-                  className="px-8 py-2.5 bg-gray-900 text-white font-bold rounded-xl hover:bg-gray-800 disabled:opacity-50 transition-colors shadow-sm"
+                  className="px-6 py-2.5 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-sm"
                 >
                   {isProcessing ? "Enregistrement..." : "Sauvegarder"}
                 </button>
@@ -406,7 +380,6 @@ export default function AdminProductsPage() {
           </div>
         </div>
       )}
-
-    </div>
+    </>
   );
 }

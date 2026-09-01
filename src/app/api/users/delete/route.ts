@@ -48,7 +48,7 @@ export async function POST(req: Request) {
 
     // Effacer toutes les propriétés/produits créés par ce fournisseur
     const productsSnapshot = await adminDb.collection('products').where('supplierId', '==', uid).get();
-    productsSnapshot.forEach((doc) => {
+    productsSnapshot.forEach((doc: any) => {
       batch.delete(doc.ref);
     });
 

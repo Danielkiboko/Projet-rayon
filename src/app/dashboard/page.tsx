@@ -33,15 +33,7 @@ export default function DashboardRedirect() {
         router.replace("/supplier")
         break
       case "SUB_ADMIN":
-        if (userData?.permissions?.canViewDashboard) {
-          router.replace("/admin/dashboard")
-        } else if (userData?.permissions?.canManageProducts) {
-          router.replace("/admin/products")
-        } else if (userData?.permissions?.canManageDelivery) {
-          router.replace("/admin/delivery/create")
-        } else {
-          router.replace("/admin/dashboard")
-        }
+        router.replace("/admin/dashboard")
         break
       case "SUPER_ADMIN":
       case "SUPERADMIN":

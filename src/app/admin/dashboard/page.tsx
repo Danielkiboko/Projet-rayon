@@ -31,7 +31,7 @@ export default function AdminDashboardPage() {
         router.push("/login");
       } else {
         const isSuperAdmin = user.email === "danielkiboko218@gmail.com";
-        const isAuthorizedSubAdmin = userData?.role === "SUB_ADMIN" && userData?.permissions?.canViewDashboard;
+        const isAuthorizedSubAdmin = userData?.role === "SUB_ADMIN";
         
         if (!isSuperAdmin && !isAuthorizedSubAdmin) {
           router.push("/");
@@ -44,7 +44,7 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     if (!user) return;
     const isSuperAdmin = user.email === "danielkiboko218@gmail.com";
-    const isAuthorizedSubAdmin = userData?.role === "SUB_ADMIN" && userData?.permissions?.canViewDashboard;
+    const isAuthorizedSubAdmin = userData?.role === "SUB_ADMIN";
     if (!isSuperAdmin && !isAuthorizedSubAdmin) return;
 
     const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
@@ -73,7 +73,7 @@ export default function AdminDashboardPage() {
   }, [user]);
 
   const isSuperAdmin = user?.email === "danielkiboko218@gmail.com";
-  const isAuthorizedSubAdmin = userData?.role === "SUB_ADMIN" && userData?.permissions?.canViewDashboard;
+  const isAuthorizedSubAdmin = userData?.role === "SUB_ADMIN";
 
   if (loading || !user || (!isSuperAdmin && !isAuthorizedSubAdmin)) {
     return (

@@ -108,36 +108,26 @@ export default function AdminTeamPage() {
     }
   };
 
-  const togglePermission = async (userId: string, currentRole: string, currentPermissions: any, permissionKey: string) => {
+  const promoteToSubAdmin = async (userId: string) => {
     setIsUpdating(true);
     try {
-      const newPermissions = {
-        ...(currentPermissions || {}),
-        [permissionKey]: !currentPermissions?.[permissionKey]
-      };
-      
-      // If a standard user gets a permission, they automatically become SUB_ADMIN
-      const newRole = "SUB_ADMIN"; 
-      
       await updateDoc(doc(db, "users", userId), {
-        role: newRole,
-        permissions: newPermissions
+        role: "SUB_ADMIN",
+        permissions: {} // Clean up old permissions if any
       });
       
-      // Update local state for immediate feedback
       if (searchedUser && searchedUser.id === userId) {
         setSearchedUser({
           ...searchedUser,
-          role: newRole,
-          permissions: newPermissions
+          role: "SUB_ADMIN",
+          permissions: {}
         });
       }
       
       fetchSubAdmins();
-      
     } catch (error) {
-      console.error("Error updating permissions:", error);
-      alert("Erreur lors de la mise à jour des permissions.");
+      console.error("Error promoting user:", error);
+      alert("Erreur lors de la promotion.");
     } finally {
       setIsUpdating(false);
     }
@@ -238,17 +228,17 @@ export default function AdminTeamPage() {
         </div>
         
         <nav className="p-6 flex-1 space-y-3">
-          {(isSuperAdmin || userData?.permissions?.canViewDashboard) && (
+          {(isSuperAdmin || userData?.role === "SUB_ADMIN") && (
             <Link href="/admin/dashboard" className="flex items-center px-4 py-3.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all font-medium group">
               <LayoutDashboard size={20} className="mr-4 group-hover:scale-110 transition-transform" /> Dashboard
             </Link>
           )}
-          {(isSuperAdmin || userData?.permissions?.canManageProducts) && (
+          {(isSuperAdmin || userData?.role === "SUB_ADMIN") && (
             <Link href="/admin/products" className="flex items-center px-4 py-3.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all font-medium group">
               <Package size={20} className="mr-4 group-hover:scale-110 transition-transform" /> Produits
             </Link>
           )}
-          {(isSuperAdmin || userData?.permissions?.canManageDelivery) && (
+          {(isSuperAdmin || userData?.role === "SUB_ADMIN") && (
             <Link href="/admin/delivery/create" className="flex items-center px-4 py-3.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all font-medium group">
               <Truck size={20} className="mr-4 group-hover:scale-110 transition-transform" /> Créer un Livreur
             </Link>
@@ -334,55 +324,17 @@ export default function AdminTeamPage() {
                     Rôle actuel : {searchedUser.role || "CLIENT"}
                   </span>
                 </div>
-                
-                <div className="space-y-4">
-                  <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Permissions du C-Panel</h4>
-                  
-                  {/* Permission: Dashboard */}
-                  <label className="flex items-center p-4 bg-white rounded-xl border border-gray-100 cursor-pointer hover:border-blue-300 transition-all shadow-sm">
-                    <input 
-                      type="checkbox" 
-                      className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                      checked={!!searchedUser.permissions?.canViewDashboard}
-                      onChange={() => togglePermission(searchedUser.id, searchedUser.role, searchedUser.permissions, "canViewDashboard")}
+                {searchedUser.role !== "SUB_ADMIN" && (
+                  <div className="mt-4">
+                    <button 
+                      onClick={() => promoteToSubAdmin(searchedUser.id)}
                       disabled={isUpdating}
-                    />
-                    <div className="ml-4">
-                      <p className="text-sm font-bold text-gray-900">Accès au Dashboard & Chiffre d'Affaires</p>
-                      <p className="text-xs text-gray-500">Peut voir les statistiques globales et les commandes.</p>
-                    </div>
-                  </label>
-
-                  {/* Permission: Products */}
-                  <label className="flex items-center p-4 bg-white rounded-xl border border-gray-100 cursor-pointer hover:border-blue-300 transition-all shadow-sm">
-                    <input 
-                      type="checkbox" 
-                      className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                      checked={!!searchedUser.permissions?.canManageProducts}
-                      onChange={() => togglePermission(searchedUser.id, searchedUser.role, searchedUser.permissions, "canManageProducts")}
-                      disabled={isUpdating}
-                    />
-                    <div className="ml-4">
-                      <p className="text-sm font-bold text-gray-900">Gestion des Produits</p>
-                      <p className="text-xs text-gray-500">Peut ajouter, modifier et supprimer des produits.</p>
-                    </div>
-                  </label>
-
-                  {/* Permission: Delivery */}
-                  <label className="flex items-center p-4 bg-white rounded-xl border border-gray-100 cursor-pointer hover:border-blue-300 transition-all shadow-sm">
-                    <input 
-                      type="checkbox" 
-                      className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                      checked={!!searchedUser.permissions?.canManageDelivery}
-                      onChange={() => togglePermission(searchedUser.id, searchedUser.role, searchedUser.permissions, "canManageDelivery")}
-                      disabled={isUpdating}
-                    />
-                    <div className="ml-4">
-                      <p className="text-sm font-bold text-gray-900">Création de Livreurs</p>
-                      <p className="text-xs text-gray-500">Peut créer et gérer des comptes livreurs.</p>
-                    </div>
-                  </label>
-                </div>
+                      className="bg-blue-600 text-white px-6 py-3 rounded-xl text-sm font-bold hover:bg-blue-700 transition-colors shadow-lg disabled:opacity-50"
+                    >
+                      {isUpdating ? "Mise à jour..." : "Promouvoir en Sous-Admin"}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -449,16 +401,14 @@ export default function AdminTeamPage() {
                 <thead>
                   <tr className="bg-gray-50/50 text-xs uppercase tracking-wider text-gray-500 font-bold">
                     <th className="p-5">Nom / Email</th>
-                    <th className="p-5">Accès Dashboard</th>
-                    <th className="p-5">Accès Produits</th>
-                    <th className="p-5">Accès Livreurs</th>
+                    <th className="p-5">Accès Administratif</th>
                     <th className="p-5 text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody className="text-sm">
                   {subAdmins.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="p-12 text-center text-gray-400 font-medium">
+                      <td colSpan={3} className="p-12 text-center text-gray-400 font-medium">
                         Aucun sous-administrateur trouvé. Promouvez un utilisateur ci-dessus.
                       </td>
                     </tr>
@@ -470,25 +420,9 @@ export default function AdminTeamPage() {
                           <p className="text-xs text-gray-500">{admin.email}</p>
                         </td>
                         <td className="p-5">
-                          {admin.permissions?.canViewDashboard ? (
-                            <CheckCircle2 size={20} className="text-green-500" />
-                          ) : (
-                            <XCircle size={20} className="text-gray-300" />
-                          )}
-                        </td>
-                        <td className="p-5">
-                          {admin.permissions?.canManageProducts ? (
-                            <CheckCircle2 size={20} className="text-green-500" />
-                          ) : (
-                            <XCircle size={20} className="text-gray-300" />
-                          )}
-                        </td>
-                        <td className="p-5">
-                          {admin.permissions?.canManageDelivery ? (
-                            <CheckCircle2 size={20} className="text-green-500" />
-                          ) : (
-                            <XCircle size={20} className="text-gray-300" />
-                          )}
+                          <span className="flex items-center text-green-600 font-medium text-xs">
+                            <CheckCircle2 size={16} className="mr-1" /> Accès Complet
+                          </span>
                         </td>
                         <td className="p-5 text-right">
                           <button 

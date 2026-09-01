@@ -49,7 +49,7 @@ export default function AdminProductsPage() {
         router.push("/login");
       } else {
         const isSuperAdmin = user.email === "danielkiboko218@gmail.com";
-        const isAuthorizedSubAdmin = userData?.role === "SUB_ADMIN" && userData?.permissions?.canManageProducts;
+        const isAuthorizedSubAdmin = userData?.role === "SUB_ADMIN";
         
         if (!isSuperAdmin && !isAuthorizedSubAdmin) {
           router.push("/");
@@ -62,7 +62,7 @@ export default function AdminProductsPage() {
   useEffect(() => {
     if (!user) return;
     const isSuperAdmin = user.email === "danielkiboko218@gmail.com";
-    const isAuthorizedSubAdmin = userData?.role === "SUB_ADMIN" && userData?.permissions?.canManageProducts;
+    const isAuthorizedSubAdmin = userData?.role === "SUB_ADMIN";
     if (!isSuperAdmin && !isAuthorizedSubAdmin) return;
 
     const q = query(collection(db, "products"), orderBy("createdAt", "desc"));
@@ -168,7 +168,7 @@ export default function AdminProductsPage() {
   };
 
   const isSuperAdmin = user?.email === "danielkiboko218@gmail.com";
-  const isAuthorizedSubAdmin = userData?.role === "SUB_ADMIN" && userData?.permissions?.canManageProducts;
+  const isAuthorizedSubAdmin = userData?.role === "SUB_ADMIN";
 
   if (loading || !user || (!isSuperAdmin && !isAuthorizedSubAdmin)) {
     return (

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Search, Users as UsersIcon, UserCheck, UserX, Clock } from "lucide-react";
 import { db } from "@/lib/firebase";
-import { collection, onSnapshot, query, orderBy, limit } from "firebase/firestore";
+import { collection, getDocs, query, limit } from "firebase/firestore";
 
 interface ClientData {
   id: string;
@@ -20,12 +20,15 @@ export default function ClientsPage() {
   const [clients, setClients] = useState<ClientData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    // Listen to max 50 users to prevent quota exhaustion on free tier
-    const q = query(collection(db, "users"), limit(50));
-    
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+  const fetchClients = async () => {
+    setIsLoading(true);
+    try {
+      // Listen to max 50 users to prevent quota exhaustion on free tier
+      const q = query(collection(db, "users"), limit(50));
+      
+      const snapshot = await getDocs(q);
       const clientsData: ClientData[] = [];
+      
       snapshot.forEach((doc) => {
         const data = doc.data();
         
@@ -62,13 +65,15 @@ export default function ClientsPage() {
       });
 
       setClients(clientsData);
-      setIsLoading(false);
-    }, (error) => {
+    } catch (error) {
       console.error("Error fetching clients:", error);
+    } finally {
       setIsLoading(false);
-    });
+    }
+  };
 
-    return () => unsubscribe();
+  useEffect(() => {
+    fetchClients();
   }, []);
 
   const filteredClients = clients.filter(

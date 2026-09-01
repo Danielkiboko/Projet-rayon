@@ -26,19 +26,17 @@ export default function DashboardRedirect() {
       case "DELIVERY":
       case "DRIVER":
       case "LIVREUR":
-        router.replace("/delivery/dashboard")
+        router.replace("/driver")
         break
       case "SUPPLIER":
       case "FOURNISSEUR":
         router.replace("/supplier")
         break
       case "SUB_ADMIN":
-        router.replace("/admin/dashboard")
-        break
       case "SUPER_ADMIN":
       case "SUPERADMIN":
       case "ADMIN":
-        router.replace("/c-panel")
+        router.replace("/admin/dashboard")
         break
       default:
         console.warn("Rôle non reconnu ou manquant:", userData?.role);

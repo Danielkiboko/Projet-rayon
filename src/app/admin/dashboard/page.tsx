@@ -12,7 +12,7 @@ import {
   Users
 } from "lucide-react";
 import { db } from "@/lib/firebase";
-import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, limit } from "firebase/firestore";
 import { useCurrency } from "@/context/CurrencyContext";
 
 export default function AdminDashboardPage() {
@@ -47,8 +47,11 @@ export default function AdminDashboardPage() {
     const isAuthorizedSubAdmin = userData?.role === "SUB_ADMIN";
     if (!isSuperAdmin && !isAuthorizedSubAdmin) return;
 
-    const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    const fetchDashboardData = async () => {
+      // Limit to 100 to prevent quota exhaustion
+      const q = query(collection(db, "orders"), orderBy("createdAt", "desc"), limit(100));
+      const snapshot = await getDocs(q);
+      
       let revenue = 0;
       let active = 0;
       const fetchedOrders: any[] = [];
@@ -67,10 +70,10 @@ export default function AdminDashboardPage() {
       setOrders(fetchedOrders);
       setTotalRevenue(revenue);
       setActiveOrdersCount(active);
-    });
+    };
 
-    return () => unsubscribe();
-  }, [user]);
+    fetchDashboardData();
+  }, [user, userData]);
 
   const isSuperAdmin = user?.email === "danielkiboko218@gmail.com";
   const isAuthorizedSubAdmin = userData?.role === "SUB_ADMIN";

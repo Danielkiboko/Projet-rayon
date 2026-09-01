@@ -5,11 +5,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { motion } from "framer-motion";
-import { LogOut, Menu, X, ShieldAlert, Bell, UserCircle, Search, LayoutDashboard, Package, Users, Settings } from "lucide-react";
+import { LogOut, Menu, X, ShieldAlert, Bell, UserCircle, Search, LayoutDashboard, Package, Users, Settings, UserCheck, Store, Truck } from "lucide-react";
 
 const ADMIN_MENU = [
   { title: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
   { title: "Produits", href: "/admin/products", icon: Package },
+  { title: "Clients", href: "/admin/clients", icon: UserCheck },
+  { title: "Fournisseurs", href: "/admin/suppliers", icon: Store },
+  { title: "Livreurs", href: "/admin/drivers", icon: Truck },
   { title: "Équipe", href: "/admin/team", icon: Users },
   { title: "Paramètres", href: "/admin/settings", icon: Settings },
 ];
@@ -23,14 +26,16 @@ export default function AdminLayout({
   const { signOut, user, userData, loading } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  // Vérification stricte Super Admin
+  // Autoriser Super Admin et Sub Admin
   const isSuperAdmin = user?.email === "danielkiboko218@gmail.com" || userData?.role === "SUPER_ADMIN";
+  const isSubAdmin = userData?.role === "SUB_ADMIN";
+  const hasAccess = isSuperAdmin || isSubAdmin;
 
   if (loading) {
     return <div className="h-screen w-full flex items-center justify-center bg-[#0b061c] text-white">Chargement...</div>;
   }
 
-  if (!isSuperAdmin) {
+  if (!hasAccess) {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-[#0b061c] text-white flex-col">
         <ShieldAlert size={48} className="mb-4 text-red-500" />
@@ -96,7 +101,9 @@ export default function AdminLayout({
           <div className="px-4 py-3 mb-4 bg-blue-600/10 rounded-xl border border-blue-500/20 text-center">
             <ShieldAlert size={20} className="mx-auto mb-1 text-blue-500" />
             <p className="text-[10px] text-blue-400 uppercase font-bold tracking-wider mb-1">Privilèges</p>
-            <p className={`text-sm text-blue-500 font-semibold truncate`}>SUPER ADMIN</p>
+            <p className={`text-sm text-blue-500 font-semibold truncate`}>
+              {isSuperAdmin ? "SUPER ADMIN" : "SOUS ADMIN"}
+            </p>
           </div>
           <button 
             onClick={() => signOut()}

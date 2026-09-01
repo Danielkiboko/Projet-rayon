@@ -12,7 +12,7 @@ import {
   Check
 } from "lucide-react";
 import { db } from "@/lib/firebase";
-import { collection, onSnapshot, query, orderBy, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
+import { collection, onSnapshot, query, orderBy, limit, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
 import { useCurrency } from "@/context/CurrencyContext";
 
 type Product = {

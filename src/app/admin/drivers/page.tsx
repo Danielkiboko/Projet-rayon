@@ -31,7 +31,8 @@ export default function DriversPage() {
   const fetchDrivers = async () => {
     setIsLoading(true);
     try {
-      const q = query(collection(db, "users"), where("role", "==", "driver"));
+      const { limit } = await import("firebase/firestore");
+      const q = query(collection(db, "users"), where("role", "==", "driver"), limit(50));
       const querySnapshot = await getDocs(q);
       const driversData: Driver[] = [];
       querySnapshot.forEach((doc) => {

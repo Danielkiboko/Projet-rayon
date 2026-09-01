@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, MapPin, Phone, MessageSquare, Navigation, CheckCircle2 } from "lucide-react";
+import { ChevronLeft, MapPin, Phone, MessageSquare, Navigation, CheckCircle2, DollarSign } from "lucide-react";
 import { auth, db } from "@/lib/firebase";
 import { doc, getDoc, updateDoc, collection, addDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { useCurrency } from "@/context/CurrencyContext";
@@ -12,7 +12,7 @@ export default function MissionDetails({ params }: { params: { id: string } }) {
   const router = useRouter();
   const { formatPrice } = useCurrency();
   const [order, setOrder] = useState<any>(null);
-  const [status, setStatus] = useState<"EN_ATTENTE" | "EN_ROUTE" | "LIVRE">("EN_ATTENTE");
+  const [status, setStatus] = useState<"ACCEPTED" | "ARRIVED_AWAITING_PAYMENT" | "LIVRE">("ACCEPTED");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
@@ -26,7 +26,7 @@ export default function MissionDetails({ params }: { params: { id: string } }) {
         if (docSnap.exists()) {
           const data = docSnap.data();
           setOrder({ id: docSnap.id, ...data });
-          setStatus(data.status as any || "EN_ATTENTE");
+          setStatus(data.status as any || "ACCEPTED");
         } else {
           setError("Mission introuvable");
         }
@@ -51,58 +51,38 @@ export default function MissionDetails({ params }: { params: { id: string } }) {
       const orderRef = doc(db, "orders", order.id);
       let newStatus = status;
 
-      if (status === "EN_ATTENTE") {
-        newStatus = "EN_ROUTE";
+      if (status === "ACCEPTED") {
+        newStatus = "ARRIVED_AWAITING_PAYMENT";
         
-        // Try to get geolocation
-        let lat = 0;
-        let lng = 0;
-        if ("geolocation" in navigator) {
-          try {
-            const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-              navigator.geolocation.getCurrentPosition(resolve, reject);
-            });
-            lat = position.coords.latitude;
-            lng = position.coords.longitude;
-            setDriverLocation({ lat, lng });
-          } catch (e) {
-            console.warn("Geolocation non autorisée ou erreur");
-          }
-        }
-
         await updateDoc(orderRef, {
-          status: "EN_ROUTE",
-          driverId: user.uid,
+          status: newStatus,
+          arrivedAt: serverTimestamp(),
           updatedAt: serverTimestamp()
         });
         
-        // Send chat message to client portal
-        if (order.clientId && order.supplierId) {
-          const chatId = `${order.clientId}_${order.supplierId}`;
-          const chatRef = doc(db, "chats", chatId);
+        // Envoi du SMS au client pour le paiement
+        if (order.clientPhone || (order.customerInfo && order.customerInfo.phone)) {
+          const phone = order.clientPhone || order.customerInfo.phone;
+          const remainingAmount = order.remainingBalance || order.totalAmount;
           
-          // Make sure chat doc exists
-          await setDoc(chatRef, {
-            clientId: order.clientId,
-            supplierId: order.supplierId,
-            updatedAt: serverTimestamp()
-          }, { merge: true });
-          
-          let mapLink = "";
-          if (lat !== 0 && lng !== 0) {
-            mapLink = `\nMa position actuelle : https://maps.google.com/?q=${lat},${lng}`;
+          try {
+            const smsRes = await fetch("/api/sms", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                to: phone,
+                message: `Bonjour, votre livreur est arrivé avec votre commande Rayons. Reste à payer : ${formatPrice(remainingAmount)}. Veuillez préparer le montant.`
+              }),
+            });
+            if (!smsRes.ok) {
+              console.warn("L'envoi du SMS a échoué.");
+            }
+          } catch (smsError) {
+            console.error("Erreur API SMS:", smsError);
           }
-
-          // Send message
-          await addDoc(collection(db, `chats/${chatId}/messages`), {
-            text: `📍 Votre livreur a pris en charge votre commande et est en route !${mapLink}`,
-            senderId: user.uid,
-            createdAt: serverTimestamp(),
-            isSystem: true // Can be used to style it differently in chat
-          });
         }
         
-      } else if (status === "EN_ROUTE") {
+      } else if (status === "ARRIVED_AWAITING_PAYMENT") {
         newStatus = "LIVRE";
         await updateDoc(orderRef, {
           status: "LIVRE",
@@ -137,6 +117,11 @@ export default function MissionDetails({ params }: { params: { id: string } }) {
     );
   }
 
+  const clientPhone = order.clientPhone || order.customerInfo?.phone;
+  const clientName = order.clientId ? order.clientId.substring(0,8) : order.customerInfo?.name || "Client Inconnu";
+  const clientAddress = order.clientAddress || order.customerInfo?.address || "Adresse non spécifiée";
+  const remaining = order.remainingBalance || order.totalAmount;
+
   return (
     <div className="bg-[#0b061c] min-h-screen flex flex-col relative pb-20">
       {/* Header Over Map */}
@@ -157,7 +142,7 @@ export default function MissionDetails({ params }: { params: { id: string } }) {
         
         {/* Route Line */}
         <svg className="absolute inset-0 w-full h-full" style={{ strokeDasharray: "5,5" }}>
-          <path d="M 100 150 Q 200 50 300 200" fill="none" stroke="#a78bfa" strokeWidth="4" className={status === "EN_ROUTE" ? "animate-pulse" : ""} />
+          <path d="M 100 150 Q 200 50 300 200" fill="none" stroke="#a78bfa" strokeWidth="4" className={status === "ACCEPTED" ? "animate-pulse" : ""} />
         </svg>
 
         {/* Driver Marker */}
@@ -183,13 +168,15 @@ export default function MissionDetails({ params }: { params: { id: string } }) {
 
         <div className="flex justify-between items-start mb-6">
           <div>
-            <h2 className="text-2xl font-bold text-white mb-1">Client: {order.clientId ? order.clientId.substring(0,8) : "Inconnu"}</h2>
-            <p className="text-gray-400 text-sm">{order.clientPhone}</p>
+            <h2 className="text-2xl font-bold text-white mb-1">{clientName}</h2>
+            <p className="text-gray-400 text-sm">{clientPhone}</p>
           </div>
           <div className="flex space-x-3">
-            <a href={`tel:${order.clientPhone}`} className="w-10 h-10 bg-green-500/20 text-green-400 rounded-full flex items-center justify-center hover:bg-green-500/30 transition-colors border border-green-500/30">
-              <Phone size={18} />
-            </a>
+            {clientPhone && (
+              <a href={`tel:${clientPhone}`} className="w-10 h-10 bg-green-500/20 text-green-400 rounded-full flex items-center justify-center hover:bg-green-500/30 transition-colors border border-green-500/30">
+                <Phone size={18} />
+              </a>
+            )}
           </div>
         </div>
 
@@ -200,10 +187,7 @@ export default function MissionDetails({ params }: { params: { id: string } }) {
             </div>
             <div>
               <p className="text-xs text-gray-400 font-medium mb-1">Adresse de livraison</p>
-              <p className="text-sm font-bold text-white">{order.clientAddress}</p>
-              {order.location && (
-                <p className="text-xs text-blue-400 mt-1">Coordonnées GPS: {order.location.lat.toFixed(4)}, {order.location.lng.toFixed(4)}</p>
-              )}
+              <p className="text-sm font-bold text-white">{clientAddress}</p>
             </div>
           </div>
 
@@ -218,7 +202,7 @@ export default function MissionDetails({ params }: { params: { id: string } }) {
             </div>
             <div className="text-right">
               <p className="text-xs text-gray-400 mb-1">À encaisser</p>
-              <p className="text-sm font-bold text-green-400">{formatPrice(order.remainingBalance)}</p>
+              <p className="text-sm font-bold text-green-400">{formatPrice(remaining)}</p>
             </div>
           </div>
         </div>
@@ -235,22 +219,22 @@ export default function MissionDetails({ params }: { params: { id: string } }) {
               onClick={handleStatusChange}
               disabled={isUpdating}
               className={`w-full py-4 text-white font-bold rounded-2xl transition-all shadow-lg flex items-center justify-center space-x-2 disabled:opacity-50 ${
-                status === "EN_ATTENTE" 
+                status === "ACCEPTED" 
                   ? "bg-primary hover:bg-primary-light shadow-primary/20" 
                   : "bg-orange-500 hover:bg-orange-400 shadow-orange-500/20"
               }`}
             >
               {isUpdating ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : status === "EN_ATTENTE" ? (
+              ) : status === "ACCEPTED" ? (
                 <>
                   <Navigation size={20} />
-                  <span>Démarrer la course</span>
+                  <span>Je suis arrivé (Envoyer SMS)</span>
                 </>
               ) : (
                 <>
-                  <CheckCircle2 size={20} />
-                  <span>Marquer comme Livré</span>
+                  <DollarSign size={20} />
+                  <span>Confirmer la Livraison</span>
                 </>
               )}
             </button>

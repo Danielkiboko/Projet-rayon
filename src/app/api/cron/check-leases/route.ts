@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
+import { sendEmail, sendSMS } from '@/lib/notifications';
 
 // Vercel Cron Secret (Optionnel, pour sécuriser l'appel de la route)
 const CRON_SECRET = process.env.CRON_SECRET;
@@ -111,32 +112,10 @@ async function sendSMS(phone: string, message: string) {
   }
 }
 
-// Fonction d'envoi Email (ex: via Resend ou SendGrid)
-async function sendEmail(to: string, subject: string, text: string) {
-  const RESEND_API_KEY = process.env.RESEND_API_KEY;
-  
-  if (!RESEND_API_KEY) {
-    console.warn("Email ignoré : Clé Resend manquante.");
-    return;
-  }
+// Note: Les fonctions sendEmail et sendSMS originales de ce fichier 
+// ont été déplacées vers src/lib/notifications.ts pour être réutilisées
+// par l'API /api/notifications.
+// Note: Les fonctions sendEmail et sendSMS originales de ce fichier 
+// ont été déplacées vers src/lib/notifications.ts pour être réutilisées
+// par l'API /api/notifications.
 
-  try {
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        from: 'noreply@rayons.net',
-        to: to,
-        subject: subject,
-        text: text
-      })
-    });
-    
-    return await response.json();
-  } catch (err) {
-    console.error("Erreur d'envoi Email:", err);
-  }
-}

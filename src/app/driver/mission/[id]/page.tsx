@@ -59,37 +59,28 @@ export default function MissionDetails({ params }: { params: { id: string } }) {
           arrivedAt: serverTimestamp(),
           updatedAt: serverTimestamp()
         });
-        
-        // Envoi du SMS au client pour le paiement
-        if (order.clientPhone || (order.customerInfo && order.customerInfo.phone)) {
-          const phone = order.clientPhone || order.customerInfo.phone;
-          const remainingAmount = order.remainingBalance || order.totalAmount;
-          
-          try {
-            const smsRes = await fetch("/api/sms", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                to: phone,
-                message: `Bonjour, votre livreur est arrivé avec votre commande Rayons. Reste à payer : ${formatPrice(remainingAmount)}. Veuillez préparer le montant.`
-              }),
-            });
-            if (!smsRes.ok) {
-              console.warn("L'envoi du SMS a échoué.");
-            }
-          } catch (smsError) {
-            console.error("Erreur API SMS:", smsError);
-          }
-        }
-        
       } else if (status === "ARRIVED_AWAITING_PAYMENT") {
-        newStatus = "LIVRE";
+        newStatus = "COMPLETED"; // Update to COMPLETED for consistency with admin dashboard
         await updateDoc(orderRef, {
-          status: "LIVRE",
+          status: "COMPLETED",
           deliveredAt: serverTimestamp(),
           updatedAt: serverTimestamp()
         });
       }
+      
+      // Envoi de la notification au client (Background)
+      const phone = order.clientPhone || (order.customerInfo && order.customerInfo.phone) || "";
+      fetch("/api/notifications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "ORDER_STATUS_CHANGED",
+          orderId: order.id,
+          status: newStatus,
+          clientId: order.clientId,
+          clientPhone: phone
+        }),
+      }).catch(err => console.error("Notification API error:", err));
       
       setStatus(newStatus as any);
     } catch (err: any) {

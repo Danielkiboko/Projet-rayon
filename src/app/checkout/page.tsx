@@ -107,6 +107,20 @@ export default function CheckoutPage() {
         createdAt: serverTimestamp(),
       });
 
+      // Notify Supplier and Client (Background)
+      fetch("/api/notifications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "ORDER_CREATED",
+          orderId: orderRef.id,
+          category: cartItems[0]?.category || "Boutique",
+          supplierId: cartItems[0]?.supplierId || "admin",
+          clientId: user?.uid,
+          clientPhone: phone
+        })
+      }).catch(err => console.error("Notification trigger failed:", err));
+
       // 2. Clear cart & show success
       clearCart();
       setSuccess(true);

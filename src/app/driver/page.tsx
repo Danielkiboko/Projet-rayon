@@ -92,6 +92,22 @@ export default function DriverDashboard() {
         status: "ACCEPTED",
         driverId: user.uid,
       });
+      
+      const order: any = availableOrders.find((m: any) => m.id === orderId);
+      if (order) {
+        const phone = order.clientPhone || (order.customerInfo && order.customerInfo.phone) || "";
+        fetch("/api/notifications", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "ORDER_STATUS_CHANGED",
+            orderId: order.id,
+            status: "ACCEPTED",
+            clientId: order.clientId,
+            clientPhone: phone
+          }),
+        }).catch(err => console.error("Notification API error:", err));
+      }
     } catch (error) {
       console.error("Error accepting order", error);
       alert("Erreur lors de l'acceptation de la course.");

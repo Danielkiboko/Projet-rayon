@@ -78,9 +78,10 @@ export const themeConfig: Record<ServiceType, ServiceTheme> = {
     },
     menu: [
       { title: "Dashboard", href: "/supplier/dashboard", icon: LayoutDashboard },
-      { title: "Mes Propriétés", href: "/supplier/properties", icon: Building },
+      { title: "Mes Biens", href: "/supplier/properties", icon: Building },
       { title: "Locataires", href: "/supplier/tenants", icon: Users },
-      { title: "Contrats", href: "/supplier/contracts", icon: FileText },
+      { title: "Facturation", href: "/supplier/invoices", icon: FileText },
+      { title: "Paramètres", href: "/supplier/settings", icon: Settings },
     ]
   },
   connect: {

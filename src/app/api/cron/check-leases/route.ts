@@ -31,7 +31,7 @@ export async function GET(request: Request) {
     // Tableau des promesses d'envoi pour traiter en parallèle
     const sendPromises: Promise<any>[] = [];
 
-    tenantsSnapshot.forEach((doc) => {
+    tenantsSnapshot.forEach((doc: any) => {
       const data = doc.data();
       if (!data.nextPayment) return;
 

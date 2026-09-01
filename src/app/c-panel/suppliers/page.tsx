@@ -68,7 +68,7 @@ export default function SuppliersPage() {
     
     setIsLoading(true);
     try {
-      const token = await auth.currentUser?.getIdToken();
+      const token = await auth.currentUser?.getIdToken(true);
       if (!token) throw new Error("Vous devez être connecté.");
 
       const response = await fetch("/api/users/delete", {
@@ -101,7 +101,7 @@ export default function SuppliersPage() {
     setSuccessMessage("");
 
     try {
-      const token = await auth.currentUser?.getIdToken();
+      const token = await auth.currentUser?.getIdToken(true);
       if (!token) {
         throw new Error("Vous devez être connecté pour effectuer cette action.");
       }

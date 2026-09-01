@@ -20,7 +20,7 @@ export default function AdminDashboardPage() {
   const router = useRouter();
   const { formatPrice } = useCurrency();
 
-  const [orders, setOrders] = useState<Record<string, unknown>[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [activeOrdersCount, setActiveOrdersCount] = useState(0);
   
@@ -51,7 +51,7 @@ export default function AdminDashboardPage() {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       let revenue = 0;
       let active = 0;
-      const fetchedOrders: Record<string, unknown>[] = [];
+      const fetchedOrders: any[] = [];
       
       snapshot.forEach((doc) => {
         const data = doc.data();

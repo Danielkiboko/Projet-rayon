@@ -15,6 +15,42 @@ import { db } from "@/lib/firebase";
 import { collection, getDocs, query, orderBy, limit } from "firebase/firestore";
 import { useCurrency } from "@/context/CurrencyContext";
 
+import RevenueAreaChart from "@/components/charts/RevenueAreaChart";
+import StatusPieChart from "@/components/charts/StatusPieChart";
+
+// Helper pour grouper par date
+const groupByDate = (orders: any[]) => {
+  const result: Record<string, number> = {};
+  orders.forEach(order => {
+    if (!order.createdAt) return;
+    const dateObj = new Date((order.createdAt.seconds || order.createdAt._seconds) * 1000);
+    const dateStr = dateObj.toLocaleDateString("fr-FR", { day: '2-digit', month: 'short' });
+    const rev = (order.itemsTotal || 0) + (order.feePaid || 0);
+    if (!result[dateStr]) result[dateStr] = 0;
+    result[dateStr] += rev;
+  });
+  
+  return Object.keys(result).map(key => ({
+    name: key,
+    total: result[key]
+  })).reverse(); // Inverser pour avoir l'ordre chronologique si on a récupéré par desc
+};
+
+// Helper pour grouper par statut
+const countByStatus = (orders: any[]) => {
+  const result: Record<string, number> = {};
+  orders.forEach(order => {
+    const status = order.status || "OTHER";
+    if (!result[status]) result[status] = 0;
+    result[status] += 1;
+  });
+  
+  return Object.keys(result).map(key => ({
+    name: key,
+    value: result[key]
+  }));
+};
+
 export default function AdminDashboardPage() {
   const { user, userData, loading } = useAuth();
   const router = useRouter();
@@ -24,6 +60,10 @@ export default function AdminDashboardPage() {
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [activeOrdersCount, setActiveOrdersCount] = useState(0);
   
+  // Chart Data
+  const [revenueData, setRevenueData] = useState<any[]>([]);
+  const [statusData, setStatusData] = useState<any[]>([]);
+
   // Protect route for Super Admin and authorized SUB_ADMINs
   useEffect(() => {
     if (!loading) {
@@ -70,6 +110,10 @@ export default function AdminDashboardPage() {
       setOrders(fetchedOrders);
       setTotalRevenue(revenue);
       setActiveOrdersCount(active);
+      
+      // Compute Chart Data
+      setRevenueData(groupByDate(fetchedOrders));
+      setStatusData(countByStatus(fetchedOrders));
     };
 
     fetchDashboardData();
@@ -167,6 +211,16 @@ export default function AdminDashboardPage() {
               <div className="mt-2 text-xs text-gray-500 font-medium uppercase tracking-wider">Total</div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div className="lg:col-span-2">
+          <RevenueAreaChart data={revenueData} title="Évolution du CA (Dernières commandes)" />
+        </div>
+        <div>
+          <StatusPieChart data={statusData} title="Répartition des Statuts" />
         </div>
       </div>
 

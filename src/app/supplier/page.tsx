@@ -4,8 +4,26 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Info, Circle, Home, Users, DollarSign, AlertCircle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { db } from "@/lib/firebase";
-import { collection, query, where, onSnapshot } from "firebase/firestore";
+import RevenueAreaChart from "@/components/charts/RevenueAreaChart";
+import StatusPieChart from "@/components/charts/StatusPieChart";
+import { collection, query, where, onSnapshot, getDocs, limit, orderBy } from "firebase/firestore";
+
+// Helper pour grouper les paiements par date
+const groupPaymentsByDate = (payments: any[]) => {
+  const result: Record<string, number> = {};
+  payments.forEach(payment => {
+    if (!payment.createdAt) return;
+    const dateObj = new Date((payment.createdAt.seconds || payment.createdAt._seconds) * 1000);
+    const dateStr = dateObj.toLocaleDateString("fr-FR", { day: '2-digit', month: 'short' });
+    if (!result[dateStr]) result[dateStr] = 0;
+    result[dateStr] += payment.amount || 0;
+  });
+  
+  return Object.keys(result).map(key => ({
+    name: key,
+    total: result[key]
+  })).reverse();
+};
 
 export default function SupplierDashboard() {
   const { user } = useAuth();
@@ -20,9 +38,34 @@ export default function SupplierDashboard() {
   });
 
   const [loading, setLoading] = useState(true);
+  const [revenueData, setRevenueData] = useState<any[]>([]);
 
   useEffect(() => {
     if (!user) return;
+
+    // Fetch payments for revenue chart
+    const fetchPayments = async () => {
+      try {
+        const qPayments = query(
+          collection(db, "payments"),
+          where("supplierId", "==", user.uid),
+          orderBy("createdAt", "desc"),
+          limit(50)
+        );
+        const snapshot = await getDocs(qPayments);
+        const fetchedPayments: any[] = [];
+        snapshot.forEach(doc => {
+          if(doc.data().status === "COMPLETED") {
+             fetchedPayments.push(doc.data());
+          }
+        });
+        setRevenueData(groupPaymentsByDate(fetchedPayments));
+      } catch (error) {
+        console.error("Error fetching payments for chart:", error);
+      }
+    };
+    
+    fetchPayments();
 
     // 1. Fetch Properties to calculate total capacity and occupied units
     const qProps = query(
@@ -97,6 +140,11 @@ export default function SupplierDashboard() {
     ? Math.round((stats.occupiedUnits / stats.totalUnits) * 100) 
     : 0;
 
+  const occupancyData = [
+    { name: "Occupées", value: stats.occupiedUnits },
+    { name: "Disponibles", value: Math.max(0, stats.totalUnits - stats.occupiedUnits) }
+  ];
+
   const KPIS = [
     { title: "Propriétés", value: stats.totalProperties.toString(), subtitle: "Total enregistrées", subInfo: "Gérez votre parc", icon: Home },
     { title: "Locataires Actifs", value: stats.totalTenants.toString(), subtitle: "Total", subInfo: "Taux d'occupation: " + occupancyRate + "%", icon: Users },
@@ -135,50 +183,18 @@ export default function SupplierDashboard() {
         })}
       </div>
 
-      {/* Main Content Split */}
+      {/* Main Content Split - Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* Left Column (Charts & Analysis) - Takes 2 cols on large screens */}
+        {/* Left Column (Charts) */}
         <div className="lg:col-span-2 space-y-6">
-          <motion.div 
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4, duration: 0.4 }}
-            className="bg-[#1a1a1a] border border-white/5 rounded-2xl p-6 shadow-sm min-h-[320px] flex flex-col"
-          >
-            <h2 className="text-base font-semibold text-white mb-6 text-center">Taux d'Occupation</h2>
-            <div className="flex-1 flex flex-col md:flex-row items-center justify-center gap-10">
-              {/* Donut Chart Simulation */}
-              <div 
-                className="relative w-48 h-48 rounded-full border-[16px] shadow-inner flex items-center justify-center"
-                style={{
-                  borderColor: '#1f2937', // Default gray
-                  borderTopColor: occupancyRate > 0 ? '#3b82f6' : '#1f2937',
-                  borderRightColor: occupancyRate > 25 ? '#3b82f6' : '#1f2937',
-                  borderBottomColor: occupancyRate > 50 ? '#10b981' : '#1f2937',
-                  borderLeftColor: occupancyRate > 75 ? '#10b981' : '#1f2937',
-                }}
-              >
-                <span className="text-2xl font-bold text-white">{occupancyRate}%</span>
-              </div>
-              
-              {/* Chart Legend */}
-              <div className="space-y-3">
-                <div className="flex items-center space-x-2 text-sm text-gray-300">
-                  <Circle size={10} className="text-[#3b82f6] fill-[#3b82f6]" /> 
-                  <span>Unités Occupées ({stats.occupiedUnits})</span>
-                </div>
-                <div className="flex items-center space-x-2 text-sm text-gray-300">
-                  <Circle size={10} className="text-[#4b5563] fill-[#4b5563]" /> 
-                  <span>Unités Disponibles ({Math.max(0, stats.totalUnits - stats.occupiedUnits)})</span>
-                </div>
-              </div>
-            </div>
-          </motion.div>
+          <RevenueAreaChart data={revenueData} title="Évolution des Encaissements (30 j)" color="#10b981" />
         </div>
 
-        {/* Right Column (Setup & Recommendations) */}
+        {/* Right Column (Pie Chart & Actions) */}
         <div className="space-y-6">
+          
+          <StatusPieChart data={occupancyData} title="Taux d'Occupation" />
           {/* Action Card */}
           <motion.div 
             initial={{ opacity: 0, y: 15 }}

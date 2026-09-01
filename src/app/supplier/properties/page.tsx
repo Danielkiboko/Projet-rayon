@@ -29,6 +29,58 @@ export default function SupplierPropertiesPage() {
   const [propertyLocation, setPropertyLocation] = useState("");
   const [propertyDesc, setPropertyDesc] = useState("");
 
+  // Structure Dynamique (Niveaux, Appartements, Bureaux, Chaises)
+  const [levels, setLevels] = useState<{
+    id: string;
+    name: string;
+    units: {
+      id: string;
+      name: string;
+      type: string; // "appartement", "bureau", "chaise"
+      capacity: number; // For office chairs
+    }[]
+  }[]>([]);
+
+  const handleAddLevel = () => {
+    setLevels([...levels, { id: Date.now().toString(), name: `Niveau ${levels.length + 1}`, units: [] }]);
+  };
+
+  const handleRemoveLevel = (lIndex: number) => {
+    const newLevels = [...levels];
+    newLevels.splice(lIndex, 1);
+    setLevels(newLevels);
+  };
+
+  const handleUpdateLevelName = (lIndex: number, name: string) => {
+    const newLevels = [...levels];
+    newLevels[lIndex].name = name;
+    setLevels(newLevels);
+  };
+
+  const handleAddUnit = (lIndex: number) => {
+    const newLevels = [...levels];
+    newLevels[lIndex].units.push({
+      id: Date.now().toString(),
+      name: "",
+      type: "appartement",
+      capacity: 1
+    });
+    setLevels(newLevels);
+  };
+
+  const handleRemoveUnit = (lIndex: number, uIndex: number) => {
+    const newLevels = [...levels];
+    newLevels[lIndex].units.splice(uIndex, 1);
+    setLevels(newLevels);
+  };
+
+  const handleUpdateUnit = (lIndex: number, uIndex: number, field: string, value: any) => {
+    const newLevels = [...levels];
+    newLevels[lIndex].units[uIndex] = { ...newLevels[lIndex].units[uIndex], [field]: value };
+    setLevels(newLevels);
+  };
+
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -145,13 +197,57 @@ export default function SupplierPropertiesPage() {
      }
   };
 
-  const handleCreateProperty = (e: React.FormEvent) => {
+  const handleCreateProperty = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Connect to Firebase to add a new property
-    setIsModalOpen(false);
-    setImageFile(null);
-    setImagePreview(null);
-    setChatMessages([]);
+    setIsAiLoading(true); // Reusing loading state for saving
+    try {
+      const { collection, addDoc, serverTimestamp } = await import("firebase/firestore");
+      const { db } = await import("@/lib/firebase");
+      const { auth } = await import("@/lib/firebase");
+
+      const user = auth.currentUser;
+      if (!user) throw new Error("Vous devez être connecté.");
+
+      const newProperty = {
+        title: { fr: propertyTitle, en: propertyTitle }, // Simulating i18n
+        category: "immo",
+        type: propertyType,
+        price: parseFloat(propertyPrice.replace(/[^0-9.]/g, '') || "0"),
+        location: propertyLocation,
+        description: propertyDesc,
+        image: imagePreview || "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&q=80&w=800",
+        supplierId: user.uid,
+        createdAt: serverTimestamp(),
+        status: "Disponible",
+        // Default immo details for now
+        immoDetails: {
+          area: 0,
+          beds: 0,
+          baths: 0,
+          levels: levels
+        }
+      };
+
+      await addDoc(collection(db, "products"), newProperty);
+      alert("Propriété publiée avec succès !");
+      
+      setIsModalOpen(false);
+      setImageFile(null);
+      setImagePreview(null);
+      setChatMessages([]);
+      // Reset form
+      setPropertyTitle("");
+      setPropertyType("");
+      setPropertyPrice("");
+      setPropertyLocation("");
+      setPropertyDesc("");
+      setLevels([]);
+    } catch (error) {
+      console.error("Erreur lors de l'ajout de la propriété:", error);
+      alert("Une erreur est survenue.");
+    } finally {
+      setIsAiLoading(false);
+    }
   };
 
   return (
@@ -436,6 +532,83 @@ export default function SupplierPropertiesPage() {
                     placeholder="Décrivez les atouts de votre bien (nombre de pièces, salle de bain, commodités...)"
                     className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white"
                   ></textarea>
+                </div>
+
+                {/* Dynamic Structure Builder */}
+                <div className="space-y-4 border-t border-white/10 pt-4">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium text-gray-300">Structure du bâtiment (Niveaux, Appartements, Bureaux)</label>
+                    <button 
+                      type="button" 
+                      onClick={handleAddLevel} 
+                      className="text-xs bg-primary/20 hover:bg-primary/40 transition-colors text-primary-light px-3 py-1.5 rounded-lg flex items-center space-x-1"
+                    >
+                      <Plus size={14} /> <span>Ajouter un niveau</span>
+                    </button>
+                  </div>
+                  
+                  {levels.length === 0 && (
+                     <p className="text-xs text-gray-500 italic">Aucun niveau défini. (Optionnel)</p>
+                  )}
+
+                  {levels.map((level, lIndex) => (
+                    <div key={level.id} className="p-4 bg-black/20 border border-white/10 rounded-xl space-y-4">
+                      <div className="flex items-center gap-2">
+                        <input 
+                          type="text" 
+                          value={level.name} 
+                          onChange={(e) => handleUpdateLevelName(lIndex, e.target.value)} 
+                          placeholder="Nom du niveau (ex: RDC, 1er Étage)" 
+                          className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-primary" 
+                        />
+                        <button type="button" onClick={() => handleRemoveLevel(lIndex)} className="p-2 text-red-400 hover:bg-red-400/10 rounded-lg">
+                          <X size={16}/>
+                        </button>
+                      </div>
+                      
+                      <div className="pl-4 ml-2 border-l-2 border-white/10 space-y-3">
+                         {level.units.map((unit, uIndex) => (
+                             <div key={unit.id} className="flex flex-col sm:flex-row gap-2">
+                                <input 
+                                  type="text" 
+                                  value={unit.name} 
+                                  onChange={(e) => handleUpdateUnit(lIndex, uIndex, 'name', e.target.value)}
+                                  placeholder="Nom (ex: Appt 1A, Bureau 1)"
+                                  className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white focus:outline-none"
+                                />
+                                <select 
+                                  value={unit.type} 
+                                  onChange={(e) => handleUpdateUnit(lIndex, uIndex, 'type', e.target.value)}
+                                  className="w-full sm:w-32 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white focus:outline-none [&>option]:bg-[#140b2e]"
+                                >
+                                  <option value="appartement">Appart. / Local</option>
+                                  <option value="bureau">Bureau</option>
+                                  <option value="chaise">Poste/Chaise</option>
+                                </select>
+                                {unit.type !== 'appartement' && (
+                                  <input 
+                                    type="number" 
+                                    value={unit.capacity} 
+                                    onChange={(e) => handleUpdateUnit(lIndex, uIndex, 'capacity', parseInt(e.target.value) || 1)}
+                                    title="Nombre de places/chaises"
+                                    className="w-full sm:w-20 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white focus:outline-none"
+                                  />
+                                )}
+                                <button type="button" onClick={() => handleRemoveUnit(lIndex, uIndex)} className="p-2 text-red-400 hover:bg-red-400/10 rounded-lg flex items-center justify-center shrink-0">
+                                  <X size={16}/>
+                                </button>
+                             </div>
+                         ))}
+                         <button 
+                           type="button" 
+                           onClick={() => handleAddUnit(lIndex)} 
+                           className="text-xs text-gray-400 hover:text-white flex items-center space-x-1"
+                         >
+                           <Plus size={12} /> <span>Ajouter une sous-unité</span>
+                         </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
 
                 <div className="pt-4 flex justify-end space-x-3 border-t border-white/10">

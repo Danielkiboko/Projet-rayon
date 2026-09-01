@@ -61,6 +61,39 @@ export default function SuppliersPage() {
     fetchSuppliers();
   }, []);
 
+  const handleDeleteSupplier = async (supplierId: string) => {
+    if (!confirm("Voulez-vous vraiment supprimer ce fournisseur ? Cette action effacera toutes ses données (et propriétés).")) {
+      return;
+    }
+    
+    setIsLoading(true);
+    try {
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) throw new Error("Vous devez être connecté.");
+
+      const response = await fetch("/api/users/delete", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ uid: supplierId }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Erreur lors de la suppression");
+      }
+
+      setSuccessMessage("Fournisseur supprimé avec succès.");
+      fetchSuppliers();
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Erreur lors de la suppression");
+      setIsLoading(false);
+    }
+  };
+
   const handleCreateSupplier = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -215,7 +248,12 @@ export default function SuppliersPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button className="text-primary-light hover:text-white transition-colors">Gérer</button>
+                      <button 
+                        onClick={() => handleDeleteSupplier(supplier.id)}
+                        className="text-red-400 hover:bg-red-400/10 px-3 py-1 rounded transition-colors"
+                      >
+                        Supprimer
+                      </button>
                     </td>
                   </tr>
                 ))

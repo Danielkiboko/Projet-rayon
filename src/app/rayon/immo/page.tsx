@@ -107,7 +107,11 @@ export default function ImmoPage() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const q = query(collection(db, "products"), where("category", "==", "immo"));
+        const q = query(
+          collection(db, "products"), 
+          where("category", "==", "immo"),
+          where("status", "==", "Disponible")
+        );
         const querySnapshot = await getDocs(q);
         const productsList = querySnapshot.docs.map(doc => ({
           id: doc.id,

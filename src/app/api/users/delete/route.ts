@@ -41,10 +41,20 @@ export async function POST(req: Request) {
     // Delete from Firestore
     const batch = adminDb.batch();
     batch.delete(adminDb.collection('users').doc(uid));
-    batch.delete(adminDb.collection(collectionName).doc(uid));
+    
+    if (collectionName) {
+      batch.delete(adminDb.collection(collectionName).doc(uid));
+    }
+
+    // Effacer toutes les propriétés/produits créés par ce fournisseur
+    const productsSnapshot = await adminDb.collection('products').where('supplierId', '==', uid).get();
+    productsSnapshot.forEach((doc) => {
+      batch.delete(doc.ref);
+    });
+
     await batch.commit();
 
-    return NextResponse.json({ message: 'User deleted successfully' }, { status: 200 });
+    return NextResponse.json({ message: 'User and associated data deleted successfully' }, { status: 200 });
   } catch (error: any) {
     console.error('Error deleting user:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });

@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { motion } from "framer-motion";
 import { LogOut, Menu, X, ShieldAlert, Bell, UserCircle, Search } from "lucide-react";
 import { themeConfig, ServiceType } from "@/lib/themeConfig";
+import ProfileUpdateModal from "@/components/ProfileUpdateModal";
 
 export default function SupplierLayout({
   children,
@@ -36,6 +37,11 @@ export default function SupplierLayout({
 
   return (
     <div className={`flex h-screen bg-[#121212] overflow-hidden font-sans`}>
+      <ProfileUpdateModal 
+        user={user} 
+        userData={userData} 
+        onSuccess={() => window.location.reload()} 
+      />
       {/* Mobile sidebar overlay */}
       {isSidebarOpen && (
         <div 

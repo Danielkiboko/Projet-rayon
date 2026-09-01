@@ -72,6 +72,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => unsubscribeAuth();
   }, []);
 
+  // EFFECT 1: Inactivity Timer (depends on user role)
   useEffect(() => {
     let inactivityTimer: NodeJS.Timeout;
 
@@ -95,7 +96,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       resetTimer();
     }
     
-    // PRESENCE TRACKING
+    return () => {
+      clearTimeout(inactivityTimer);
+      window.removeEventListener('mousemove', resetTimer);
+      window.removeEventListener('keydown', resetTimer);
+      window.removeEventListener('scroll', resetTimer);
+      window.removeEventListener('touchstart', resetTimer);
+    };
+  }, [user, userData?.role, router]);
+
+  // EFFECT 2: Presence Tracking (depends ONLY on user)
+  useEffect(() => {
     const setPresenceOffline = () => {
       if (user) {
         import("firebase/firestore").then(({ setDoc, doc, serverTimestamp }) => {
@@ -133,15 +144,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     return () => {
-      clearTimeout(inactivityTimer);
-      window.removeEventListener('mousemove', resetTimer);
-      window.removeEventListener('keydown', resetTimer);
-      window.removeEventListener('scroll', resetTimer);
-      window.removeEventListener('touchstart', resetTimer);
       window.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("beforeunload", setPresenceOffline);
     };
-  }, [user, userData, router]);
+  }, [user]);
 
   const signOut = async () => {
     try {

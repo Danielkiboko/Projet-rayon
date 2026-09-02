@@ -350,7 +350,7 @@ export default function SupplierPropertiesPage() {
         <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center justify-between">
           <div>
             <p className="text-sm text-gray-400">Total Propriétés</p>
-            <p className="text-2xl font-bold text-white mt-1">3</p>
+            <p className="text-2xl font-bold text-white mt-1">{properties.length}</p>
           </div>
           <div className="p-3 bg-blue-400/10 text-blue-400 rounded-lg">
             <Home size={20} />
@@ -358,8 +358,8 @@ export default function SupplierPropertiesPage() {
         </div>
         <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center justify-between">
           <div>
-            <p className="text-sm text-gray-400">Propriétés Vides</p>
-            <p className="text-2xl font-bold text-white mt-1">2</p>
+            <p className="text-sm text-gray-400">Propriétés Vides / En attente</p>
+            <p className="text-2xl font-bold text-white mt-1">{properties.filter(p => p.status !== 'Loué').length}</p>
           </div>
           <div className="p-3 bg-green-400/10 text-green-400 rounded-lg">
             <AlertCircle size={20} />

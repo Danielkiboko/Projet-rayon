@@ -18,6 +18,7 @@ interface Tenant {
   rentAmount: number;
   nextPayment: string;
   status: string;
+  periodicity: string;
 }
 
 interface Property {
@@ -47,6 +48,7 @@ export default function SupplierTenantsPage() {
   const [selectedUnitId, setSelectedUnitId] = useState("");
   const [rentAmount, setRentAmount] = useState<number | "">("");
   const [nextPayment, setNextPayment] = useState("");
+  const [periodicity, setPeriodicity] = useState("Mensuel");
 
   const fetchData = async () => {
     if (!user) return;
@@ -123,6 +125,7 @@ export default function SupplierTenantsPage() {
         unitId: selectedUnitId,
         rentAmount: Number(rentAmount),
         nextPayment,
+        periodicity,
         status: "À jour",
         createdAt: new Date().toISOString(),
       };
@@ -176,6 +179,7 @@ export default function SupplierTenantsPage() {
       setSelectedUnitId("");
       setRentAmount("");
       setNextPayment("");
+      setPeriodicity("Mensuel");
       fetchData();
     } catch (err) {
       console.error(err);
@@ -373,6 +377,14 @@ export default function SupplierTenantsPage() {
                   <div className="space-y-1">
                     <label className="text-sm font-medium text-gray-300">Loyer convenu ($)</label>
                     <input type="number" required value={rentAmount} onChange={(e) => setRentAmount(Number(e.target.value))} className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium text-gray-300">Périodicité</label>
+                    <select required value={periodicity} onChange={(e) => setPeriodicity(e.target.value)} className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white [&>option]:bg-[#140b2e]">
+                      <option value="Mensuel">Mensuel</option>
+                      <option value="Trimestriel">Trimestriel</option>
+                      <option value="Annuel">Annuel</option>
+                    </select>
                   </div>
                   <div className="space-y-1">
                     <label className="text-sm font-medium text-gray-300">Prochaine échéance</label>

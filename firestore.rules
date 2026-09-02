@@ -82,6 +82,19 @@ service cloud.firestore {
     }
 
     // Add additional collections (products, etc.) with similar scoping if needed.
+    match /products/{productId} {
+      allow read: if true;
+      allow create: if isSupplier() && request.resource.data.supplierId == request.auth.uid;
+      allow update, delete: if isSupplier() && resource.data.supplierId == request.auth.uid;
+      allow update, delete: if isSuperAdmin() || isAdmin();
+    }
+
+    match /invoices/{invoiceId} {
+      allow create: if isSupplier() && request.resource.data.supplierId == request.auth.uid;
+      allow read, update, delete: if isSupplier() && resource.data.supplierId == request.auth.uid;
+      allow read, update, delete: if isSuperAdmin() || isAdmin();
+    }
+
     match /properties/{propertyId} {
       allow read: if true; // Public can see properties
       allow create: if isSupplier() && request.resource.data.supplierId == request.auth.uid;

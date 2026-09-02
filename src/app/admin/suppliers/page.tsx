@@ -435,20 +435,22 @@ export default function SuppliersPage() {
                   </select>
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-sm font-medium text-gray-300">Rayon d'affectation</label>
-                  <select
-                    required
-                    value={rayon}
-                    onChange={(e) => setRayon(e.target.value)}
-                    className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white [&>option]:bg-[#0b061c]"
-                  >
-                    <option value="">Sélectionner un rayon...</option>
-                    <option value="connect">Rayon Connect (Matériel)</option>
-                    <option value="immo">Rayon Immo (Immobilier)</option>
-                    <option value="mode">Rayon Mode (Vêtements)</option>
-                  </select>
-                </div>
+                {role !== "SUB_ADMIN" && (
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium text-gray-300">Rayon d'affectation</label>
+                    <select
+                      required
+                      value={rayon}
+                      onChange={(e) => setRayon(e.target.value)}
+                      className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white [&>option]:bg-[#0b061c]"
+                    >
+                      <option value="">Sélectionner un rayon...</option>
+                      <option value="connect">Rayon Connect (Matériel)</option>
+                      <option value="immo">Rayon Immo (Immobilier)</option>
+                      <option value="mode">Rayon Mode (Vêtements)</option>
+                    </select>
+                  </div>
+                )}
 
                 <div className="pt-4 flex justify-end space-x-3">
                   <button

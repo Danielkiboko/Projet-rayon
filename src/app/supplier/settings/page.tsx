@@ -21,7 +21,7 @@ export default function SupplierSettingsPage() {
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
 
-  const isImmo = userData?.role === "SUPPLIER_IMMO" || userData?.businessType === "IMMOBILIER";
+  const isImmo = userData?.role === "SUPPLIER_IMMO" || userData?.businessType === "IMMOBILIER" || userData?.rayon?.type === "REAL_ESTATE" || userData?.rayon === "immo";
 
   useEffect(() => {
     if (userData) {

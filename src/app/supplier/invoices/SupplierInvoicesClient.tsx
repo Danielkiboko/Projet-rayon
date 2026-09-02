@@ -107,9 +107,9 @@ export default function SupplierInvoices() {
     let currentY = supplierStartY + 5;
     doc.text(userData?.companyName || userData?.company || userData?.nom || "Bailleur", 120, currentY);
     
-    if (userData?.nif) {
+    if (userData?.address) {
       currentY += 5;
-      doc.text(`NIF: ${userData.nif}`, 120, currentY);
+      doc.text(userData.address, 120, currentY);
     }
     if (userData?.email) {
       currentY += 5;
@@ -118,6 +118,18 @@ export default function SupplierInvoices() {
     if (userData?.phone) {
       currentY += 5;
       doc.text(userData.phone, 120, currentY);
+    }
+    if (userData?.rccm) {
+      currentY += 5;
+      doc.text(`RCCM: ${userData.rccm}`, 120, currentY);
+    }
+    if (userData?.idNat) {
+      currentY += 5;
+      doc.text(`ID Nat: ${userData.idNat}`, 120, currentY);
+    }
+    if (userData?.nif) {
+      currentY += 5;
+      doc.text(`NIF: ${userData.nif}`, 120, currentY);
     }
 
     // Client Info

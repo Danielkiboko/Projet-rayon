@@ -13,6 +13,8 @@ export default function SupplierSettingsPage() {
   const [primaryColor, setPrimaryColor] = useState("#8b5cf6");
   const [logoUrl, setLogoUrl] = useState("");
   const [companyName, setCompanyName] = useState("");
+  const [rccm, setRccm] = useState("");
+  const [idNat, setIdNat] = useState("");
   const [nif, setNif] = useState("");
   
   const [isLoading, setIsLoading] = useState(false);
@@ -27,6 +29,8 @@ export default function SupplierSettingsPage() {
       if (userData.primaryColor) setPrimaryColor(userData.primaryColor);
       if (userData.logoUrl) setLogoUrl(userData.logoUrl);
       if (userData.companyName || userData.company) setCompanyName(userData.companyName || userData.company);
+      if (userData.rccm) setRccm(userData.rccm);
+      if (userData.idNat) setIdNat(userData.idNat);
       if (userData.nif) setNif(userData.nif);
     }
   }, [userData]);
@@ -50,6 +54,8 @@ export default function SupplierSettingsPage() {
         pendingProfile.primaryColor = primaryColor;
         pendingProfile.logoUrl = logoUrl;
         pendingProfile.companyName = companyName;
+        pendingProfile.rccm = rccm;
+        pendingProfile.idNat = idNat;
         pendingProfile.nif = nif;
       }
 
@@ -180,15 +186,37 @@ export default function SupplierSettingsPage() {
                     />
                   </div>
                   
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">NIF (Numéro d'Identification Fiscale)</label>
-                    <input 
-                      type="text" 
-                      value={nif}
-                      onChange={(e) => setNif(e.target.value)}
-                      placeholder="Ex: 0123456789" 
-                      className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white" 
-                    />
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-white/5">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">RCCM</label>
+                      <input 
+                        type="text" 
+                        value={rccm}
+                        onChange={(e) => setRccm(e.target.value)}
+                        placeholder="CD/KNG/RCCM/..." 
+                        className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">ID Nat</label>
+                      <input 
+                        type="text" 
+                        value={idNat}
+                        onChange={(e) => setIdNat(e.target.value)}
+                        placeholder="01-..." 
+                        className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">Numéro d'Impôt (NIF)</label>
+                      <input 
+                        type="text" 
+                        value={nif}
+                        onChange={(e) => setNif(e.target.value)}
+                        placeholder="A..." 
+                        className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white"
+                      />
+                    </div>
                   </div>
 
                   <h3 className="text-lg font-medium text-white mb-2 mt-6">Marque Blanche (Apparence)</h3>

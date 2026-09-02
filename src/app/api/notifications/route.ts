@@ -13,10 +13,10 @@ import { doc, getDoc } from "firebase/firestore";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { action, orderId, category, status, supplierId, clientId, clientPhone: reqClientPhone } = body;
+    const { action, orderId, category, status, supplierId, clientId, clientPhone: reqClientPhone, data } = body;
 
-    if (!action || !orderId) {
-      return NextResponse.json({ error: "Missing required fields (action, orderId)" }, { status: 400 });
+    if (!action) {
+      return NextResponse.json({ error: "Missing required fields (action)" }, { status: 400 });
     }
 
     let supplierEmail = "";
@@ -72,6 +72,15 @@ export async function POST(req: Request) {
       if (clientPhone) {
         tasks.push(sendSMS(clientPhone, getOrderStatusSMS(orderId, status)));
       }
+    }
+
+    // 3. VISIT_VALIDATED : Notify Client
+    if (action === "VISIT_VALIDATED" && data) {
+      const msg = `Bonjour ${data.visitorName || 'Client'}, votre visite pour "${data.propertyTitle}" a été validée pour le ${data.requestedDate || 'plus vite possible'}. Un agent vous contactera bientôt avec la localisation exacte. - Rayon Immo`;
+      if (data.visitorPhone) {
+         tasks.push(sendSMS(data.visitorPhone, msg));
+      }
+      // Note: We don't have the visitor's email collected in the current modal, so we just use SMS
     }
 
     await Promise.allSettled(tasks);

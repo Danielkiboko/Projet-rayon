@@ -3,23 +3,54 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Calendar, CheckCircle2 } from "lucide-react";
+import { db } from "@/lib/firebase";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
 type ImmoContactModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  propertyTitle: string;
+  property: any | null;
 };
 
-export function ImmoContactModal({ isOpen, onClose, propertyTitle }: ImmoContactModalProps) {
+export function ImmoContactModal({ isOpen, onClose, property }: ImmoContactModalProps) {
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const propertyTitle = property ? (property.title?.fr || property.title) : "";
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitted(true);
-    setTimeout(() => {
-      setIsSubmitted(false);
-      onClose();
-    }, 3000);
+    if (!property) return;
+    
+    setIsSubmitting(true);
+    try {
+      const formData = new FormData(e.target as HTMLFormElement);
+      const name = formData.get("name");
+      const phone = formData.get("phone");
+      const date = formData.get("date");
+
+      await addDoc(collection(db, "visits"), {
+        propertyId: property.id,
+        propertyTitle: propertyTitle,
+        supplierId: property.supplierId,
+        visitorName: name,
+        visitorPhone: phone,
+        requestedDate: date,
+        status: "PENDING",
+        createdAt: serverTimestamp()
+      });
+
+      setIsSubmitted(true);
+      setTimeout(() => {
+        setIsSubmitted(false);
+        onClose();
+      }, 3000);
+    } catch (error) {
+      console.error("Erreur d'enregistrement de la visite :", error);
+      alert("Une erreur est survenue.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -73,21 +104,21 @@ export function ImmoContactModal({ isOpen, onClose, propertyTitle }: ImmoContact
 
                   <div className="space-y-1">
                     <label className="text-sm font-medium text-gray-400">Nom Complet</label>
-                    <input type="text" required className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-white" placeholder="Jean Dupont" />
+                    <input name="name" type="text" required className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-white" placeholder="Jean Dupont" />
                   </div>
                   
                   <div className="space-y-1">
                     <label className="text-sm font-medium text-gray-400">Téléphone</label>
-                    <input type="tel" required className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-white" placeholder="+243..." />
+                    <input name="phone" type="tel" required className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-white" placeholder="+243..." />
                   </div>
 
                   <div className="space-y-1">
                     <label className="text-sm font-medium text-gray-400">Date souhaitée (Optionnel)</label>
-                    <input type="date" className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-white" />
+                    <input name="date" type="date" min={new Date().toISOString().split('T')[0]} className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-white" />
                   </div>
 
-                  <button type="submit" className="w-full py-4 mt-4 bg-primary hover:bg-primary-light text-white font-bold rounded-xl transition-colors">
-                    Envoyer la demande
+                  <button type="submit" disabled={isSubmitting} className="w-full py-4 mt-4 bg-primary hover:bg-primary-light text-white font-bold rounded-xl transition-colors disabled:opacity-50">
+                    {isSubmitting ? "Envoi en cours..." : "Envoyer la demande"}
                   </button>
                 </form>
               </>

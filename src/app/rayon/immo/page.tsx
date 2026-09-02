@@ -100,7 +100,7 @@ export default function ImmoPage() {
   const [lang, setLang] = useState<"fr" | "en">("fr");
   const t = DICT[lang];
   const { user, loading, signOut } = useAuth();
-  const [selectedProperty, setSelectedProperty] = useState<string | null>(null);
+  const [selectedProperty, setSelectedProperty] = useState<any | null>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -293,7 +293,7 @@ export default function ImmoPage() {
                   {/* Actions */}
                   <div className="mt-auto">
                     <button 
-                      onClick={() => setSelectedProperty(property.title?.[lang])}
+                      onClick={() => setSelectedProperty(property)}
                       className="w-full py-3 bg-green-600 hover:bg-green-700 text-white text-sm font-bold rounded-xl transition-colors flex items-center justify-center space-x-2 shadow-sm"
                     >
                       <span>{t.appointment}</span>
@@ -311,7 +311,7 @@ export default function ImmoPage() {
       <ImmoContactModal 
         isOpen={!!selectedProperty} 
         onClose={() => setSelectedProperty(null)} 
-        propertyTitle={selectedProperty || ""}
+        property={selectedProperty}
       />
     </div>
   );

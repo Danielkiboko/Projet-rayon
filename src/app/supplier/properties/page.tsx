@@ -138,15 +138,13 @@ export default function SupplierPropertiesPage() {
                  { role: 'user', text: 'Image ajoutée.' },
                  { role: 'model', text: aiText }
                ]);
-             }
-           }
-        } catch(err) {
-           console.error(err);
-        } finally {
-           setIsAiLoading(false);
-        }
-      };
-
+              }
+            } catch(err) {
+               console.error(err);
+            } finally {
+               setIsAiLoading(false);
+            }
+        };
     } catch (error) {
       console.error("Erreur de compression d'image:", error);
     }
@@ -218,7 +216,7 @@ export default function SupplierPropertiesPage() {
         image: imagePreview || "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&q=80&w=800",
         supplierId: user.uid,
         createdAt: serverTimestamp(),
-        status: "Disponible",
+        status: "PENDING_APPROVAL",
         // Default immo details for now
         immoDetails: {
           area: 0,
@@ -229,7 +227,7 @@ export default function SupplierPropertiesPage() {
       };
 
       await addDoc(collection(db, "products"), newProperty);
-      alert("Propriété publiée avec succès !");
+      alert("Propriété publiée avec succès ! Elle est en attente d'approbation par l'administration.");
       
       setIsModalOpen(false);
       setImageFile(null);
@@ -321,27 +319,43 @@ export default function SupplierPropertiesPage() {
               </tr>
             </thead>
             <tbody>
-              {MOCK_PROPERTIES.map((property) => (
-                <tr key={property.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                  <td className="px-6 py-4 font-medium text-white flex items-center space-x-3">
-                    <div className="w-8 h-8 rounded bg-primary/20 flex items-center justify-center text-primary-light">
-                      <Home size={16} />
-                    </div>
-                    <span>{property.title}</span>
-                  </td>
-                  <td className="px-6 py-4">{property.type}</td>
-                  <td className="px-6 py-4">{property.location}</td>
-                  <td className="px-6 py-4">{property.price}</td>
-                  <td className="px-6 py-4">
-                    <span className={property.status === "Vide" ? "text-green-400" : "text-gray-400"}>
-                      {property.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <button className="text-primary-light hover:text-white transition-colors">Modifier</button>
-                  </td>
-                </tr>
-              ))}
+              {isLoading ? (
+                <tr><td colSpan={6} className="text-center py-4">Chargement...</td></tr>
+              ) : properties.length === 0 ? (
+                <tr><td colSpan={6} className="text-center py-4 text-gray-500">Aucune propriété trouvée.</td></tr>
+              ) : (
+                properties.map((property) => (
+                  <tr key={property.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                    <td className="px-6 py-4 font-medium text-white flex items-center space-x-3">
+                      <div className="w-8 h-8 rounded bg-primary/20 flex items-center justify-center text-primary-light">
+                        <Home size={16} />
+                      </div>
+                      <span>{property.title?.fr || property.title}</span>
+                    </td>
+                    <td className="px-6 py-4">{property.type}</td>
+                    <td className="px-6 py-4">{property.location}</td>
+                    <td className="px-6 py-4">{property.price}</td>
+                    <td className="px-6 py-4">
+                      <span className={
+                        property.status === "Disponible" ? "text-green-400" :
+                        property.status === "PENDING_APPROVAL" ? "text-yellow-400" :
+                        property.status === "REJECTED" ? "text-red-400" :
+                        "text-gray-400"
+                      }>
+                        {property.status === "PENDING_APPROVAL" ? "En attente" : 
+                         property.status === "REJECTED" ? "Rejeté" : 
+                         property.status}
+                      </span>
+                      {property.status === "REJECTED" && property.rejectionReason && (
+                         <div className="text-xs text-red-300 mt-1">Motif: {property.rejectionReason}</div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <button className="text-primary-light hover:text-white transition-colors">Modifier</button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

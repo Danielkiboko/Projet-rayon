@@ -6,7 +6,8 @@ import { Info, Circle, Home, Users, DollarSign, AlertCircle } from "lucide-react
 import { useAuth } from "@/context/AuthContext";
 import RevenueAreaChart from "@/components/charts/RevenueAreaChart";
 import StatusPieChart from "@/components/charts/StatusPieChart";
-import { collection, query, where, onSnapshot, getDocs, limit, orderBy } from "firebase/firestore";
+import { collection, query, where, onSnapshot, getDocs, limit, orderBy, updateDoc, doc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 // Helper pour grouper les paiements par date
 const groupPaymentsByDate = (payments: any[]) => {
@@ -39,6 +40,7 @@ export default function SupplierDashboard() {
 
   const [loading, setLoading] = useState(true);
   const [revenueData, setRevenueData] = useState<any[]>([]);
+  const [visits, setVisits] = useState<any[]>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -129,11 +131,57 @@ export default function SupplierDashboard() {
       setLoading(false);
     });
 
+    // 3. Fetch Visits for this supplier
+    const qVisits = query(
+      collection(db, "visits"),
+      where("supplierId", "==", user.uid),
+      orderBy("createdAt", "desc")
+    );
+
+    const unsubVisits = onSnapshot(qVisits, (snapshot) => {
+      const visitsData: any[] = [];
+      snapshot.forEach(doc => {
+        visitsData.push({ id: doc.id, ...doc.data() });
+      });
+      setVisits(visitsData);
+    });
+
     return () => {
       unsubProps();
       unsubTenants();
+      unsubVisits();
     };
   }, [user]);
+
+  const handleApproveVisit = async (visit: any) => {
+    if (confirm("Confirmer et valider cette visite ?")) {
+      try {
+        await updateDoc(doc(db, "visits", visit.id), {
+          status: "APPROVED"
+        });
+
+        // Trigger notification to the visitor
+        await fetch('/api/notifications', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'VISIT_VALIDATED',
+            data: {
+              visitorPhone: visit.visitorPhone,
+              visitorName: visit.visitorName,
+              propertyTitle: visit.propertyTitle,
+              requestedDate: visit.requestedDate
+            }
+          })
+        });
+
+        alert("Visite validée avec succès ! Le client a été notifié.");
+      } catch (error) {
+        console.error("Erreur validation visite", error);
+        alert("Erreur lors de la validation.");
+      }
+    }
+  };
 
   // Calcul du taux d'occupation
   const occupancyRate = stats.totalUnits > 0 
@@ -225,6 +273,68 @@ export default function SupplierDashboard() {
             </div>
           </motion.div>
 
+        </div>
+      </div>
+
+      {/* Visits Section */}
+      <div className="bg-[#1a1a1a] border border-white/5 rounded-2xl p-6 shadow-sm">
+        <h2 className="text-xl font-bold text-white mb-6">Demandes de Visites ({visits.length})</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-white/5 text-xs uppercase tracking-wider text-gray-400 font-semibold">
+                <th className="p-4 rounded-tl-xl">Client</th>
+                <th className="p-4">Contact</th>
+                <th className="p-4">Propriété</th>
+                <th className="p-4">Date Souhaitée</th>
+                <th className="p-4">Statut</th>
+                <th className="p-4 text-right rounded-tr-xl">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="text-sm text-gray-300">
+              {visits.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="p-8 text-center text-gray-500 font-medium">
+                    Aucune demande de visite pour le moment.
+                  </td>
+                </tr>
+              ) : (
+                visits.map((visit) => (
+                  <tr key={visit.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                    <td className="p-4 font-semibold text-white">{visit.visitorName}</td>
+                    <td className="p-4">{visit.visitorPhone}</td>
+                    <td className="p-4 text-blue-400">{visit.propertyTitle}</td>
+                    <td className="p-4">{visit.requestedDate || "Non spécifiée"}</td>
+                    <td className="p-4">
+                      {visit.status === "PENDING" ? (
+                        <span className="inline-flex px-2 py-1 bg-orange-500/10 text-orange-400 rounded text-xs font-semibold uppercase tracking-wider">
+                          En attente
+                        </span>
+                      ) : visit.status === "APPROVED" ? (
+                        <span className="inline-flex px-2 py-1 bg-green-500/10 text-green-400 rounded text-xs font-semibold uppercase tracking-wider">
+                          Validée
+                        </span>
+                      ) : (
+                        <span className="inline-flex px-2 py-1 bg-gray-500/10 text-gray-400 rounded text-xs font-semibold uppercase tracking-wider">
+                          {visit.status}
+                        </span>
+                      )}
+                    </td>
+                    <td className="p-4 text-right">
+                      {visit.status === "PENDING" && (
+                        <button 
+                          onClick={() => handleApproveVisit(visit)}
+                          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-semibold transition-colors shadow-sm"
+                        >
+                          Valider
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

@@ -45,7 +45,7 @@ export const themeConfig: Record<ServiceType, ServiceTheme> = {
       activeMenuText: "text-blue-500",
     },
     menu: [
-      { title: "Dashboard", href: "/supplier/dashboard", icon: LayoutDashboard },
+      { title: "Dashboard", href: "/supplier", icon: LayoutDashboard },
       { title: "Paiements", href: "/supplier/payments", icon: Wallet },
       { title: "Paramètres", href: "/supplier/settings", icon: Settings },
     ]
@@ -62,7 +62,7 @@ export const themeConfig: Record<ServiceType, ServiceTheme> = {
       activeMenuText: "text-blue-500",
     },
     menu: [
-      { title: "Dashboard", href: "/supplier/dashboard", icon: LayoutDashboard },
+      { title: "Dashboard", href: "/supplier", icon: LayoutDashboard },
       { title: "Mes Produits", href: "/supplier/products", icon: Package },
       { title: "Commandes", href: "/supplier/orders", icon: ShoppingCart },
       { title: "Paiements", href: "/supplier/payments", icon: Wallet },
@@ -80,7 +80,7 @@ export const themeConfig: Record<ServiceType, ServiceTheme> = {
       activeMenuText: "text-amber-500",
     },
     menu: [
-      { title: "Dashboard", href: "/supplier/dashboard", icon: LayoutDashboard },
+      { title: "Dashboard", href: "/supplier", icon: LayoutDashboard },
       { title: "Mes Biens", href: "/supplier/properties", icon: Building },
       { title: "Locataires", href: "/supplier/tenants", icon: Users },
       { title: "Facturation", href: "/supplier/invoices", icon: FileText },
@@ -100,7 +100,7 @@ export const themeConfig: Record<ServiceType, ServiceTheme> = {
       activeMenuText: "text-emerald-400",
     },
     menu: [
-      { title: "Dashboard", href: "/supplier/dashboard", icon: LayoutDashboard },
+      { title: "Dashboard", href: "/supplier", icon: LayoutDashboard },
       { title: "Services Réseau", href: "/supplier/services", icon: Wifi },
       { title: "Abonnements", href: "/supplier/subscriptions", icon: Users },
       { title: "Paiements", href: "/supplier/payments", icon: Wallet },

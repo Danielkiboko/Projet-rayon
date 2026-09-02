@@ -7,9 +7,12 @@ import {
   ShieldAlert,
   Plus,
   Edit,
+  Edit2,
   Trash2,
   X,
-  Check
+  XCircle,
+  Check,
+  CheckCircle
 } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { collection, onSnapshot, query, orderBy, limit, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
@@ -151,11 +154,26 @@ export default function AdminProductsPage() {
     if (confirm("Approuver et publier ce produit ?")) {
       try {
         await updateDoc(doc(db, "products", id), {
-          status: "published"
+          status: "Disponible" // or "published" based on existing conventions, but supplier/properties uses Disponible
         });
       } catch (error) {
         console.error("Error approving product", error);
         alert("Erreur lors de l'approbation.");
+      }
+    }
+  };
+
+  const handleRejectProduct = async (id: string) => {
+    const reason = prompt("Motif de rejet (sera visible par le fournisseur) :");
+    if (reason !== null) {
+      try {
+        await updateDoc(doc(db, "products", id), {
+          status: "REJECTED",
+          rejectionReason: reason
+        });
+      } catch (error) {
+        console.error("Error rejecting product", error);
+        alert("Erreur lors du rejet.");
       }
     }
   };
@@ -238,41 +256,54 @@ export default function AdminProductsPage() {
                       {formatPrice(product.price)}
                     </td>
                     <td className="p-4">
-                      {product.status === "pending_approval" ? (
+                      {product.status === "pending_approval" || product.status === "PENDING_APPROVAL" ? (
                         <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-orange-500/10 text-orange-500 uppercase tracking-wider">
                           En attente
                         </span>
-                      ) : product.status === "published" ? (
+                      ) : product.status === "published" || product.status === "Disponible" ? (
                         <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-green-500/10 text-green-500 uppercase tracking-wider">
                           Publié
                         </span>
+                      ) : product.status === "REJECTED" ? (
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-red-500/10 text-red-500 uppercase tracking-wider">
+                          Rejeté
+                        </span>
                       ) : (
                         <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-white/10 text-gray-300 uppercase tracking-wider">
-                          Brouillon
+                          {product.status || "Brouillon"}
                         </span>
                       )}
                     </td>
-                    <td className="p-4 text-right space-x-2">
-                      {product.status === "pending_approval" && (
-                        <button 
-                          onClick={() => handleApproveProduct(product.id)}
-                          title="Approuver et Publier"
-                          className="inline-flex p-2 bg-white/5 text-orange-500 hover:text-white rounded-lg hover:bg-orange-500 transition-colors border border-transparent hover:border-orange-500"
-                        >
-                          <Check size={16} />
-                        </button>
+                    <td className="p-4 text-right">
+                      {(product.status === "pending_approval" || product.status === "PENDING_APPROVAL") && (
+                        <>
+                          <button 
+                            onClick={() => handleApproveProduct(product.id)}
+                            title="Approuver et Publier"
+                            className="inline-flex p-2 bg-white/5 text-orange-500 hover:text-white rounded-lg hover:bg-green-500 transition-colors border border-transparent hover:border-green-500"
+                          >
+                            <CheckCircle size={18} />
+                          </button>
+                          <button 
+                            onClick={() => handleRejectProduct(product.id)}
+                            title="Rejeter"
+                            className="inline-flex p-2 bg-white/5 text-red-500 hover:text-white rounded-lg hover:bg-red-500 transition-colors border border-transparent hover:border-red-500"
+                          >
+                            <XCircle size={18} />
+                          </button>
+                        </>
                       )}
                       <button 
                         onClick={() => openEditModal(product)}
-                        className="inline-flex p-2 bg-white/5 text-gray-400 hover:text-blue-500 rounded-lg hover:bg-blue-500/10 transition-colors"
+                        className="inline-flex p-2 bg-white/5 text-gray-400 hover:text-white rounded-lg hover:bg-blue-600 transition-colors border border-transparent hover:border-blue-600"
                       >
-                        <Edit size={16} />
+                        <Edit2 size={18} />
                       </button>
                       <button 
                         onClick={() => handleDeleteProduct(product.id)}
-                        className="inline-flex p-2 bg-white/5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-500/10 transition-colors"
+                        className="inline-flex p-2 bg-white/5 text-gray-400 hover:text-white rounded-lg hover:bg-red-600 transition-colors border border-transparent hover:border-red-600"
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={18} />
                       </button>
                     </td>
                   </tr>

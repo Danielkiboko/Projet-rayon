@@ -82,5 +82,29 @@ service cloud.firestore {
     }
 
     // Add additional collections (products, etc.) with similar scoping if needed.
+    match /properties/{propertyId} {
+      allow read: if true; // Public can see properties
+      allow create: if isSupplier() && request.resource.data.supplierId == request.auth.uid;
+      allow update, delete: if isSupplier() && resource.data.supplierId == request.auth.uid;
+      allow update, delete: if isSuperAdmin() || isAdmin();
+    }
+
+    match /tenants/{tenantId} {
+      allow create: if isSupplier() && request.resource.data.supplierId == request.auth.uid;
+      allow read, update, delete: if isSupplier() && resource.data.supplierId == request.auth.uid;
+      allow read, update, delete: if isSuperAdmin() || isAdmin();
+    }
+
+    match /payments/{paymentId} {
+      allow create: if isSupplier() && request.resource.data.supplierId == request.auth.uid;
+      allow read, update, delete: if isSupplier() && resource.data.supplierId == request.auth.uid;
+      allow read, update, delete: if isSuperAdmin() || isAdmin();
+    }
+
+    match /visits/{visitId} {
+      allow create: if true; // Public can request a visit
+      allow read, update, delete: if isSupplier() && resource.data.supplierId == request.auth.uid;
+      allow read, update, delete: if isSuperAdmin() || isAdmin();
+    }
   }
 }

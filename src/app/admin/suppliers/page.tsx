@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, X, Search, Store } from "lucide-react";
+import { Plus, X, Search, Store, Shield } from "lucide-react";
 import { auth, db } from "@/lib/firebase";
 import { collection, getDocs, query, where, doc, updateDoc } from "firebase/firestore";
 import { sendPasswordResetEmail } from "firebase/auth";
@@ -12,6 +12,7 @@ interface Supplier {
   name: string;
   email: string;
   rayon: string;
+  assignedRayons?: string[];
   status: string;
   profileUpdateStatus?: string;
   pendingProfile?: any;
@@ -23,9 +24,15 @@ export default function SuppliersPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubModalOpen, setIsSubModalOpen] = useState(false);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [isAccessModalOpen, setIsAccessModalOpen] = useState(false);
   const [selectedSupplierId, setSelectedSupplierId] = useState("");
   const [selectedSupplierToApprove, setSelectedSupplierToApprove] = useState<Supplier | null>(null);
+  const [selectedSupplierForAccess, setSelectedSupplierForAccess] = useState<Supplier | null>(null);
   const [newSubDate, setNewSubDate] = useState("");
+  
+  // Rayon selection state
+  const [selectedRayons, setSelectedRayons] = useState<string[]>([]);
+  
   const [search, setSearch] = useState("");
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -45,7 +52,7 @@ export default function SuppliersPage() {
     setIsLoading(true);
     try {
       const { limit } = await import("firebase/firestore");
-      const q = query(collection(db, "users"), where("role", "in", ["supplier", "SUPPLIER_IMMO"]), limit(50));
+      const q = query(collection(db, "users"), where("role", "in", ["supplier", "SUPPLIER_IMMO", "SUPPLIER"]), limit(50));
       const querySnapshot = await getDocs(q);
       const suppliersData: Supplier[] = [];
       querySnapshot.forEach((docSnap) => {
@@ -55,6 +62,7 @@ export default function SuppliersPage() {
           name: data.displayName || "Sans nom",
           email: data.email || "",
           rayon: data.rayon || "Non assigné",
+          assignedRayons: data.assignedRayons || (data.rayon ? [data.rayon] : []),
           status: data.status === "active" ? "Actif" : "Inactif",
           profileUpdateStatus: data.profileUpdateStatus,
           pendingProfile: data.pendingProfile,
@@ -77,6 +85,12 @@ export default function SuppliersPage() {
   const openReviewModal = (supplier: Supplier) => {
     setSelectedSupplierToApprove(supplier);
     setIsReviewModalOpen(true);
+  };
+
+  const openAccessModal = (supplier: Supplier) => {
+    setSelectedSupplierForAccess(supplier);
+    setSelectedRayons(supplier.assignedRayons || (supplier.rayon ? [supplier.rayon] : []));
+    setIsAccessModalOpen(true);
   };
 
   const confirmApproveProfile = async () => {
@@ -115,6 +129,28 @@ export default function SuppliersPage() {
     } catch (err) {
       console.error(err);
       setError("Erreur lors de la mise à jour de l'abonnement.");
+      setIsLoading(false);
+    }
+  };
+
+  const handleUpdateAccess = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedSupplierForAccess) return;
+    setIsLoading(true);
+    try {
+      const ref = doc(db, "users", selectedSupplierForAccess.id);
+      // We set assignedRayons. Also update 'rayon' to the first one for backward compatibility
+      await updateDoc(ref, {
+        assignedRayons: selectedRayons,
+        rayon: selectedRayons.length > 0 ? selectedRayons[0] : "",
+        serviceAttached: selectedRayons.length > 0 ? selectedRayons[0] : ""
+      });
+      setSuccessMessage("Accès mis à jour.");
+      setIsAccessModalOpen(false);
+      fetchSuppliers();
+    } catch (err) {
+      console.error(err);
+      setError("Erreur lors de la mise à jour des accès.");
       setIsLoading(false);
     }
   };
@@ -181,7 +217,12 @@ export default function SuppliersPage() {
           password: randomPassword,
           displayName: displayName,
           roleToCreate: role,
-          extraData: { rayon, firstName, lastName },
+          extraData: { 
+            rayon, 
+            firstName, 
+            lastName,
+            assignedRayons: rayon ? [rayon] : [] 
+          },
         }),
       });
 
@@ -220,6 +261,12 @@ export default function SuppliersPage() {
       s.email.toLowerCase().includes(search.toLowerCase()) ||
       s.rayon.toLowerCase().includes(search.toLowerCase())
   );
+
+  const availableRayons = [
+    { id: "immo", label: "Immobilier" },
+    { id: "mode", label: "Vêtements & Mode" },
+    { id: "connect", label: "Matériel & Réseau (Connect)" }
+  ];
 
   return (
     <div className="space-y-6">
@@ -267,7 +314,7 @@ export default function SuppliersPage() {
               <tr>
                 <th className="px-6 py-4">Nom</th>
                 <th className="px-6 py-4">Email</th>
-                <th className="px-6 py-4">Rayon</th>
+                <th className="px-6 py-4">Rayons d'Accès</th>
                 <th className="px-6 py-4">Abonnement</th>
                 <th className="px-6 py-4">Statut Profil</th>
                 <th className="px-6 py-4 text-right">Actions</th>
@@ -276,13 +323,13 @@ export default function SuppliersPage() {
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-gray-400">
+                  <td colSpan={6} className="px-6 py-8 text-center text-gray-400">
                     Chargement des fournisseurs...
                   </td>
                 </tr>
               ) : filteredSuppliers.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-gray-400">
+                  <td colSpan={6} className="px-6 py-8 text-center text-gray-400">
                     Aucun fournisseur trouvé.
                   </td>
                 </tr>
@@ -297,9 +344,24 @@ export default function SuppliersPage() {
                     </td>
                     <td className="px-6 py-4">{supplier.email}</td>
                     <td className="px-6 py-4">
-                      <span className="px-3 py-1 bg-white/10 rounded-full text-xs font-medium">
-                        {supplier.rayon}
-                      </span>
+                      <div className="flex flex-wrap gap-1 mb-1">
+                        {supplier.assignedRayons && supplier.assignedRayons.length > 0 ? (
+                          supplier.assignedRayons.map(r => (
+                            <span key={r} className="px-2 py-1 bg-white/10 rounded-full text-xs font-medium capitalize">
+                              {r}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-xs text-gray-500">Aucun accès</span>
+                        )}
+                      </div>
+                      <button 
+                        onClick={() => openAccessModal(supplier)}
+                        className="text-xs text-primary-light hover:underline flex items-center mt-1"
+                      >
+                        <Shield size={12} className="mr-1" />
+                        Gérer les accès
+                      </button>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
@@ -320,7 +382,7 @@ export default function SuppliersPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      {supplier.profileUpdateStatus === "PENDING_APPROVAL" ? (
+                      {supplier.profileUpdateStatus === "PENDING_APPROVAL" || supplier.status === "PENDING_APPROVAL" ? (
                         <div className="flex flex-col space-y-2">
                           <span className="text-yellow-400 text-xs font-semibold">En attente</span>
                           <button 
@@ -349,6 +411,64 @@ export default function SuppliersPage() {
           </table>
         </div>
       </div>
+
+      {/* Access Management Modal */}
+      <AnimatePresence>
+        {isAccessModalOpen && selectedSupplierForAccess && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-md bg-[#140b2e] border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+            >
+              <div className="flex items-center justify-between p-6 border-b border-white/10">
+                <h2 className="text-xl font-semibold text-white">Gérer les accès</h2>
+                <button onClick={() => setIsAccessModalOpen(false)} className="text-gray-400 hover:text-white">
+                  <X size={24} />
+                </button>
+              </div>
+
+              <form onSubmit={handleUpdateAccess} className="p-6 space-y-4">
+                <div className="mb-4">
+                  <p className="text-sm text-gray-300 mb-2">
+                    Sélectionnez les rayons auxquels <strong>{selectedSupplierForAccess.name}</strong> a le droit de vendre :
+                  </p>
+                </div>
+                
+                <div className="space-y-3">
+                  {availableRayons.map((r) => (
+                    <label key={r.id} className="flex items-center space-x-3 bg-white/5 border border-white/10 p-3 rounded-lg cursor-pointer hover:bg-white/10 transition-colors">
+                      <input 
+                        type="checkbox"
+                        checked={selectedRayons.includes(r.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedRayons([...selectedRayons, r.id]);
+                          } else {
+                            setSelectedRayons(selectedRayons.filter(id => id !== r.id));
+                          }
+                        }}
+                        className="w-4 h-4 text-primary bg-black border-white/20 rounded focus:ring-primary focus:ring-2"
+                      />
+                      <span className="text-white text-sm font-medium">{r.label}</span>
+                    </label>
+                  ))}
+                </div>
+                
+                <div className="pt-6 flex justify-end space-x-3">
+                  <button type="button" onClick={() => setIsAccessModalOpen(false)} className="px-4 py-2 text-gray-400 hover:text-white transition-colors">
+                    Annuler
+                  </button>
+                  <button type="submit" disabled={isLoading} className="bg-primary hover:bg-primary-light text-white px-6 py-2 rounded-lg font-medium transition-colors disabled:opacity-50">
+                    {isLoading ? "En cours..." : "Valider"}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Create Supplier Modal */}
       <AnimatePresence>
@@ -437,7 +557,7 @@ export default function SuppliersPage() {
 
                 {role !== "SUB_ADMIN" && (
                   <div className="space-y-1">
-                    <label className="text-sm font-medium text-gray-300">Rayon d'affectation</label>
+                    <label className="text-sm font-medium text-gray-300">Rayon d'affectation principal</label>
                     <select
                       required
                       value={rayon}
@@ -449,6 +569,7 @@ export default function SuppliersPage() {
                       <option value="immo">Rayon Immo (Immobilier)</option>
                       <option value="mode">Rayon Mode (Vêtements)</option>
                     </select>
+                    <p className="text-xs text-gray-500 mt-1">Vous pourrez lui ajouter d'autres rayons après la création.</p>
                   </div>
                 )}
 
@@ -611,4 +732,3 @@ export default function SuppliersPage() {
     </div>
   );
 }
-

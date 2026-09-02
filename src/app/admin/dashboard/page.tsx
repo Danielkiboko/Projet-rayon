@@ -4,73 +4,41 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { 
-  Truck, 
-  DollarSign, 
-  Package, 
-  ChevronRight, 
   ShieldAlert,
-  Users
+  Users,
+  Building,
+  Package,
+  Activity,
+  CheckCircle,
+  AlertTriangle
 } from "lucide-react";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, query, orderBy, limit } from "firebase/firestore";
-import { useCurrency } from "@/context/CurrencyContext";
-
-import RevenueAreaChart from "@/components/charts/RevenueAreaChart";
-import StatusPieChart from "@/components/charts/StatusPieChart";
-
-// Helper pour grouper par date
-const groupByDate = (orders: any[]) => {
-  const result: Record<string, number> = {};
-  orders.forEach(order => {
-    if (!order.createdAt) return;
-    const dateObj = new Date((order.createdAt.seconds || order.createdAt._seconds) * 1000);
-    const dateStr = dateObj.toLocaleDateString("fr-FR", { day: '2-digit', month: 'short' });
-    const rev = (order.itemsTotal || 0) + (order.feePaid || 0);
-    if (!result[dateStr]) result[dateStr] = 0;
-    result[dateStr] += rev;
-  });
-  
-  return Object.keys(result).map(key => ({
-    name: key,
-    total: result[key]
-  })).reverse(); // Inverser pour avoir l'ordre chronologique si on a récupéré par desc
-};
-
-// Helper pour grouper par statut
-const countByStatus = (orders: any[]) => {
-  const result: Record<string, number> = {};
-  orders.forEach(order => {
-    const status = order.status || "OTHER";
-    if (!result[status]) result[status] = 0;
-    result[status] += 1;
-  });
-  
-  return Object.keys(result).map(key => ({
-    name: key,
-    value: result[key]
-  }));
-};
+import { collection, getDocs, query, where } from "firebase/firestore";
+import Link from "next/link";
+import { motion } from "framer-motion";
 
 export default function AdminDashboardPage() {
   const { user, userData, loading } = useAuth();
   const router = useRouter();
-  const { formatPrice } = useCurrency();
 
-  const [orders, setOrders] = useState<any[]>([]);
-  const [totalRevenue, setTotalRevenue] = useState(0);
-  const [activeOrdersCount, setActiveOrdersCount] = useState(0);
-  
-  // Chart Data
-  const [revenueData, setRevenueData] = useState<any[]>([]);
-  const [statusData, setStatusData] = useState<any[]>([]);
+  const [stats, setStats] = useState({
+    pendingSuppliers: 0,
+    pendingProperties: 0,
+    pendingProducts: 0,
+    totalActiveSuppliers: 0,
+    totalProperties: 0,
+    totalProducts: 0,
+  });
 
-  // Protect route for Super Admin and authorized SUB_ADMINs
+  const [dataLoading, setDataLoading] = useState(true);
+
+  // Protect route
   useEffect(() => {
     if (!loading) {
       if (!user) {
         router.push("/login");
       } else {
-        const isSuperAdmin = user.email === "danielkiboko218@gmail.com";
+        const isSuperAdmin = user.email === "danielkiboko218@gmail.com" || userData?.role === "SUPER_ADMIN";
         const isAuthorizedSubAdmin = userData?.role === "SUB_ADMIN";
         
         if (!isSuperAdmin && !isAuthorizedSubAdmin) {
@@ -80,46 +48,66 @@ export default function AdminDashboardPage() {
     }
   }, [user, userData, loading, router]);
 
-  // Fetch all orders
+  // Fetch Validation & Regulation Data
   useEffect(() => {
     if (!user) return;
-    const isSuperAdmin = user.email === "danielkiboko218@gmail.com";
+    const isSuperAdmin = user.email === "danielkiboko218@gmail.com" || userData?.role === "SUPER_ADMIN";
     const isAuthorizedSubAdmin = userData?.role === "SUB_ADMIN";
     if (!isSuperAdmin && !isAuthorizedSubAdmin) return;
 
     const fetchDashboardData = async () => {
-      // Limit to 100 to prevent quota exhaustion
-      const q = query(collection(db, "orders"), orderBy("createdAt", "desc"), limit(100));
-      const snapshot = await getDocs(q);
-      
-      let revenue = 0;
-      let active = 0;
-      const fetchedOrders: any[] = [];
-      
-      snapshot.forEach((doc) => {
-        const data = doc.data();
-        fetchedOrders.push({ id: doc.id, ...data });
-        
-        if (data.status === "COMPLETED") {
-          revenue += (data.itemsTotal || 0) + (data.feePaid || 0);
-        } else {
-          active++;
-        }
-      });
-      
-      setOrders(fetchedOrders);
-      setTotalRevenue(revenue);
-      setActiveOrdersCount(active);
-      
-      // Compute Chart Data
-      setRevenueData(groupByDate(fetchedOrders));
-      setStatusData(countByStatus(fetchedOrders));
+      try {
+        // 1. Fetch pending & active suppliers
+        const qUsers = query(collection(db, "users"), where("role", "in", ["SUPPLIER", "supplier", "SUPPLIER_IMMO"]));
+        const snapUsers = await getDocs(qUsers);
+        let pSuppliers = 0;
+        let aSuppliers = 0;
+        snapUsers.forEach(doc => {
+          const d = doc.data();
+          if (d.status === "PENDING_APPROVAL" || d.profileUpdateStatus === "PENDING_APPROVAL") pSuppliers++;
+          else aSuppliers++;
+        });
+
+        // 2. Fetch pending & active properties
+        const snapProps = await getDocs(collection(db, "properties"));
+        let pProps = 0;
+        let aProps = 0;
+        snapProps.forEach(doc => {
+          const d = doc.data();
+          if (d.status === "PENDING_APPROVAL") pProps++;
+          else aProps++;
+        });
+
+        // 3. Fetch pending & active products
+        const snapProducts = await getDocs(collection(db, "products"));
+        let pProds = 0;
+        let aProds = 0;
+        snapProducts.forEach(doc => {
+          const d = doc.data();
+          if (d.status === "PENDING_APPROVAL" || d.status === "pending_approval") pProds++;
+          else aProds++;
+        });
+
+        setStats({
+          pendingSuppliers: pSuppliers,
+          pendingProperties: pProps,
+          pendingProducts: pProds,
+          totalActiveSuppliers: aSuppliers,
+          totalProperties: aProps,
+          totalProducts: aProds,
+        });
+
+      } catch (err) {
+        console.error("Error fetching stats:", err);
+      } finally {
+        setDataLoading(false);
+      }
     };
 
     fetchDashboardData();
   }, [user, userData]);
 
-  const isSuperAdmin = user?.email === "danielkiboko218@gmail.com";
+  const isSuperAdmin = user?.email === "danielkiboko218@gmail.com" || userData?.role === "SUPER_ADMIN";
   const isAuthorizedSubAdmin = userData?.role === "SUB_ADMIN";
 
   if (loading || !user || (!isSuperAdmin && !isAuthorizedSubAdmin)) {
@@ -133,147 +121,118 @@ export default function AdminDashboardPage() {
     );
   }
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "CONFIRMED_AWAITING_DRIVER":
-        return <span className="px-2 py-1 bg-yellow-500/10 text-yellow-500 text-xs font-bold rounded-md">En attente Livreur</span>;
-      case "ACCEPTED":
-        return <span className="px-2 py-1 bg-blue-500/10 text-blue-500 text-xs font-bold rounded-md">En transit</span>;
-      case "ARRIVED_AWAITING_PAYMENT":
-        return <span className="px-2 py-1 bg-purple-500/10 text-purple-500 text-xs font-bold rounded-md">Arrivé - Attente Paiement</span>;
-      case "COMPLETED":
-        return <span className="px-2 py-1 bg-green-500/10 text-green-500 text-xs font-bold rounded-md">Terminé</span>;
-      default:
-        return <span className="px-2 py-1 bg-white/10 text-gray-300 text-xs font-bold rounded-md">{status}</span>;
-    }
-  };
-
   return (
-    <>
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-white tracking-tight">Vue Globale</h2>
-        <p className="text-gray-400 mt-1 text-sm">Statistiques en temps réel et performances de la plateforme.</p>
+    <div className="space-y-8">
+      <div>
+        <h2 className="text-2xl font-bold text-white tracking-tight">Centre de Régulation</h2>
+        <p className="text-gray-400 mt-1 text-sm">Gérez les accès, validez les comptes et approuvez les annonces.</p>
       </div>
 
-      {/* Premium KPI Cards (Anantya Style adapted to Dark Mode) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
-        {/* Card 1 */}
-        <div className="bg-[#1a1a1a] p-5 rounded-2xl shadow-sm border border-white/5 relative overflow-hidden group hover:border-white/10 transition-colors">
-          <div className="relative z-10 flex flex-col h-32 justify-between">
-            <div className="flex justify-between items-start">
-              <h3 className="text-sm font-semibold text-gray-300">Chiffre d&apos;affaires</h3>
-              <DollarSign size={16} className="text-green-500" />
-            </div>
-            <div>
-              <p className="text-3xl font-bold text-white">{formatPrice(totalRevenue)}</p>
-              <div className="mt-2 text-xs text-gray-500 font-medium uppercase tracking-wider">Total</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Card 2 */}
-        <div className="bg-[#1a1a1a] p-5 rounded-2xl shadow-sm border border-white/5 relative overflow-hidden group hover:border-white/10 transition-colors">
-          <div className="relative z-10 flex flex-col h-32 justify-between">
-            <div className="flex justify-between items-start">
-              <h3 className="text-sm font-semibold text-gray-300">Commandes Actives</h3>
-              <Package size={16} className="text-blue-500" />
-            </div>
-            <div>
-              <p className="text-3xl font-bold text-white">{activeOrdersCount}</p>
-              <div className="mt-2 text-xs text-gray-500 font-medium uppercase tracking-wider">En cours</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Card 3 */}
-        <div className="bg-[#1a1a1a] p-5 rounded-2xl shadow-sm border border-white/5 relative overflow-hidden group hover:border-white/10 transition-colors">
-          <div className="relative z-10 flex flex-col h-32 justify-between">
-            <div className="flex justify-between items-start">
-              <h3 className="text-sm font-semibold text-gray-300">Livreurs</h3>
-              <Truck size={16} className="text-orange-500" />
-            </div>
-            <div>
-              <p className="text-3xl font-bold text-white">--</p>
-              <div className="mt-2 text-xs text-gray-500 font-medium uppercase tracking-wider">Total</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Card 4 */}
-        <div className="bg-[#1a1a1a] p-5 rounded-2xl shadow-sm border border-white/5 relative overflow-hidden group hover:border-white/10 transition-colors">
-          <div className="relative z-10 flex flex-col h-32 justify-between">
-            <div className="flex justify-between items-start">
-              <h3 className="text-sm font-semibold text-gray-300">Fournisseurs</h3>
-              <Users size={16} className="text-purple-500" />
-            </div>
-            <div>
-              <p className="text-3xl font-bold text-white">--</p>
-              <div className="mt-2 text-xs text-gray-500 font-medium uppercase tracking-wider">Total</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        <div className="lg:col-span-2">
-          <RevenueAreaChart data={revenueData} title="Évolution du CA (Dernières commandes)" />
-        </div>
-        <div>
-          <StatusPieChart data={statusData} title="Répartition des Statuts" />
-        </div>
-      </div>
-
-      {/* Premium Orders Table */}
-      <div className="bg-[#1a1a1a] rounded-2xl shadow-sm border border-white/5 overflow-hidden">
-        <div className="p-6 border-b border-white/5 flex justify-between items-center">
-          <h3 className="text-base font-semibold text-white">Dernières Commandes</h3>
-          <button className="text-sm font-medium text-blue-500 hover:text-blue-400 bg-blue-500/10 px-3 py-1.5 rounded-lg transition-colors">
-            Voir tout
-          </button>
-        </div>
+      {/* SECTION VALIDATION */}
+      <div>
+        <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+          <AlertTriangle className="text-orange-500 mr-2" size={20} />
+          En attente de validation
+        </h3>
         
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-white/5 text-xs uppercase tracking-wider text-gray-400 font-semibold">
-                <th className="p-4">ID Commande</th>
-                <th className="p-4">Date</th>
-                <th className="p-4">Client (Tél)</th>
-                <th className="p-4">Montant</th>
-                <th className="p-4">Statut</th>
-                <th className="p-4 text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody className="text-sm text-gray-300">
-              {orders.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="p-12 text-center text-gray-500 font-medium">
-                    Aucune commande n&apos;a été passée pour le moment.
-                  </td>
-                </tr>
-              ) : (
-                orders.map((order) => (
-                  <tr key={order.id} className="border-b border-white/5 hover:bg-white/5 transition-colors group">
-                    <td className="p-4 font-semibold text-white">#{order.id.slice(0, 6).toUpperCase()}</td>
-                    <td className="p-4 text-gray-400">
-                      {order.createdAt ? new Date((order.createdAt as { seconds: number }).seconds * 1000).toLocaleString('fr-FR') : "À l'instant"}
-                    </td>
-                    <td className="p-4">{order.clientPhone as string}</td>
-                    <td className="p-4 font-bold text-white">{formatPrice(order.itemsTotal as number)}</td>
-                    <td className="p-4">{getStatusBadge(order.status as string)}</td>
-                    <td className="p-4 text-right">
-                      <button className="text-gray-400 hover:text-blue-500 font-medium flex items-center justify-end w-full group-hover:translate-x-1 transition-all">
-                        Détails <ChevronRight size={16} className="ml-1" />
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Validation Fournisseurs */}
+          <div className="bg-[#1a1a1a] p-6 rounded-2xl border border-orange-500/20 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-orange-500/10 rounded-full blur-2xl -mr-10 -mt-10" />
+            <h4 className="text-sm font-semibold text-gray-300 flex justify-between">
+              Comptes Fournisseurs
+              <Users size={16} className="text-orange-500" />
+            </h4>
+            <div className="mt-4 flex items-baseline space-x-2">
+              <span className="text-4xl font-bold text-white">{dataLoading ? "-" : stats.pendingSuppliers}</span>
+              <span className="text-sm text-gray-500">en attente</span>
+            </div>
+            <Link href="/admin/suppliers">
+              <button className="mt-6 w-full py-2 bg-orange-500/10 hover:bg-orange-500/20 text-orange-500 font-medium rounded-lg text-sm transition-colors border border-orange-500/20">
+                Examiner les comptes
+              </button>
+            </Link>
+          </div>
+
+          {/* Validation Immo */}
+          <div className="bg-[#1a1a1a] p-6 rounded-2xl border border-amber-500/20 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/10 rounded-full blur-2xl -mr-10 -mt-10" />
+            <h4 className="text-sm font-semibold text-gray-300 flex justify-between">
+              Annonces Immo
+              <Building size={16} className="text-amber-500" />
+            </h4>
+            <div className="mt-4 flex items-baseline space-x-2">
+              <span className="text-4xl font-bold text-white">{dataLoading ? "-" : stats.pendingProperties}</span>
+              <span className="text-sm text-gray-500">en attente</span>
+            </div>
+            {/* Lien fictif pour l'instant vers properties admin si existant */}
+            <Link href="/admin/dashboard">
+              <button className="mt-6 w-full py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 font-medium rounded-lg text-sm transition-colors border border-amber-500/20">
+                Examiner les biens
+              </button>
+            </Link>
+          </div>
+
+          {/* Validation Mode */}
+          <div className="bg-[#1a1a1a] p-6 rounded-2xl border border-blue-500/20 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl -mr-10 -mt-10" />
+            <h4 className="text-sm font-semibold text-gray-300 flex justify-between">
+              Produits E-commerce
+              <Package size={16} className="text-blue-500" />
+            </h4>
+            <div className="mt-4 flex items-baseline space-x-2">
+              <span className="text-4xl font-bold text-white">{dataLoading ? "-" : stats.pendingProducts}</span>
+              <span className="text-sm text-gray-500">en attente</span>
+            </div>
+            <Link href="/admin/products">
+              <button className="mt-6 w-full py-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 font-medium rounded-lg text-sm transition-colors border border-blue-500/20">
+                Examiner les produits
+              </button>
+            </Link>
+          </div>
         </div>
       </div>
-    </>
+
+      {/* SECTION VUE GLOBALE MULTI-RAYONS */}
+      <div className="pt-8 border-t border-white/5">
+        <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+          <Activity className="text-green-500 mr-2" size={20} />
+          Activité sur la Plateforme
+        </h3>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <div className="bg-[#1a1a1a] p-5 rounded-2xl shadow-sm border border-white/5 flex items-center space-x-4">
+            <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center">
+              <CheckCircle className="text-green-500" size={24} />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-white">{dataLoading ? "-" : stats.totalActiveSuppliers}</p>
+              <p className="text-sm text-gray-400">Fournisseurs Actifs</p>
+            </div>
+          </div>
+          
+          <div className="bg-[#1a1a1a] p-5 rounded-2xl shadow-sm border border-white/5 flex items-center space-x-4">
+            <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center">
+              <Building className="text-amber-500" size={24} />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-white">{dataLoading ? "-" : stats.totalProperties}</p>
+              <p className="text-sm text-gray-400">Biens en Ligne</p>
+            </div>
+          </div>
+
+          <div className="bg-[#1a1a1a] p-5 rounded-2xl shadow-sm border border-white/5 flex items-center space-x-4">
+            <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center">
+              <Package className="text-blue-500" size={24} />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-white">{dataLoading ? "-" : stats.totalProducts}</p>
+              <p className="text-sm text-gray-400">Produits en Ligne</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+    </div>
   );
 }

@@ -41,32 +41,31 @@ export default function ImmoDashboard() {
   const [revenueData, setRevenueData] = useState<any[]>([]);
   const [visits, setVisits] = useState<any[]>([]);
 
+  const [totalCollected, setTotalCollected] = useState(0);
+
   useEffect(() => {
     if (!user) return;
 
-    // Fetch payments for revenue chart
-    const fetchPayments = async () => {
-      try {
-        const qPayments = query(
-          collection(db, "payments"),
-          where("supplierId", "==", user.uid),
-          orderBy("createdAt", "desc"),
-          limit(50)
-        );
-        const snapshot = await getDocs(qPayments);
-        const fetchedPayments: any[] = [];
-        snapshot.forEach(doc => {
-          if(doc.data().status === "COMPLETED") {
-             fetchedPayments.push(doc.data());
-          }
-        });
-        setRevenueData(groupPaymentsByDate(fetchedPayments));
-      } catch (error) {
-        console.error("Error fetching payments for chart:", error);
-      }
-    };
-    
-    fetchPayments();
+    // Fetch payments for revenue chart and total collected (real-time)
+    const qPayments = query(
+      collection(db, "payments"),
+      where("supplierId", "==", user.uid),
+      orderBy("createdAt", "desc"),
+      limit(50)
+    );
+    const unsubPayments = onSnapshot(qPayments, (snapshot) => {
+      const fetchedPayments: any[] = [];
+      let sumCollected = 0;
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        if(data.status === "COMPLETED") {
+           fetchedPayments.push(data);
+           sumCollected += data.amount || 0;
+        }
+      });
+      setRevenueData(groupPaymentsByDate(fetchedPayments));
+      setTotalCollected(sumCollected);
+    });
 
     // 1. Fetch Properties
     const qProps = query(
@@ -144,6 +143,7 @@ export default function ImmoDashboard() {
     });
 
     return () => {
+      unsubPayments();
       unsubProps();
       unsubTenants();
       unsubVisits();
@@ -220,7 +220,7 @@ export default function ImmoDashboard() {
   const KPIS = [
     { title: "Propriétés", value: stats.totalProperties.toString(), subtitle: "Total enregistrées", subInfo: "Gérez votre parc", icon: Home },
     { title: "Locataires Actifs", value: stats.totalTenants.toString(), subtitle: "Total", subInfo: "Taux d'occupation: " + occupancyRate + "%", icon: Users },
-    { title: "Loyers Attendus", value: `$${stats.totalRent}`, subtitle: "Ce mois", subInfo: "Chiffre d'affaires mensuel", icon: DollarSign },
+    { title: "Total Encaissé", value: `$${totalCollected.toFixed(2)}`, subtitle: "Cumul", subInfo: `Attendus ce mois: $${stats.totalRent}`, icon: DollarSign },
     { title: "Loyers en Retard", value: stats.lateRents.toString(), subtitle: "Action requise", subInfo: stats.lateRents > 0 ? "Envoyez des relances" : "Tout est à jour", icon: AlertCircle },
   ];
 

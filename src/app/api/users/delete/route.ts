@@ -17,12 +17,15 @@ export async function POST(req: Request) {
     }
 
     const callerRole = decodedToken.role;
-    if (!['superAdmin', 'admin'].includes(callerRole)) {
+    const callerEmail = decodedToken.email;
+    const isSuperAdmin = callerEmail === "danielkiboko218@gmail.com" || callerEmail === "admin@rayons.net";
+
+    if (!isSuperAdmin && !['superAdmin', 'admin', 'SUB_ADMIN', 'ADMIN'].includes(callerRole?.toUpperCase() || callerRole)) {
       return NextResponse.json({ error: 'Forbidden: Only admins can delete users' }, { status: 403 });
     }
 
     const body = await req.json();
-    const { uid, collectionName = 'drivers' } = body;
+    const { uid, collectionName } = body;
 
     if (!uid) {
       return NextResponse.json({ error: 'Missing uid' }, { status: 400 });

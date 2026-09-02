@@ -111,11 +111,11 @@ export default function SupplierDashboard() {
       snapshot.docs.forEach(doc => {
         const data = doc.data();
         // Count active tenants
-        if (data.status === "ACTIVE" || data.status === "LATE") {
+        if (data.status === "ACTIVE" || data.status === "LATE" || data.status === "À jour" || data.status === "En retard") {
           activeTenants++;
           totalRent += (data.rentAmount || 0);
         }
-        if (data.status === "LATE") {
+        if (data.status === "LATE" || data.status === "En retard") {
           lateRents++;
         }
       });

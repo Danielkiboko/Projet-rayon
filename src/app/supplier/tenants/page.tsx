@@ -5,6 +5,7 @@ import { Users, Search, Plus, Bell, Home, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { auth, db } from "@/lib/firebase";
 import { collection, getDocs, query, where, addDoc, updateDoc, doc, getDoc } from "firebase/firestore";
+import { useAuth } from "@/context/AuthContext";
 
 interface Tenant {
   id: string;
@@ -35,6 +36,7 @@ export default function SupplierTenantsPage() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { user } = useAuth();
 
   // Form State
   const [name, setName] = useState("");
@@ -47,10 +49,9 @@ export default function SupplierTenantsPage() {
   const [nextPayment, setNextPayment] = useState("");
 
   const fetchData = async () => {
+    if (!user) return;
     setIsLoading(true);
     try {
-      const user = auth.currentUser;
-      if (!user) return;
 
       // Fetch Properties
       const propsQuery = query(collection(db, "properties"), where("supplierId", "==", user.uid));
@@ -72,8 +73,10 @@ export default function SupplierTenantsPage() {
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (user) {
+      fetchData();
+    }
+  }, [user]);
 
   // When a property is selected, auto-fill the rent amount
   useEffect(() => {
@@ -183,7 +186,7 @@ export default function SupplierTenantsPage() {
   };
 
   const filteredTenants = tenants.filter(
-    (t) => t.name.toLowerCase().includes(search.toLowerCase()) || t.propertyName.toLowerCase().includes(search.toLowerCase())
+    (t) => (t.name || "").toLowerCase().includes(search.toLowerCase()) || (t.propertyName || "").toLowerCase().includes(search.toLowerCase())
   );
 
   return (

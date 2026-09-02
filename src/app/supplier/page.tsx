@@ -71,9 +71,8 @@ export default function SupplierDashboard() {
 
     // 1. Fetch Properties to calculate total capacity and occupied units
     const qProps = query(
-      collection(db, "products"),
-      where("supplierId", "==", user.uid),
-      where("category", "==", "immo")
+      collection(db, "properties"),
+      where("supplierId", "==", user.uid)
     );
 
     const unsubProps = onSnapshot(qProps, (snapshot) => {

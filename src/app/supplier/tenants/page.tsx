@@ -53,7 +53,7 @@ export default function SupplierTenantsPage() {
       if (!user) return;
 
       // Fetch Properties
-      const propsQuery = query(collection(db, "products"), where("supplierId", "==", user.uid));
+      const propsQuery = query(collection(db, "properties"), where("supplierId", "==", user.uid));
       const propsSnap = await getDocs(propsQuery);
       const propsData = propsSnap.docs.map(d => ({ id: d.id, ...d.data() })) as Property[];
       setProperties(propsData);
@@ -127,7 +127,7 @@ export default function SupplierTenantsPage() {
       await addDoc(collection(db, "tenants"), newTenant);
 
       // --- LOGIC TO UPDATE PROPERTY/UNIT STATUS ---
-      const propRef = doc(db, "products", selectedPropertyId);
+      const propRef = doc(db, "properties", selectedPropertyId);
       if (levels.length === 0) {
         // Simple property without sub-units
         await updateDoc(propRef, { status: "Loué" });

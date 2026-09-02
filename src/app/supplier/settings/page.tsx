@@ -188,9 +188,10 @@ export default function SupplierSettingsPage() {
                   
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-white/5">
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-1">RCCM</label>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">RCCM <span className="text-red-500">*</span></label>
                       <input 
                         type="text" 
+                        required
                         value={rccm}
                         onChange={(e) => setRccm(e.target.value)}
                         placeholder="CD/KNG/RCCM/..." 
@@ -198,9 +199,10 @@ export default function SupplierSettingsPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-1">ID Nat</label>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">ID Nat <span className="text-red-500">*</span></label>
                       <input 
                         type="text" 
+                        required
                         value={idNat}
                         onChange={(e) => setIdNat(e.target.value)}
                         placeholder="01-..." 
@@ -208,9 +210,10 @@ export default function SupplierSettingsPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-1">Numéro d'Impôt (NIF)</label>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">Numéro d'Impôt (NIF) <span className="text-red-500">*</span></label>
                       <input 
                         type="text" 
+                        required
                         value={nif}
                         onChange={(e) => setNif(e.target.value)}
                         placeholder="A..." 
@@ -246,13 +249,14 @@ export default function SupplierSettingsPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">Logo URL (Optionnel)</label>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">Logo URL <span className="text-red-500">*</span> <span className="text-xs text-gray-400 font-normal">(Requis pour les factures)</span></label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <ImageIcon size={18} className="text-gray-400" />
                       </div>
                       <input 
                         type="url" 
+                        required
                         value={logoUrl}
                         onChange={(e) => setLogoUrl(e.target.value)}
                         placeholder="https://votre-site.com/logo.png" 

@@ -43,9 +43,8 @@ export default function SupplierPropertiesPage() {
         }
 
         const q = query(
-          collection(db, "products"),
-          where("supplierId", "==", user.uid),
-          where("category", "==", "immo")
+          collection(db, "properties"),
+          where("supplierId", "==", user.uid)
         );
 
         unsub = onSnapshot(q, (snapshot) => {
@@ -276,7 +275,6 @@ export default function SupplierPropertiesPage() {
 
       const newProperty = {
         title: { fr: propertyTitle, en: propertyTitle }, // Simulating i18n
-        category: "immo",
         type: propertyType,
         price: parseFloat(propertyPrice.replace(/[^0-9.]/g, '') || "0"),
         location: propertyLocation,
@@ -295,7 +293,7 @@ export default function SupplierPropertiesPage() {
         }
       };
 
-      await addDoc(collection(db, "products"), newProperty);
+      await addDoc(collection(db, "properties"), newProperty);
       alert("Propriété publiée avec succès ! Elle est en attente d'approbation par l'administration.");
       
       setIsModalOpen(false);
@@ -323,7 +321,7 @@ export default function SupplierPropertiesPage() {
       try {
         const { doc, deleteDoc } = await import("firebase/firestore");
         const { db } = await import("@/lib/firebase");
-        await deleteDoc(doc(db, "products", id));
+        await deleteDoc(doc(db, "properties", id));
       } catch (error) {
         console.error("Erreur lors de la suppression:", error);
         alert("Une erreur est survenue lors de la suppression.");

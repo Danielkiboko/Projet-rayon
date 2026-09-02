@@ -13,6 +13,8 @@ interface Tenant {
   tenantEmail: string;
   tenantPhone: string;
   rentAmount: number;
+  propertyId?: string;
+  propertyName?: string;
 }
 
 export default function SupplierInvoices() {
@@ -174,6 +176,11 @@ export default function SupplierInvoices() {
     setIsSubmitting(true);
     const tenant = tenants.find(t => t.id === selectedTenant);
     if (!tenant) return;
+    
+    if (!tenant.propertyId) {
+      alert("Ce locataire n'est rattaché à aucun bien. Veuillez le rattacher à un bien (appartement/chaise) avant de le facturer.");
+      return;
+    }
 
     try {
       // 1. Generate PDF
@@ -211,9 +218,15 @@ export default function SupplierInvoices() {
   const handleTenantSelect = (tenantId: string) => {
     setSelectedTenant(tenantId);
     const t = tenants.find(x => x.id === tenantId);
-    if (t && t.rentAmount) {
-      setAmount(t.rentAmount.toString());
-      setDescription(`Loyer pour ${new Date().toLocaleString('fr-FR', { month: 'long' })}`);
+    if (t) {
+      if (t.rentAmount) {
+        setAmount(t.rentAmount.toString());
+      }
+      if (t.propertyName) {
+        setDescription(`Loyer pour ${new Date().toLocaleString('fr-FR', { month: 'long' })} - ${t.propertyName}`);
+      } else {
+        setDescription(`Loyer pour ${new Date().toLocaleString('fr-FR', { month: 'long' })}`);
+      }
     }
   };
 
@@ -224,13 +237,20 @@ export default function SupplierInvoices() {
           <h1 className="text-2xl font-bold text-white">Facturation & Proformas</h1>
           <p className="text-gray-400 text-sm mt-1">Générez des documents professionnels pour vos locataires.</p>
         </div>
-        <button
-          onClick={() => setShowModal(true)}
-          className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors"
-        >
-          <Plus size={16} />
-          <span>Nouveau Document</span>
-        </button>
+        
+        {(!userData?.rccm || !userData?.nif || !userData?.logoUrl || !userData?.idNat) ? (
+          <div className="bg-red-500/10 border border-red-500/20 px-4 py-2 rounded-xl text-red-400 text-sm font-medium">
+            Complétez votre profil légal (RCCM, NIF, Logo) dans les paramètres pour facturer.
+          </div>
+        ) : (
+          <button
+            onClick={() => setShowModal(true)}
+            className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors"
+          >
+            <Plus size={16} />
+            <span>Nouveau Document</span>
+          </button>
+        )}
       </div>
 
       {/* Hero Empty State for the moment (Historique will go here later) */}
@@ -301,7 +321,9 @@ export default function SupplierInvoices() {
                   >
                     <option value="">Sélectionner un locataire...</option>
                     {tenants.map(t => (
-                      <option key={t.id} value={t.id}>{t.tenantName}</option>
+                      <option key={t.id} value={t.id} disabled={!t.propertyId}>
+                        {t.tenantName} {t.propertyName ? `(${t.propertyName})` : '(Aucun bien rattaché - Invalide)'}
+                      </option>
                     ))}
                   </select>
                 </div>

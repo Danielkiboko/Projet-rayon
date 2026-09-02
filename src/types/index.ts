@@ -30,9 +30,35 @@ export interface Product {
   price: number;
   images: string[];
   createdAt: number;
-  // Specific fields for REAL_ESTATE
-  location?: string;
-  propertyType?: string; // e.g. "Apartment", "House"
+}
+
+export interface Property {
+  id: string;
+  supplierId: string;
+  title: { fr: string; en: string } | string;
+  type: string; // e.g. "appartement", "maison"
+  price: number;
+  location: string;
+  description: string;
+  image: string;
+  propertyCoords?: { lat: number; lng: number };
+  createdAt: any;
+  status: string;
+  immoDetails?: {
+    area?: number;
+    beds?: number;
+    baths?: number;
+    levels?: {
+      id: string;
+      name: string;
+      units: {
+        id: string;
+        name: string;
+        type: string;
+        capacity?: number;
+      }[];
+    }[];
+  };
 }
 
 export type OrderStatus = "PENDING_TRANSPORT_PAYMENT" | "AWAITING_DRIVER" | "IN_TRANSIT" | "PENDING_PRODUCT_PAYMENT" | "COMPLETED" | "CANCELLED";

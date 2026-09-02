@@ -139,7 +139,21 @@ export default function SupplierLayout({
         
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto p-6 md:p-8">
-          <div className="max-w-7xl mx-auto">
+          <div className="max-w-7xl mx-auto space-y-6">
+            {(userData?.role === "SUPPLIER_IMMO" || userData?.businessType === "IMMOBILIER" || userData?.rayon === "immo") && 
+             (!userData?.rccm || !userData?.nif || !userData?.logoUrl || !userData?.idNat) && (
+              <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-xl flex items-start space-x-3">
+                <ShieldAlert className="text-red-400 mt-0.5 shrink-0" size={20} />
+                <div>
+                  <h3 className="text-red-400 font-semibold text-sm">Profil Légal Incomplet</h3>
+                  <p className="text-red-400/80 text-sm mt-1">Vous devez renseigner votre RCCM, ID Nat, NIF et Logo dans les Paramètres pour pouvoir générer des factures.</p>
+                  <Link href="/supplier/settings" className="inline-block mt-2 text-xs font-semibold text-white bg-red-500/20 hover:bg-red-500/30 px-3 py-1.5 rounded-lg transition-colors">
+                    Aller aux paramètres
+                  </Link>
+                </div>
+              </div>
+            )}
+            
             {children}
           </div>
         </div>

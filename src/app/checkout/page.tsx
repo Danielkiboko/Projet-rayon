@@ -86,10 +86,14 @@ export default function CheckoutPage() {
       // Simulate Payment Gateway delay
       await new Promise(resolve => setTimeout(resolve, 2000));
 
+      // Collect unique supplier IDs for querying
+      const supplierIds = Array.from(new Set(cartItems.map(item => item.supplierId).filter(Boolean)));
+      if (supplierIds.length === 0) supplierIds.push("admin");
+
       // 1. Create order in Firestore
       const orderRef = await addDoc(collection(db, "orders"), {
         clientId: user?.uid || "",
-        supplierId: cartItems[0]?.supplierId || "admin",
+        supplierIds: supplierIds,
         clientPhone: phone,
         clientAddress: address,
         location: location || null,

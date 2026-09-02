@@ -1,11 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, MoreVertical, Package, Clock, CheckCircle, Truck, XCircle, ShoppingBag } from "lucide-react";
+import { Search, Package, Clock, CheckCircle, Truck, XCircle, ShoppingBag } from "lucide-react";
 import { motion } from "framer-motion";
-import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
-import { collection, query, where, onSnapshot, orderBy } from "firebase/firestore";
+import { collection, query, onSnapshot, orderBy } from "firebase/firestore";
 
 interface Order {
   id: string;
@@ -40,23 +39,14 @@ const getStatusBadge = (status: string) => {
   }
 };
 
-export default function SupplierOrdersPage() {
-  const { user } = useAuth();
+export default function AdminOrdersPage() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
-    
-    // For MVP, if they don't have supplierIds, it won't fetch old orders that used supplierId. 
-    // We query the array-contains.
-    const q = query(
-      collection(db, "orders"),
-      where("supplierIds", "array-contains", user.uid),
-      orderBy("createdAt", "desc")
-    );
+    const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const fetched: Order[] = [];
@@ -71,7 +61,7 @@ export default function SupplierOrdersPage() {
     });
 
     return () => unsubscribe();
-  }, [user]);
+  }, []);
 
   const filteredOrders = orders.filter(o => {
     const searchMatch = o.id.toLowerCase().includes(search.toLowerCase()) || 
@@ -90,28 +80,28 @@ export default function SupplierOrdersPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Commandes</h1>
-          <p className="text-sm text-gray-400">Suivez et gérez les commandes de vos clients.</p>
+          <h1 className="text-2xl font-bold text-white">Toutes les Commandes</h1>
+          <p className="text-sm text-gray-400">Supervision globale des commandes passées sur la plateforme.</p>
         </div>
       </div>
 
-      <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
-        <div className="p-4 border-b border-white/10 flex flex-col sm:flex-row justify-between gap-4">
+      <div className="bg-[#0A0A0A] border border-white/5 rounded-2xl overflow-hidden">
+        <div className="p-4 border-b border-white/5 flex flex-col sm:flex-row justify-between gap-4">
           <div className="relative max-w-sm w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
             <input
               type="text"
               placeholder="Rechercher par ID ou numéro de client..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white text-sm transition-all"
+              className="w-full pl-10 pr-4 py-2 bg-[#121212] border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-white text-sm transition-all"
             />
           </div>
           <div className="flex space-x-2">
             <select 
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              className="bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary [&>option]:bg-[#0b061c]"
+              className="bg-[#121212] border border-white/5 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 [&>option]:bg-[#0b061c]"
             >
               <option value="all">Tous les statuts</option>
               <option value="pending">En attente</option>
@@ -123,12 +113,12 @@ export default function SupplierOrdersPage() {
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-gray-300">
-            <thead className="text-xs uppercase bg-black/20 text-gray-400">
+            <thead className="text-xs uppercase bg-[#121212] text-gray-400">
               <tr>
                 <th className="px-6 py-4">ID Commande</th>
                 <th className="px-6 py-4">Date</th>
                 <th className="px-6 py-4">Client</th>
-                <th className="px-6 py-4">Articles (Vos produits)</th>
+                <th className="px-6 py-4">Détail des Articles</th>
                 <th className="px-6 py-4">Total Payé</th>
                 <th className="px-6 py-4">Statut</th>
               </tr>
@@ -144,15 +134,13 @@ export default function SupplierOrdersPage() {
                 <tr>
                   <td colSpan={6} className="px-6 py-8 text-center text-gray-400 flex flex-col items-center">
                     <ShoppingBag size={48} className="mb-4 text-gray-600 opacity-50" />
-                    Aucune commande trouvée.
+                    Aucune commande sur la plateforme.
                   </td>
                 </tr>
               ) : (
                 filteredOrders.map((order, index) => {
-                  // Filter out items that are not from this supplier
-                  const myItems = order.items?.filter(item => item.supplierId === user?.uid) || [];
-                  const myItemsCount = myItems.reduce((acc, item) => acc + (item.quantity || 1), 0);
-                  const myTotal = myItems.reduce((acc, item) => acc + (item.price * (item.quantity || 1)), 0);
+                  const itemsCount = order.items?.reduce((acc, item) => acc + (item.quantity || 1), 0) || 0;
+                  const total = order.total || order.itemsTotal || 0;
 
                   return (
                     <motion.tr 
@@ -170,15 +158,15 @@ export default function SupplierOrdersPage() {
                       <td className="px-6 py-4 flex flex-col space-y-1">
                         <div className="flex items-center space-x-2">
                           <Package size={14} className="text-gray-400" />
-                          <span>{myItemsCount} produit(s)</span>
+                          <span>{itemsCount} produit(s)</span>
                         </div>
-                        {myItems.map((item, idx) => (
+                        {order.items?.map((item, idx) => (
                           <span key={idx} className="text-xs text-gray-500 truncate max-w-[150px]">
                             {item.quantity}x {item.name}
                           </span>
                         ))}
                       </td>
-                      <td className="px-6 py-4 font-medium text-white">{myTotal.toLocaleString()} FC</td>
+                      <td className="px-6 py-4 font-medium text-white">{total.toLocaleString()} FC</td>
                       <td className="px-6 py-4">
                         {getStatusBadge(order.status)}
                       </td>

@@ -5,10 +5,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { motion } from "framer-motion";
-import { LogOut, Menu, X, ShieldAlert, Bell, UserCircle, Search, LayoutDashboard, Package, Users, Settings, UserCheck, Store, Truck, Building } from "lucide-react";
+import { LogOut, Menu, X, ShieldAlert, Bell, UserCircle, Search, LayoutDashboard, Package, Users, Settings, UserCheck, Store, Truck, Building, ShoppingCart } from "lucide-react";
 
 const ADMIN_MENU = [
   { title: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
+  { title: "Commandes", href: "/admin/orders", icon: ShoppingCart },
   { title: "Produits", href: "/admin/products", icon: Package },
   { title: "Immobilier", href: "/admin/properties", icon: Building },
   { title: "Clients", href: "/admin/clients", icon: UserCheck },

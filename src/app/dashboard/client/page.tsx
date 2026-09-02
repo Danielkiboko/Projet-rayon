@@ -10,7 +10,7 @@ import { Package, Calendar, MessageSquare, LogOut } from "lucide-react";
 import Link from "next/link";
 
 export default function ClientDashboard() {
-  const { user, userData, logout } = useAuth();
+  const { user, userData, signOut } = useAuth();
   const router = useRouter();
   
   const [activeTab, setActiveTab] = useState<"orders" | "visits" | "messages">("orders");
@@ -54,7 +54,7 @@ export default function ClientDashboard() {
 
   const handleLogout = async () => {
     try {
-      await logout();
+      await signOut();
       router.push("/");
     } catch (error) {
       console.error("Erreur de déconnexion:", error);

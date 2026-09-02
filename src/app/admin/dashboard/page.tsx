@@ -131,43 +131,42 @@ export default function AdminDashboardPage() {
       {/* SECTION VALIDATION */}
       <div>
         <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
-          <AlertTriangle className="text-orange-500 mr-2" size={20} />
+          <AlertTriangle className="text-blue-500 mr-2" size={20} />
           En attente de validation
         </h3>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Validation Fournisseurs */}
-          <div className="bg-[#1a1a1a] p-6 rounded-2xl border border-orange-500/20 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-orange-500/10 rounded-full blur-2xl -mr-10 -mt-10" />
+          <div className="bg-[#1a1a1a] p-6 rounded-2xl border border-blue-500/20 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl -mr-10 -mt-10" />
             <h4 className="text-sm font-semibold text-gray-300 flex justify-between">
               Comptes Fournisseurs
-              <Users size={16} className="text-orange-500" />
+              <Users size={16} className="text-blue-500" />
             </h4>
             <div className="mt-4 flex items-baseline space-x-2">
               <span className="text-4xl font-bold text-white">{dataLoading ? "-" : stats.pendingSuppliers}</span>
               <span className="text-sm text-gray-500">en attente</span>
             </div>
             <Link href="/admin/suppliers">
-              <button className="mt-6 w-full py-2 bg-orange-500/10 hover:bg-orange-500/20 text-orange-500 font-medium rounded-lg text-sm transition-colors border border-orange-500/20">
+              <button className="mt-6 w-full py-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 font-medium rounded-lg text-sm transition-colors border border-blue-500/20">
                 Examiner les comptes
               </button>
             </Link>
           </div>
 
           {/* Validation Immo */}
-          <div className="bg-[#1a1a1a] p-6 rounded-2xl border border-amber-500/20 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/10 rounded-full blur-2xl -mr-10 -mt-10" />
+          <div className="bg-[#1a1a1a] p-6 rounded-2xl border border-blue-500/20 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl -mr-10 -mt-10" />
             <h4 className="text-sm font-semibold text-gray-300 flex justify-between">
               Annonces Immo
-              <Building size={16} className="text-amber-500" />
+              <Building size={16} className="text-blue-500" />
             </h4>
             <div className="mt-4 flex items-baseline space-x-2">
               <span className="text-4xl font-bold text-white">{dataLoading ? "-" : stats.pendingProperties}</span>
               <span className="text-sm text-gray-500">en attente</span>
             </div>
-            {/* Lien fictif pour l'instant vers properties admin si existant */}
-            <Link href="/admin/dashboard">
-              <button className="mt-6 w-full py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 font-medium rounded-lg text-sm transition-colors border border-amber-500/20">
+            <Link href="/admin/properties">
+              <button className="mt-6 w-full py-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 font-medium rounded-lg text-sm transition-colors border border-blue-500/20">
                 Examiner les biens
               </button>
             </Link>
@@ -196,14 +195,14 @@ export default function AdminDashboardPage() {
       {/* SECTION VUE GLOBALE MULTI-RAYONS */}
       <div className="pt-8 border-t border-white/5">
         <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
-          <Activity className="text-green-500 mr-2" size={20} />
+          <Activity className="text-blue-500 mr-2" size={20} />
           Activité sur la Plateforme
         </h3>
         
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
           <div className="bg-[#1a1a1a] p-5 rounded-2xl shadow-sm border border-white/5 flex items-center space-x-4">
-            <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center">
-              <CheckCircle className="text-green-500" size={24} />
+            <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center">
+              <CheckCircle className="text-blue-500" size={24} />
             </div>
             <div>
               <p className="text-2xl font-bold text-white">{dataLoading ? "-" : stats.totalActiveSuppliers}</p>
@@ -212,8 +211,8 @@ export default function AdminDashboardPage() {
           </div>
           
           <div className="bg-[#1a1a1a] p-5 rounded-2xl shadow-sm border border-white/5 flex items-center space-x-4">
-            <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center">
-              <Building className="text-amber-500" size={24} />
+            <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center">
+              <Building className="text-blue-500" size={24} />
             </div>
             <div>
               <p className="text-2xl font-bold text-white">{dataLoading ? "-" : stats.totalProperties}</p>

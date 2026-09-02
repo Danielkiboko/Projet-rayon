@@ -12,7 +12,7 @@ export default function MissionDetails({ params }: { params: { id: string } }) {
   const router = useRouter();
   const { formatPrice } = useCurrency();
   const [order, setOrder] = useState<any>(null);
-  const [status, setStatus] = useState<"ACCEPTED" | "ARRIVED_AWAITING_PAYMENT" | "LIVRE">("ACCEPTED");
+  const [status, setStatus] = useState<"ACCEPTED" | "ARRIVED_AWAITING_PAYMENT" | "LIVRE" | "COMPLETED">("ACCEPTED");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);

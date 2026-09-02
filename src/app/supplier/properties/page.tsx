@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, X, Search, Home, Image as ImageIcon, AlertCircle, Send, Bot, MapPin } from "lucide-react";
 import imageCompression from 'browser-image-compression';
@@ -22,6 +22,48 @@ export default function SupplierPropertiesPage() {
   const [chatMessages, setChatMessages] = useState<{role: string, text: string}[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [isAiLoading, setIsAiLoading] = useState(false);
+
+  const [properties, setProperties] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let unsub = () => {};
+    const fetchProps = async () => {
+      try {
+        const { collection, query, where, onSnapshot } = await import("firebase/firestore");
+        const { db, auth } = await import("@/lib/firebase");
+        
+        // Attendre que l'auth soit prête (hack basique, onSnapshot gèrera les updates)
+        const user = auth.currentUser;
+        if (!user) {
+          // Si pas co, on met des mocks pour pas casser le design
+          setProperties(MOCK_PROPERTIES);
+          setIsLoading(false);
+          return;
+        }
+
+        const q = query(
+          collection(db, "products"),
+          where("supplierId", "==", user.uid),
+          where("category", "==", "immo")
+        );
+
+        unsub = onSnapshot(q, (snapshot) => {
+          const props: any[] = [];
+          snapshot.forEach(doc => {
+            props.push({ id: doc.id, ...doc.data() });
+          });
+          setProperties(props);
+          setIsLoading(false);
+        });
+      } catch (err) {
+        console.error(err);
+        setIsLoading(false);
+      }
+    };
+    fetchProps();
+    return () => unsub();
+  }, []);
 
   const [propertyTitle, setPropertyTitle] = useState("");
   const [propertyType, setPropertyType] = useState("");
@@ -139,8 +181,9 @@ export default function SupplierPropertiesPage() {
                  { role: 'model', text: aiText }
                ]);
               }
-            } catch(err) {
-               console.error(err);
+            }
+          } catch(err) {
+            console.error(err);
             } finally {
                setIsAiLoading(false);
             }

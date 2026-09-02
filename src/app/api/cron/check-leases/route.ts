@@ -90,32 +90,5 @@ export async function GET(request: Request) {
   }
 }
 
-// Fonction d'envoi SMS avec MobiShastra
-async function sendSMS(phone: string, message: string) {
-  const MOBISHASTRA_API_KEY = process.env.MOBISHASTRA_API_KEY;
-  const MOBISHASTRA_SENDER_ID = process.env.MOBISHASTRA_SENDER_ID || "RAYONS";
-  
-  if (!MOBISHASTRA_API_KEY) {
-    console.warn("SMS ignoré : Clé MobiShastra manquante.");
-    return;
-  }
-
-  try {
-    // Format attendu par l'API MobiShastra (à ajuster selon leur doc)
-    const url = `https://api.mobishastra.com/sms/send?apikey=${MOBISHASTRA_API_KEY}&sender=${MOBISHASTRA_SENDER_ID}&to=${phone}&message=${encodeURIComponent(message)}`;
-    
-    const response = await fetch(url);
-    const data = await response.json();
-    return data;
-  } catch (err) {
-    console.error("Erreur d'envoi SMS:", err);
-  }
-}
-
-// Note: Les fonctions sendEmail et sendSMS originales de ce fichier 
-// ont été déplacées vers src/lib/notifications.ts pour être réutilisées
-// par l'API /api/notifications.
-// Note: Les fonctions sendEmail et sendSMS originales de ce fichier 
-// ont été déplacées vers src/lib/notifications.ts pour être réutilisées
 // par l'API /api/notifications.
 

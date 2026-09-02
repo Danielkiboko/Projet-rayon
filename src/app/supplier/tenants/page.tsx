@@ -64,7 +64,25 @@ export default function SupplierTenantsPage() {
       // Fetch Tenants
       const tenantsQuery = query(collection(db, "tenants"), where("supplierId", "==", user.uid));
       const tenantsSnap = await getDocs(tenantsQuery);
-      const tenantsData = tenantsSnap.docs.map(d => ({ id: d.id, ...d.data() })) as Tenant[];
+      const tenantsData = tenantsSnap.docs.map(d => {
+        const data = d.data();
+        let calculatedStatus = data.status || "À jour";
+        
+        if (data.nextPayment) {
+          const paymentDate = new Date(data.nextPayment);
+          const today = new Date();
+          paymentDate.setHours(0, 0, 0, 0);
+          today.setHours(0, 0, 0, 0);
+
+          if (paymentDate < today) {
+            calculatedStatus = "En retard";
+          } else {
+            calculatedStatus = "À jour";
+          }
+        }
+        
+        return { id: d.id, ...data, status: calculatedStatus };
+      }) as Tenant[];
       setTenants(tenantsData);
 
     } catch (error) {

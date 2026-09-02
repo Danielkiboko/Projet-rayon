@@ -31,7 +31,18 @@ export default function SupplierLayout({
     );
   }
 
-  const service: ServiceType = (userData?.serviceAttached as ServiceType) || "default";
+  let service: ServiceType = (userData?.serviceAttached as ServiceType) || "default";
+  
+  const isImmoSupplier = 
+    userData?.role === "SUPPLIER_IMMO" || 
+    userData?.businessType === "IMMOBILIER" || 
+    userData?.rayon?.type === "REAL_ESTATE" || 
+    userData?.rayon === "immo";
+
+  if (isImmoSupplier) {
+    service = "immo";
+  }
+
   const theme = themeConfig[service] || themeConfig["default"];
   const navItems = theme.menu;
 
@@ -140,7 +151,7 @@ export default function SupplierLayout({
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto p-6 md:p-8">
           <div className="max-w-7xl mx-auto space-y-6">
-            {(userData?.role === "SUPPLIER_IMMO" || userData?.businessType === "IMMOBILIER" || userData?.rayon === "immo") && 
+            {isImmoSupplier && 
              (!userData?.rccm || !userData?.nif || !userData?.logoUrl || !userData?.idNat) && (
               <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-xl flex items-start space-x-3">
                 <ShieldAlert className="text-red-400 mt-0.5 shrink-0" size={20} />

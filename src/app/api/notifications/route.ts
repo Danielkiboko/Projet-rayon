@@ -77,8 +77,10 @@ export async function POST(req: Request) {
     // 3. VISIT_VALIDATED : Notify Client
     if (action === "VISIT_VALIDATED" && data) {
       let msg = `Bonjour ${data.visitorName || 'Client'}, votre visite pour "${data.propertyTitle}" a été validée pour le ${data.requestedDate || 'plus vite possible'}. Un agent vous contactera bientôt.`;
-      if (data.gpsLink) {
-        msg += ` Localisation exacte : ${data.gpsLink}`;
+      
+      if (data.visitorCoords && data.propertyCoords) {
+        const routeLink = `https://www.google.com/maps/dir/?api=1&origin=${data.visitorCoords.lat},${data.visitorCoords.lng}&destination=${data.propertyCoords.lat},${data.propertyCoords.lng}`;
+        msg += ` Cliquez ici pour l'itinéraire direct vers le bien : ${routeLink}`;
       }
       msg += ` - Rayon Immo`;
 

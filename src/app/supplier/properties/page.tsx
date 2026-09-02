@@ -69,8 +69,32 @@ export default function SupplierPropertiesPage() {
   const [propertyType, setPropertyType] = useState("");
   const [propertyPrice, setPropertyPrice] = useState("");
   const [propertyLocation, setPropertyLocation] = useState("");
-  const [propertyGpsLink, setPropertyGpsLink] = useState("");
+  const [propertyCoords, setPropertyCoords] = useState<{lat: number, lng: number} | null>(null);
+  const [isFetchingGps, setIsFetchingGps] = useState(false);
   const [propertyDesc, setPropertyDesc] = useState("");
+
+  const handleGetLocation = () => {
+    setIsFetchingGps(true);
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setPropertyCoords({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          });
+          setIsFetchingGps(false);
+        },
+        (error) => {
+          console.error("Erreur GPS:", error);
+          alert("Impossible de récupérer la position. Assurez-vous d'avoir autorisé l'accès au GPS.");
+          setIsFetchingGps(false);
+        }
+      );
+    } else {
+      alert("La géolocalisation n'est pas supportée par votre navigateur.");
+      setIsFetchingGps(false);
+    }
+  };
 
   // Structure Dynamique (Niveaux, Appartements, Bureaux, Chaises)
   const [levels, setLevels] = useState<{
@@ -258,7 +282,7 @@ export default function SupplierPropertiesPage() {
         location: propertyLocation,
         description: propertyDesc,
         image: imagePreview || "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&q=80&w=800",
-        gpsLink: propertyGpsLink,
+        propertyCoords: propertyCoords,
         supplierId: user.uid,
         createdAt: serverTimestamp(),
         status: "PENDING_APPROVAL",
@@ -283,7 +307,7 @@ export default function SupplierPropertiesPage() {
       setPropertyType("");
       setPropertyPrice("");
       setPropertyLocation("");
-      setPropertyGpsLink("");
+      setPropertyCoords(null);
       setPropertyDesc("");
       setLevels([]);
     } catch (error: any) {
@@ -597,21 +621,25 @@ export default function SupplierPropertiesPage() {
                   </div>
                 </div>
                 
-                <div className="space-y-1">
-                  <label className="text-sm font-medium text-gray-300">Lien Google Maps / GPS (Optionnel)</label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <MapPin size={16} className="text-gray-400" />
-                    </div>
-                    <input
-                      type="url"
-                      value={propertyGpsLink}
-                      onChange={(e) => setPropertyGpsLink(e.target.value)}
-                      placeholder="Ex: https://maps.app.goo.gl/..."
-                      className="w-full pl-10 pr-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white text-sm"
-                    />
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-300">Coordonnées GPS de la propriété (Requis pour l'itinéraire visiteur)</label>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={handleGetLocation}
+                      disabled={isFetchingGps}
+                      className="px-4 py-2 bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 border border-blue-500/30 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50"
+                    >
+                      <MapPin size={16} />
+                      {isFetchingGps ? "Recherche en cours..." : "📍 Obtenir ma position actuelle"}
+                    </button>
+                    {propertyCoords && (
+                      <span className="text-xs text-green-400 font-medium">
+                        ✓ Position enregistrée ({propertyCoords.lat.toFixed(4)}, {propertyCoords.lng.toFixed(4)})
+                      </span>
+                    )}
                   </div>
-                  <p className="text-xs text-gray-400 mt-1">Sera envoyé au visiteur lors de la validation de la visite.</p>
+                  <p className="text-xs text-gray-400">Position qui sera partagée au visiteur pour générer son itinéraire depuis son point de départ.</p>
                 </div>
 
                 <div className="space-y-1">

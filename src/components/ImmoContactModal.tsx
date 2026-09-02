@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Calendar, CheckCircle2 } from "lucide-react";
+import { X, Calendar, CheckCircle2, MapPin } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
@@ -15,8 +15,33 @@ type ImmoContactModalProps = {
 export function ImmoContactModal({ isOpen, onClose, property }: ImmoContactModalProps) {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [visitorCoords, setVisitorCoords] = useState<{lat: number, lng: number} | null>(null);
+  const [isFetchingGps, setIsFetchingGps] = useState(false);
   
   const propertyTitle = property ? (property.title?.fr || property.title) : "";
+
+  const handleGetLocation = () => {
+    setIsFetchingGps(true);
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setVisitorCoords({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          });
+          setIsFetchingGps(false);
+        },
+        (error) => {
+          console.error("Erreur GPS:", error);
+          alert("Impossible de récupérer la position. L'itinéraire automatique ne pourra pas être créé.");
+          setIsFetchingGps(false);
+        }
+      );
+    } else {
+      alert("La géolocalisation n'est pas supportée par votre navigateur.");
+      setIsFetchingGps(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,7 +61,8 @@ export function ImmoContactModal({ isOpen, onClose, property }: ImmoContactModal
         visitorName: name,
         visitorPhone: phone,
         requestedDate: date,
-        gpsLink: property.gpsLink || "",
+        propertyCoords: property.propertyCoords || null,
+        visitorCoords: visitorCoords || null,
         status: "PENDING",
         createdAt: serverTimestamp()
       });
@@ -116,6 +142,27 @@ export function ImmoContactModal({ isOpen, onClose, property }: ImmoContactModal
                   <div className="space-y-1">
                     <label className="text-sm font-medium text-gray-400">Date souhaitée (Optionnel)</label>
                     <input name="date" type="date" min={new Date().toISOString().split('T')[0]} className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-white" />
+                  </div>
+
+                  <div className="space-y-2 pt-2">
+                    <label className="text-sm font-medium text-gray-400">Votre position (Pour l'itinéraire GPS)</label>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={handleGetLocation}
+                        disabled={isFetchingGps}
+                        className="px-4 py-3 bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 border border-blue-500/30 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50 w-full sm:w-auto"
+                      >
+                        <MapPin size={16} />
+                        {isFetchingGps ? "Recherche..." : "📍 Partager ma position"}
+                      </button>
+                      {visitorCoords && (
+                        <span className="text-xs text-green-400 font-medium mt-2 sm:mt-0">
+                          ✓ Position partagée
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500">Obligatoire pour que l'agent puisse vous envoyer l'itinéraire jusqu'au bien.</p>
                   </div>
 
                   <button type="submit" disabled={isSubmitting} className="w-full py-4 mt-4 bg-primary hover:bg-primary-light text-white font-bold rounded-xl transition-colors disabled:opacity-50">

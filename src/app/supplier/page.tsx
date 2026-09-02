@@ -171,7 +171,8 @@ export default function SupplierDashboard() {
               visitorName: visit.visitorName,
               propertyTitle: visit.propertyTitle,
               requestedDate: visit.requestedDate,
-              gpsLink: visit.gpsLink || ""
+              visitorCoords: visit.visitorCoords || null,
+              propertyCoords: visit.propertyCoords || null
             }
           })
         });

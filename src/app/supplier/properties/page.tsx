@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, X, Search, Home, Image as ImageIcon, AlertCircle, Send, Bot, MapPin } from "lucide-react";
 import imageCompression from 'browser-image-compression';
+import { useAuth } from "@/context/AuthContext";
 
 const MOCK_PROPERTIES = [
   { id: "1", title: "Appartement 3 pièces", price: "500 $ / mois", type: "Appartement", status: "Vide", location: "Gombe" },
@@ -12,6 +13,7 @@ const MOCK_PROPERTIES = [
 ];
 
 export default function SupplierPropertiesPage() {
+  const { user } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [search, setSearch] = useState("");
 
@@ -33,8 +35,6 @@ export default function SupplierPropertiesPage() {
         const { collection, query, where, onSnapshot } = await import("firebase/firestore");
         const { db, auth } = await import("@/lib/firebase");
         
-        // Attendre que l'auth soit prête (hack basique, onSnapshot gèrera les updates)
-        const user = auth.currentUser;
         if (!user) {
           // Si pas co, on met des mocks pour pas casser le design
           setProperties(MOCK_PROPERTIES);
@@ -62,7 +62,7 @@ export default function SupplierPropertiesPage() {
     };
     fetchProps();
     return () => unsub();
-  }, []);
+  }, [user]);
 
   const [propertyTitle, setPropertyTitle] = useState("");
   const [propertyType, setPropertyType] = useState("");

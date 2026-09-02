@@ -22,7 +22,9 @@ interface Supplier {
 export default function SuppliersPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubModalOpen, setIsSubModalOpen] = useState(false);
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [selectedSupplierId, setSelectedSupplierId] = useState("");
+  const [selectedSupplierToApprove, setSelectedSupplierToApprove] = useState<Supplier | null>(null);
   const [newSubDate, setNewSubDate] = useState("");
   const [search, setSearch] = useState("");
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -72,17 +74,24 @@ export default function SuppliersPage() {
     fetchSuppliers();
   }, []);
 
-  const handleApproveProfile = async (supplierId: string, pendingProfile: any) => {
-    if (!confirm("Approuver ces modifications de profil ?")) return;
+  const openReviewModal = (supplier: Supplier) => {
+    setSelectedSupplierToApprove(supplier);
+    setIsReviewModalOpen(true);
+  };
+
+  const confirmApproveProfile = async () => {
+    if (!selectedSupplierToApprove || !selectedSupplierToApprove.pendingProfile) return;
     setIsLoading(true);
     try {
-      const ref = doc(db, "users", supplierId);
+      const ref = doc(db, "users", selectedSupplierToApprove.id);
       await updateDoc(ref, {
-        ...pendingProfile,
+        ...selectedSupplierToApprove.pendingProfile,
         pendingProfile: null,
         profileUpdateStatus: "APPROVED"
       });
       setSuccessMessage("Profil approuvé avec succès.");
+      setIsReviewModalOpen(false);
+      setSelectedSupplierToApprove(null);
       fetchSuppliers();
     } catch (err) {
       console.error(err);
@@ -315,10 +324,10 @@ export default function SuppliersPage() {
                         <div className="flex flex-col space-y-2">
                           <span className="text-yellow-400 text-xs font-semibold">En attente</span>
                           <button 
-                            onClick={() => handleApproveProfile(supplier.id, supplier.pendingProfile)}
-                            className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded hover:bg-green-500/30 transition-colors"
+                            onClick={() => openReviewModal(supplier)}
+                            className="text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded hover:bg-blue-500/30 transition-colors"
                           >
-                            Approuver
+                            Examiner
                           </button>
                         </div>
                       ) : (
@@ -502,6 +511,97 @@ export default function SuppliersPage() {
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Review Profile Modal */}
+      <AnimatePresence>
+        {isReviewModalOpen && selectedSupplierToApprove && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-2xl bg-[#140b2e] border border-white/10 rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
+            >
+              <div className="flex items-center justify-between p-6 border-b border-white/10 shrink-0">
+                <h2 className="text-xl font-semibold text-white">Examiner les modifications</h2>
+                <button onClick={() => setIsReviewModalOpen(false)} className="text-gray-400 hover:text-white">
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div className="p-6 overflow-y-auto space-y-6 flex-1">
+                <div>
+                  <h3 className="text-lg font-medium text-white mb-4">Informations Soumises</h3>
+                  <div className="bg-white/5 rounded-lg border border-white/10 p-4 space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <span className="block text-xs text-gray-500 uppercase">Téléphone</span>
+                        <span className="text-sm text-gray-200">{selectedSupplierToApprove.pendingProfile?.phone || "Non renseigné"}</span>
+                      </div>
+                      <div>
+                        <span className="block text-xs text-gray-500 uppercase">Entreprise</span>
+                        <span className="text-sm text-gray-200">{selectedSupplierToApprove.pendingProfile?.companyName || "Non renseigné"}</span>
+                      </div>
+                      <div>
+                        <span className="block text-xs text-gray-500 uppercase">RCCM</span>
+                        <span className="text-sm text-gray-200">{selectedSupplierToApprove.pendingProfile?.rccm || "Non renseigné"}</span>
+                      </div>
+                      <div>
+                        <span className="block text-xs text-gray-500 uppercase">ID Nat</span>
+                        <span className="text-sm text-gray-200">{selectedSupplierToApprove.pendingProfile?.idNat || "Non renseigné"}</span>
+                      </div>
+                      <div>
+                        <span className="block text-xs text-gray-500 uppercase">NIF</span>
+                        <span className="text-sm text-gray-200">{selectedSupplierToApprove.pendingProfile?.nif || "Non renseigné"}</span>
+                      </div>
+                      <div>
+                        <span className="block text-xs text-gray-500 uppercase">Couleur</span>
+                        <div className="flex items-center space-x-2 mt-1">
+                          <div 
+                            className="w-4 h-4 rounded-full" 
+                            style={{ backgroundColor: selectedSupplierToApprove.pendingProfile?.primaryColor || "#000" }} 
+                          />
+                          <span className="text-sm text-gray-200">{selectedSupplierToApprove.pendingProfile?.primaryColor || "Non renseigné"}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {selectedSupplierToApprove.pendingProfile?.logoUrl && (
+                  <div>
+                    <h3 className="text-lg font-medium text-white mb-2">Logo</h3>
+                    <div className="bg-white/5 rounded-lg border border-white/10 p-4 flex justify-center items-center h-32">
+                      <img 
+                        src={selectedSupplierToApprove.pendingProfile.logoUrl} 
+                        alt="Logo" 
+                        className="max-h-full max-w-full object-contain"
+                        onError={(e) => (e.currentTarget.style.display = 'none')}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-6 border-t border-white/10 shrink-0 flex justify-end space-x-3">
+                <button 
+                  onClick={() => setIsReviewModalOpen(false)}
+                  className="px-4 py-2 text-gray-400 hover:text-white transition-colors"
+                >
+                  Annuler
+                </button>
+                <button 
+                  onClick={confirmApproveProfile}
+                  disabled={isLoading}
+                  className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
+                >
+                  {isLoading ? "Approbation..." : "Approuver le profil"}
+                </button>
+              </div>
             </motion.div>
           </div>
         )}

@@ -128,19 +128,19 @@ export default function Home() {
             </div>
 
             {user ? (
-              <div className="hidden sm:flex items-center gap-2">
-                <Link href="/dashboard" className="flex items-center gap-1 text-sm font-bold text-gray-700 hover:text-gray-900 bg-gray-100 px-4 py-2 rounded-full">
+              <div className="flex items-center gap-2">
+                <Link href="/dashboard" className="flex items-center gap-1 text-sm font-bold text-gray-700 hover:text-gray-900 bg-gray-100 px-3 sm:px-4 py-2 rounded-full">
                   <User size={18} />
-                  {userData?.displayName || user.displayName || "Mon espace"}
+                  <span className="hidden sm:block">{userData?.displayName || user.displayName || "Mon espace"}</span>
                 </Link>
-                <button onClick={() => signOut()} className="text-sm font-bold text-red-500 hover:text-red-700 bg-red-50 px-3 py-2 rounded-full">
+                <button onClick={() => signOut()} className="hidden sm:block text-sm font-bold text-red-500 hover:text-red-700 bg-red-50 px-3 py-2 rounded-full">
                   Déconnexion
                 </button>
               </div>
             ) : (
-              <Link href="/login" className="hidden sm:flex items-center gap-1 text-sm font-bold text-gray-700 hover:text-gray-900 bg-gray-100 px-4 py-2 rounded-full">
+              <Link href="/login" className="flex items-center gap-1 text-sm font-bold text-gray-700 hover:text-gray-900 bg-gray-100 px-3 sm:px-4 py-2 rounded-full">
                 <User size={18} />
-                Se connecter
+                <span className="hidden sm:block">Se connecter</span>
               </Link>
             )}
             <Link href="/checkout" className="relative p-2.5 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors group">
@@ -264,7 +264,7 @@ export default function Home() {
                 </div>
                 
                 {loading ? (
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
                     {[1, 2, 3, 4].map(i => (
                       <div key={i} className="animate-pulse bg-white rounded-2xl h-64 border border-gray-100"></div>
                     ))}
@@ -274,7 +274,7 @@ export default function Home() {
                     <p className="text-gray-500 font-medium">Bientôt de nouveaux produits dans ce rayon.</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
                     {products.map((product) => (
                       <div key={product.id} className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col">
                         <div className="relative aspect-square overflow-hidden bg-gray-100">
@@ -295,7 +295,7 @@ export default function Home() {
                             {product.name}
                           </h3>
                           <div className="mt-auto flex items-center justify-between pt-3 border-t border-gray-50">
-                            <span className="font-bold text-lg text-gray-900">{formatPrice(product.price)}</span>
+                            <span className="font-bold text-base sm:text-lg text-gray-900">{formatPrice(product.price)}</span>
                             <button 
                               onClick={() => addToCart({
                                 id: product.id,

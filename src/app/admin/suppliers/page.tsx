@@ -4,8 +4,9 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, X, Search, Store, Shield } from "lucide-react";
 import { auth, db } from "@/lib/firebase";
-import { collection, getDocs, query, where, doc, updateDoc } from "firebase/firestore";
+import { collection, getDocs, query, where, doc, updateDoc, onSnapshot, orderBy } from "firebase/firestore";
 import { sendPasswordResetEmail } from "firebase/auth";
+import { useAuth } from "@/context/AuthContext";
 
 interface Supplier {
   id: string;
@@ -21,6 +22,7 @@ interface Supplier {
 }
 
 export default function SuppliersPage() {
+  const { user, userData } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubModalOpen, setIsSubModalOpen] = useState(false);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);

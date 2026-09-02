@@ -76,7 +76,12 @@ export async function POST(req: Request) {
 
     // 3. VISIT_VALIDATED : Notify Client
     if (action === "VISIT_VALIDATED" && data) {
-      const msg = `Bonjour ${data.visitorName || 'Client'}, votre visite pour "${data.propertyTitle}" a été validée pour le ${data.requestedDate || 'plus vite possible'}. Un agent vous contactera bientôt avec la localisation exacte. - Rayon Immo`;
+      let msg = `Bonjour ${data.visitorName || 'Client'}, votre visite pour "${data.propertyTitle}" a été validée pour le ${data.requestedDate || 'plus vite possible'}. Un agent vous contactera bientôt.`;
+      if (data.gpsLink) {
+        msg += ` Localisation exacte : ${data.gpsLink}`;
+      }
+      msg += ` - Rayon Immo`;
+
       if (data.visitorPhone) {
          tasks.push(sendSMS(data.visitorPhone, msg));
       }

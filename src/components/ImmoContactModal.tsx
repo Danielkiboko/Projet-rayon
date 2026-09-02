@@ -36,6 +36,7 @@ export function ImmoContactModal({ isOpen, onClose, property }: ImmoContactModal
         visitorName: name,
         visitorPhone: phone,
         requestedDate: date,
+        gpsLink: property.gpsLink || "",
         status: "PENDING",
         createdAt: serverTimestamp()
       });

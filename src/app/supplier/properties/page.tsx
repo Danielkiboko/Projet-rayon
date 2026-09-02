@@ -69,6 +69,7 @@ export default function SupplierPropertiesPage() {
   const [propertyType, setPropertyType] = useState("");
   const [propertyPrice, setPropertyPrice] = useState("");
   const [propertyLocation, setPropertyLocation] = useState("");
+  const [propertyGpsLink, setPropertyGpsLink] = useState("");
   const [propertyDesc, setPropertyDesc] = useState("");
 
   // Structure Dynamique (Niveaux, Appartements, Bureaux, Chaises)
@@ -257,6 +258,7 @@ export default function SupplierPropertiesPage() {
         location: propertyLocation,
         description: propertyDesc,
         image: imagePreview || "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&q=80&w=800",
+        gpsLink: propertyGpsLink,
         supplierId: user.uid,
         createdAt: serverTimestamp(),
         status: "PENDING_APPROVAL",
@@ -281,6 +283,7 @@ export default function SupplierPropertiesPage() {
       setPropertyType("");
       setPropertyPrice("");
       setPropertyLocation("");
+      setPropertyGpsLink("");
       setPropertyDesc("");
       setLevels([]);
     } catch (error: any) {
@@ -594,6 +597,23 @@ export default function SupplierPropertiesPage() {
                   </div>
                 </div>
                 
+                <div className="space-y-1">
+                  <label className="text-sm font-medium text-gray-300">Lien Google Maps / GPS (Optionnel)</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <MapPin size={16} className="text-gray-400" />
+                    </div>
+                    <input
+                      type="url"
+                      value={propertyGpsLink}
+                      onChange={(e) => setPropertyGpsLink(e.target.value)}
+                      placeholder="Ex: https://maps.app.goo.gl/..."
+                      className="w-full pl-10 pr-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white text-sm"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">Sera envoyé au visiteur lors de la validation de la visite.</p>
+                </div>
+
                 <div className="space-y-1">
                   <label className="text-sm font-medium text-gray-300">Description détaillée</label>
                   <textarea

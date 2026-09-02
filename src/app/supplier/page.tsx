@@ -170,7 +170,8 @@ export default function SupplierDashboard() {
               visitorPhone: visit.visitorPhone,
               visitorName: visit.visitorName,
               propertyTitle: visit.propertyTitle,
-              requestedDate: visit.requestedDate
+              requestedDate: visit.requestedDate,
+              gpsLink: visit.gpsLink || ""
             }
           })
         });

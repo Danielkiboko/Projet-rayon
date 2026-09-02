@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Calendar, CheckCircle2, MapPin } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { useAuth } from "@/context/AuthContext";
+import Link from "next/link";
 
 type ImmoContactModalProps = {
   isOpen: boolean;
@@ -17,6 +19,7 @@ export function ImmoContactModal({ isOpen, onClose, property }: ImmoContactModal
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [visitorCoords, setVisitorCoords] = useState<{lat: number, lng: number} | null>(null);
   const [isFetchingGps, setIsFetchingGps] = useState(false);
+  const { user, userData } = useAuth();
   
   const propertyTitle = property ? (property.title?.fr || property.title) : "";
 
@@ -58,6 +61,7 @@ export function ImmoContactModal({ isOpen, onClose, property }: ImmoContactModal
         propertyId: property.id,
         propertyTitle: propertyTitle,
         supplierId: property.supplierId,
+        clientId: user?.uid || null,
         visitorName: name,
         visitorPhone: phone,
         requestedDate: date,
@@ -123,7 +127,16 @@ export function ImmoContactModal({ isOpen, onClose, property }: ImmoContactModal
                   </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                {!user ? (
+                  <div className="p-8 text-center">
+                    <p className="text-gray-300 mb-6">Vous devez être connecté pour demander une visite et discuter avec l'agent immobilier.</p>
+                    <Link href="/login" onClick={onClose} className="inline-block px-6 py-3 bg-primary hover:bg-primary-light text-white font-bold rounded-xl transition-colors">
+                      Se connecter / S'inscrire
+                    </Link>
+                  </div>
+                ) : (
+                  <form onSubmit={handleSubmit} className="p-6 space-y-4">
+
                   <p className="text-sm text-gray-400 mb-6">
                     Laissez vos coordonnées pour visiter : <br/>
                     <span className="font-bold text-white">{propertyTitle}</span>
@@ -131,7 +144,7 @@ export function ImmoContactModal({ isOpen, onClose, property }: ImmoContactModal
 
                   <div className="space-y-1">
                     <label className="text-sm font-medium text-gray-400">Nom Complet</label>
-                    <input name="name" type="text" required className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-white" placeholder="Jean Dupont" />
+                    <input name="name" type="text" defaultValue={userData?.name || ""} required className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-white" placeholder="Jean Dupont" />
                   </div>
                   
                   <div className="space-y-1">
@@ -169,6 +182,7 @@ export function ImmoContactModal({ isOpen, onClose, property }: ImmoContactModal
                     {isSubmitting ? "Envoi en cours..." : "Envoyer la demande"}
                   </button>
                 </form>
+                )}
               </>
             )}
           </motion.div>

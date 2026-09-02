@@ -182,6 +182,32 @@ export default function ImmoDashboard() {
     }
   };
 
+  const handleChatWithClient = async (visit: any) => {
+    if (!visit.clientId) {
+      alert("Ce client n'a pas de compte associé.");
+      return;
+    }
+    try {
+      const q = query(collection(db, "chats"), where("clientId", "==", visit.clientId), where("supplierId", "==", user?.uid));
+      const snap = await getDocs(q);
+      if (snap.empty) {
+        await import("firebase/firestore").then(async ({ addDoc, serverTimestamp }) => {
+          await addDoc(collection(db, "chats"), {
+            clientId: visit.clientId,
+            supplierId: user?.uid,
+            propertyTitle: visit.propertyTitle,
+            lastMessage: "",
+            updatedAt: serverTimestamp(),
+            createdAt: serverTimestamp()
+          });
+        });
+      }
+      window.location.href = '/supplier/messages';
+    } catch (error) {
+      console.error("Erreur création chat", error);
+    }
+  };
+
   const occupancyRate = stats.totalUnits > 0 
     ? Math.round((stats.occupiedUnits / stats.totalUnits) * 100) 
     : 0;
@@ -323,13 +349,21 @@ export default function ImmoDashboard() {
                         </span>
                       )}
                     </td>
-                    <td className="p-4 text-right">
+                    <td className="p-4 text-right space-x-2">
                       {visit.status === "PENDING" && (
                         <button 
                           onClick={() => handleApproveVisit(visit)}
                           className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-semibold transition-colors shadow-sm"
                         >
                           Valider
+                        </button>
+                      )}
+                      {visit.clientId && (
+                        <button 
+                          onClick={() => handleChatWithClient(visit)}
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition-colors shadow-sm inline-flex items-center"
+                        >
+                          Discuter
                         </button>
                       )}
                     </td>

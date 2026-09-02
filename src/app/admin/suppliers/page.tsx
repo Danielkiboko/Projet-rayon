@@ -48,16 +48,31 @@ export default function SuppliersPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  const fetchSuppliers = async () => {
-    setIsLoading(true);
-    try {
-      const { limit } = await import("firebase/firestore");
-      const q = query(collection(db, "users"), where("role", "in", ["supplier", "SUPPLIER_IMMO", "SUPPLIER"]), limit(50));
-      const querySnapshot = await getDocs(q);
-      const suppliersData: Supplier[] = [];
-      querySnapshot.forEach((docSnap) => {
+  // Keep this empty function so other functions that call fetchSuppliers() don't break
+  const fetchSuppliers = () => {};
+
+  useEffect(() => {
+    if (!user || !userData) return;
+    const isSuperAdmin = user.email === "danielkiboko218@gmail.com";
+    const isAuthorizedSubAdmin = userData?.role === "SUB_ADMIN";
+    
+    if (!isSuperAdmin && !isAuthorizedSubAdmin) {
+      setIsLoading(false);
+      return;
+    }
+
+    // Fetch suppliers (including property agents)
+    const q = query(
+      collection(db, "users"), 
+      where("role", "in", ["SUPPLIER", "supplier", "SUPPLIER_IMMO", "supplier_immo"]),
+      orderBy("createdAt", "desc")
+    );
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedSuppliers: Supplier[] = [];
+      snapshot.forEach((docSnap) => {
         const data = docSnap.data();
-        suppliersData.push({
+        fetchedSuppliers.push({
           id: docSnap.id,
           name: data.displayName || "Sans nom",
           email: data.email || "",
@@ -70,17 +85,15 @@ export default function SuppliersPage() {
           subscriptionEndDate: data.subscriptionEndDate,
         });
       });
-      setSuppliers(suppliersData);
-    } catch (err) {
-      console.error("Error fetching suppliers:", err);
-    } finally {
+      setSuppliers(fetchedSuppliers);
       setIsLoading(false);
-    }
-  };
+    }, (error) => {
+      console.error("Error fetching suppliers:", error);
+      setIsLoading(false);
+    });
 
-  useEffect(() => {
-    fetchSuppliers();
-  }, []);
+    return () => unsubscribe();
+  }, [user, userData]);
 
   const openReviewModal = (supplier: Supplier) => {
     setSelectedSupplierToApprove(supplier);

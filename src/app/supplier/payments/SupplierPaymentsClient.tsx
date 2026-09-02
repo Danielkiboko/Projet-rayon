@@ -9,8 +9,11 @@ import { collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy 
 
 interface Payment {
   id: string;
-  amount: number;
+  tenantId?: string;
   clientName: string;
+  totalAmount?: number;
+  amount: number;
+  remainingAmount?: number;
   method: string;
   reference: string;
   status: "COMPLETED" | "PENDING";
@@ -18,33 +21,45 @@ interface Payment {
   notes?: string;
 }
 
+interface Tenant {
+  id: string;
+  tenantName: string;
+  rentAmount: number;
+  propertyId?: string;
+  propertyName?: string;
+}
+
 export default function SupplierPaymentsClient() {
   const { user } = useAuth();
   
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
   // Form State
+  const [selectedTenant, setSelectedTenant] = useState("");
   const [clientName, setClientName] = useState("");
+  const [totalAmount, setTotalAmount] = useState("");
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState("Espèces");
-  const [reference, setReference] = useState("");
+  const [reference, setReference] = useState(`PAY-${Math.floor(Math.random() * 1000000)}`);
   const [status, setStatus] = useState<"COMPLETED" | "PENDING">("COMPLETED");
   const [notes, setNotes] = useState("");
 
   useEffect(() => {
     if (!user) return;
 
-    const q = query(
+    // Fetch Payments
+    const qPayments = query(
       collection(db, "payments"),
       where("supplierId", "==", user.uid),
       orderBy("createdAt", "desc")
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    const unsubscribePayments = onSnapshot(qPayments, (snapshot) => {
       const paymentList = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
@@ -53,8 +68,40 @@ export default function SupplierPaymentsClient() {
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    // Fetch Tenants
+    const qTenants = query(
+      collection(db, "tenants"),
+      where("supplierId", "==", user.uid)
+    );
+
+    const unsubscribeTenants = onSnapshot(qTenants, (snapshot) => {
+      const tenantList = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Tenant[];
+      setTenants(tenantList);
+    });
+
+    return () => {
+      unsubscribePayments();
+      unsubscribeTenants();
+    };
   }, [user]);
+
+  const handleTenantSelect = (tenantId: string) => {
+    setSelectedTenant(tenantId);
+    const t = tenants.find(x => x.id === tenantId);
+    if (t) {
+      setClientName(t.tenantName);
+      if (t.rentAmount) {
+        setTotalAmount(t.rentAmount.toString());
+        setAmount(t.rentAmount.toString());
+      } else {
+        setTotalAmount("");
+        setAmount("");
+      }
+    }
+  };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,23 +109,32 @@ export default function SupplierPaymentsClient() {
     
     setIsSubmitting(true);
 
+    const numTotal = Number(totalAmount) || 0;
+    const numPaid = Number(amount) || 0;
+    const remaining = numTotal > 0 ? Math.max(0, numTotal - numPaid) : 0;
+
     try {
       await addDoc(collection(db, "payments"), {
         supplierId: user?.uid,
+        tenantId: selectedTenant || null,
         clientName,
-        amount: Number(amount),
+        totalAmount: numTotal,
+        amount: numPaid,
+        remainingAmount: remaining,
         method,
-        reference,
-        status,
+        reference: reference || `PAY-${Math.floor(Math.random() * 1000000)}`,
+        status: remaining > 0 ? "PENDING" : status,
         notes,
         createdAt: serverTimestamp(),
       });
 
       setShowModal(false);
+      setSelectedTenant("");
       setClientName("");
+      setTotalAmount("");
       setAmount("");
       setMethod("Espèces");
-      setReference("");
+      setReference(`PAY-${Math.floor(Math.random() * 1000000)}`);
       setStatus("COMPLETED");
       setNotes("");
     } catch (error) {
@@ -151,7 +207,9 @@ export default function SupplierPaymentsClient() {
             <thead className="bg-white/5 text-gray-300">
               <tr>
                 <th className="px-6 py-4 font-medium">Client</th>
-                <th className="px-6 py-4 font-medium">Montant</th>
+                <th className="px-6 py-4 font-medium">Total Dû</th>
+                <th className="px-6 py-4 font-medium">Payé</th>
+                <th className="px-6 py-4 font-medium">Reste</th>
                 <th className="px-6 py-4 font-medium">Méthode</th>
                 <th className="px-6 py-4 font-medium">Date</th>
                 <th className="px-6 py-4 font-medium">Statut</th>
@@ -160,11 +218,11 @@ export default function SupplierPaymentsClient() {
             <tbody className="divide-y divide-white/5">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center">Chargement des paiements...</td>
+                  <td colSpan={7} className="px-6 py-8 text-center">Chargement des paiements...</td>
                 </tr>
               ) : filteredPayments.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center">Aucun paiement trouvé.</td>
+                  <td colSpan={7} className="px-6 py-8 text-center">Aucun paiement trouvé.</td>
                 </tr>
               ) : (
                 filteredPayments.map((payment) => (
@@ -175,8 +233,14 @@ export default function SupplierPaymentsClient() {
                         <div className="text-xs text-gray-500">Réf: {payment.reference}</div>
                       )}
                     </td>
+                    <td className="px-6 py-4 font-semibold text-gray-400">
+                      ${payment.totalAmount ? payment.totalAmount.toFixed(2) : "0.00"}
+                    </td>
                     <td className="px-6 py-4 font-semibold text-white">
                       ${payment.amount.toFixed(2)}
+                    </td>
+                    <td className="px-6 py-4 font-semibold text-red-400">
+                      ${payment.remainingAmount ? payment.remainingAmount.toFixed(2) : "0.00"}
                     </td>
                     <td className="px-6 py-4">
                       <span className="bg-white/10 px-2 py-1 rounded-md text-xs">
@@ -187,7 +251,12 @@ export default function SupplierPaymentsClient() {
                       {payment.createdAt?.toDate ? new Date(payment.createdAt.toDate()).toLocaleDateString('fr-FR') : "N/A"}
                     </td>
                     <td className="px-6 py-4">
-                      {payment.status === "COMPLETED" ? (
+                      {payment.remainingAmount && payment.remainingAmount > 0 ? (
+                        <span className="flex items-center text-yellow-500 text-xs font-medium">
+                          <Clock size={14} className="mr-1" />
+                          Partiel / Reste
+                        </span>
+                      ) : payment.status === "COMPLETED" ? (
                         <span className="flex items-center text-green-500 text-xs font-medium">
                           <CheckCircle size={14} className="mr-1" />
                           Complété
@@ -231,34 +300,65 @@ export default function SupplierPaymentsClient() {
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <User size={16} className="text-gray-500" />
                   </div>
-                  <input
-                    type="text"
-                    value={clientName}
-                    onChange={(e) => setClientName(e.target.value)}
+                  <select
+                    value={selectedTenant}
+                    onChange={(e) => handleTenantSelect(e.target.value)}
                     required
-                    placeholder="Nom du client"
                     className="w-full bg-[#111] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
-                  />
+                  >
+                    <option value="">Sélectionner un locataire...</option>
+                    {tenants.map(t => (
+                      <option key={t.id} value={t.id}>
+                        {t.tenantName} {t.propertyName ? `(${t.propertyName})` : ''} - Loyer: ${t.rentAmount}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
-              {/* Montant */}
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Montant ($)</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <DollarSign size={16} className="text-gray-500" />
+              <div className="grid grid-cols-2 gap-4">
+                {/* Total */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Total Dû ($)</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <DollarSign size={16} className="text-gray-500" />
+                    </div>
+                    <input
+                      type="number"
+                      value={totalAmount}
+                      readOnly
+                      placeholder="0.00"
+                      className="w-full bg-[#111] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-gray-500 cursor-not-allowed"
+                    />
                   </div>
-                  <input
-                    type="number"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    required
-                    placeholder="0.00"
-                    className="w-full bg-[#111] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
-                  />
+                </div>
+
+                {/* Montant Payé */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Montant Payé ($)</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <DollarSign size={16} className="text-gray-500" />
+                    </div>
+                    <input
+                      type="number"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      required
+                      placeholder="0.00"
+                      className="w-full bg-[#111] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
                 </div>
               </div>
+
+              {/* Reste à payer dynamique */}
+              {totalAmount && amount && Number(totalAmount) - Number(amount) > 0 && (
+                <div className="text-xs text-yellow-500 flex justify-end">
+                  Reste à payer : ${(Number(totalAmount) - Number(amount)).toFixed(2)}
+                </div>
+              )}
 
               {/* Méthode */}
               <div>
@@ -305,12 +405,12 @@ export default function SupplierPaymentsClient() {
 
               {/* Reference */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Référence (Optionnel)</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Référence (Auto-générée)</label>
                 <input
                   type="text"
                   value={reference}
                   onChange={(e) => setReference(e.target.value)}
-                  placeholder="N° Facture, N° de transaction..."
+                  placeholder="PAY-XXXXXX"
                   className="w-full bg-[#111] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
                 />
               </div>

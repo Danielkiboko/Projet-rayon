@@ -108,8 +108,7 @@ export default function ImmoPage() {
     const fetchProducts = async () => {
       try {
         const q = query(
-          collection(db, "products"), 
-          where("category", "==", "immo"),
+          collection(db, "properties"), 
           where("status", "==", "Disponible")
         );
         const querySnapshot = await getDocs(q);
@@ -172,10 +171,22 @@ export default function ImmoPage() {
             >
               <Globe size={14} className="mr-1" /> {lang.toUpperCase()}
             </button>
-            <Link href="/login" className="hidden sm:flex items-center gap-1 text-sm font-bold text-gray-700 hover:text-gray-900 bg-gray-100 px-4 py-2 rounded-full">
-              <User size={18} />
-              {t.login}
-            </Link>
+            {user ? (
+              <div className="hidden sm:flex items-center gap-2">
+                <Link href="/dashboard" className="flex items-center gap-1 text-sm font-bold text-gray-700 hover:text-gray-900 bg-gray-100 px-4 py-2 rounded-full">
+                  <User size={18} />
+                  {user.displayName || "Mon compte"}
+                </Link>
+                <button onClick={() => signOut()} className="text-sm font-bold text-red-500 hover:text-red-700 bg-red-50 px-3 py-2 rounded-full">
+                  Déconnexion
+                </button>
+              </div>
+            ) : (
+              <Link href="/login" className="hidden sm:flex items-center gap-1 text-sm font-bold text-gray-700 hover:text-gray-900 bg-gray-100 px-4 py-2 rounded-full">
+                <User size={18} />
+                {t.login}
+              </Link>
+            )}
           </div>
         </nav>
       </header>

@@ -49,6 +49,106 @@ export default function AdminLayout({
     );
   }
 
+  // Notifications logic
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!hasAccess) return;
+
+    let unsubUsers: any;
+    let unsubProps: any;
+    let unsubProds: any;
+
+    const setupListeners = async () => {
+      try {
+        const { collection, query, where, onSnapshot } = await import("firebase/firestore");
+        const { db } = await import("@/lib/firebase");
+
+        // Helper to update state safely
+        const updateNotifications = (type: string, newItems: any[]) => {
+          setNotifications(prev => {
+            const filtered = prev.filter(n => n.type !== type);
+            const combined = [...filtered, ...newItems].sort((a, b) => b.time - a.time);
+            setUnreadCount(combined.length);
+            return combined;
+          });
+        };
+
+        // 1. Pending suppliers
+        const qUsers = query(
+          collection(db, "users"), 
+          where("role", "in", ["SUPPLIER", "supplier", "SUPPLIER_IMMO", "supplier_immo"])
+        );
+        unsubUsers = onSnapshot(qUsers, (snapshot) => {
+          const items: any[] = [];
+          snapshot.forEach(doc => {
+            const d = doc.data();
+            if (d.profileUpdateStatus === "PENDING_APPROVAL" || d.status === "PENDING_APPROVAL") {
+              items.push({
+                id: `supplier-${doc.id}`,
+                type: "supplier",
+                title: "Profil Fournisseur modifié",
+                message: `${d.displayName || d.email} a mis à jour ses informations.`,
+                time: Date.now(),
+                link: "/admin/suppliers"
+              });
+            }
+          });
+          updateNotifications("supplier", items);
+        });
+
+        // 2. Pending properties
+        const qProps = query(collection(db, "properties"), where("status", "==", "PENDING_APPROVAL"));
+        unsubProps = onSnapshot(qProps, (snapshot) => {
+          const items: any[] = [];
+          snapshot.forEach(doc => {
+            const d = doc.data();
+            items.push({
+              id: `property-${doc.id}`,
+              type: "property",
+              title: "Nouveau Bien Immobilier",
+              message: `${d.title || 'Bien'} est en attente de validation.`,
+              time: Date.now(),
+              link: "/admin/properties"
+            });
+          });
+          updateNotifications("property", items);
+        });
+
+        // 3. Pending products
+        const qProds = query(collection(db, "products"), where("status", "in", ["PENDING_APPROVAL", "pending_approval"]));
+        unsubProds = onSnapshot(qProds, (snapshot) => {
+          const items: any[] = [];
+          snapshot.forEach(doc => {
+            const d = doc.data();
+            items.push({
+              id: `product-${doc.id}`,
+              type: "product",
+              title: "Nouveau Produit",
+              message: `${d.name || 'Produit'} est en attente de validation.`,
+              time: Date.now(),
+              link: "/admin/products"
+            });
+          });
+          updateNotifications("product", items);
+        });
+
+      } catch (err) {
+        console.error("Error setting up notifications:", err);
+      }
+    };
+
+    setupListeners();
+
+    return () => {
+      if (unsubUsers) unsubUsers();
+      if (unsubProps) unsubProps();
+      if (unsubProds) unsubProds();
+    };
+  }, [hasAccess]);
+
   return (
     <div className="flex h-screen bg-[#121212] overflow-hidden font-sans">
       {/* Mobile sidebar overlay */}
@@ -117,9 +217,9 @@ export default function AdminLayout({
       </motion.aside>
 
       {/* Main content wrapper */}
-      <main className="flex-1 flex flex-col h-screen overflow-hidden">
+      <main className="flex-1 flex flex-col h-screen overflow-hidden relative">
         {/* Topbar (Permanent) */}
-        <header className="h-16 flex items-center justify-between px-6 border-b border-white/5 bg-[#121212]/80 backdrop-blur-md z-30">
+        <header className="h-16 flex items-center justify-between px-6 border-b border-white/5 bg-[#121212]/80 backdrop-blur-md z-30 relative">
           <div className="flex items-center">
             <button onClick={() => setIsSidebarOpen(true)} className="mr-4 text-gray-400 hover:text-white lg:hidden">
               <Menu size={24} />
@@ -136,12 +236,62 @@ export default function AdminLayout({
                 className="bg-transparent text-sm text-white placeholder-gray-500 focus:outline-none w-48"
               />
             </div>
-            <button className="relative p-2 text-gray-400 hover:text-white transition-colors rounded-full hover:bg-white/5">
-              <Bell size={20} />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border border-[#121212]"></span>
-            </button>
+            
+            {/* Notification Dropdown */}
+            <div className="relative">
+              <button 
+                onClick={() => setIsNotifOpen(!isNotifOpen)}
+                className="relative p-2 text-gray-400 hover:text-white transition-colors rounded-full hover:bg-white/5"
+              >
+                <Bell size={20} />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 flex h-3 w-3">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                  </span>
+                )}
+              </button>
+              
+              {isNotifOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setIsNotifOpen(false)} />
+                  <div className="absolute right-0 mt-2 w-80 bg-[#1A1A1A] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden">
+                    <div className="p-4 border-b border-white/10 bg-[#222]">
+                      <h3 className="text-sm font-semibold text-white">Notifications ({unreadCount})</h3>
+                    </div>
+                    <div className="max-h-80 overflow-y-auto">
+                      {notifications.length === 0 ? (
+                        <div className="p-4 text-center text-gray-400 text-sm">
+                          Aucune action requise.
+                        </div>
+                      ) : (
+                        notifications.map((notif) => (
+                          <Link 
+                            key={notif.id} 
+                            href={notif.link}
+                            onClick={() => setIsNotifOpen(false)}
+                            className="block p-4 border-b border-white/5 hover:bg-white/5 transition-colors"
+                          >
+                            <div className="flex items-start">
+                              <div className="w-8 h-8 rounded bg-blue-500/20 text-blue-400 flex items-center justify-center mr-3 shrink-0">
+                                <ShieldAlert size={16} />
+                              </div>
+                              <div>
+                                <h4 className="text-sm font-medium text-white">{notif.title}</h4>
+                                <p className="text-xs text-gray-400 mt-1">{notif.message}</p>
+                              </div>
+                            </div>
+                          </Link>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
             <div className="flex items-center space-x-2 pl-4 border-l border-white/10">
-              <span className="text-sm font-medium text-gray-300 hidden md:block">Daniel Kiboko</span>
+              <span className="text-sm font-medium text-gray-300 hidden md:block">{userData?.displayName || userData?.name || "Admin"}</span>
               <button className="p-1 rounded-full bg-white/5 text-gray-400 hover:text-white border border-white/5">
                 <UserCircle size={28} />
               </button>

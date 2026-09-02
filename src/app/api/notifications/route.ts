@@ -74,21 +74,8 @@ export async function POST(req: Request) {
       }
     }
 
-    // 3. VISIT_VALIDATED : Notify Client
-    if (action === "VISIT_VALIDATED" && data) {
-      let msg = `Bonjour ${data.visitorName || 'Client'}, votre visite pour "${data.propertyTitle}" a été validée pour le ${data.requestedDate || 'plus vite possible'}. Un agent vous contactera bientôt.`;
-      
-      if (data.visitorCoords && data.propertyCoords) {
-        const routeLink = `https://www.google.com/maps/dir/?api=1&origin=${data.visitorCoords.lat},${data.visitorCoords.lng}&destination=${data.propertyCoords.lat},${data.propertyCoords.lng}`;
-        msg += ` Cliquez ici pour l'itinéraire direct vers le bien : ${routeLink}`;
-      }
-      msg += ` - Rayon Immo`;
-
-      if (data.visitorPhone) {
-         tasks.push(sendSMS(data.visitorPhone, msg));
-      }
-      // Note: We don't have the visitor's email collected in the current modal, so we just use SMS
-    }
+    // Note: L'envoi de SMS pour les visites immobilières a été supprimé. 
+    // La communication se fait désormais via le système de chat intégré.
 
     await Promise.allSettled(tasks);
     return NextResponse.json({ success: true, message: "Notifications dispatched" });

@@ -22,7 +22,7 @@ export default function SupplierLayout({
     return <div className="h-screen w-full flex items-center justify-center bg-[#0b061c] text-white">Chargement...</div>;
   }
 
-  if (!user || (userData?.role !== "SUPPLIER" && userData?.role !== "supplier")) {
+  if (!user || !["SUPPLIER", "supplier", "SUPPLIER_IMMO", "supplier_immo"].includes(userData?.role)) {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-[#0b061c] text-white flex-col">
         <ShieldAlert size={48} className="mb-4 text-red-500" />

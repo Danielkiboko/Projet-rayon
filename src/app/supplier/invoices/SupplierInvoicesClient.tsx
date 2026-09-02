@@ -145,7 +145,8 @@ export default function SupplierInvoices() {
     if (tenant.tenantPhone) doc.text(tenant.tenantPhone, 14, 70);
 
     // Table
-    (doc as any).autoTable({
+    const autoTable = (await import("jspdf-autotable")).default;
+    autoTable(doc, {
       startY: 85,
       head: [['Description', 'Quantité', 'Prix Unitaire', 'Total']],
       body: [
@@ -156,7 +157,7 @@ export default function SupplierInvoices() {
     });
 
     // Total
-    const finalY = (doc as any).lastAutoTable.finalY || 100;
+    const finalY = (doc as any).lastAutoTable?.finalY || 100;
     doc.setFontSize(12);
     doc.setTextColor(0);
     doc.text(`Total à payer: $${invAmount}`, 150, finalY + 10);

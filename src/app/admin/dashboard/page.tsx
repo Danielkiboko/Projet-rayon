@@ -50,61 +50,71 @@ export default function AdminDashboardPage() {
 
   // Fetch Validation & Regulation Data
   useEffect(() => {
-    if (!user) return;
+    if (!user || !userData) return;
     const isSuperAdmin = user.email === "danielkiboko218@gmail.com" || userData?.role === "SUPER_ADMIN";
     const isAuthorizedSubAdmin = userData?.role === "SUB_ADMIN";
     if (!isSuperAdmin && !isAuthorizedSubAdmin) return;
 
-    const fetchDashboardData = async () => {
+    let unsubUsers: any;
+    let unsubProps: any;
+    let unsubProds: any;
+
+    const setupListeners = async () => {
       try {
-        // 1. Fetch pending & active suppliers
-        const qUsers = query(collection(db, "users"), where("role", "in", ["SUPPLIER", "supplier", "SUPPLIER_IMMO"]));
-        const snapUsers = await getDocs(qUsers);
-        let pSuppliers = 0;
-        let aSuppliers = 0;
-        snapUsers.forEach(doc => {
-          const d = doc.data();
-          if (d.status === "PENDING_APPROVAL" || d.profileUpdateStatus === "PENDING_APPROVAL") pSuppliers++;
-          else aSuppliers++;
+        const { onSnapshot, query, collection, where } = await import("firebase/firestore");
+        const { db } = await import("@/lib/firebase");
+
+        // 1. Pending & active suppliers
+        const qUsers = query(collection(db, "users"), where("role", "in", ["SUPPLIER", "supplier", "SUPPLIER_IMMO", "supplier_immo"]));
+        unsubUsers = onSnapshot(qUsers, (snapUsers) => {
+          let pSuppliers = 0;
+          let aSuppliers = 0;
+          snapUsers.forEach(doc => {
+            const d = doc.data();
+            if (d.status === "PENDING_APPROVAL" || d.profileUpdateStatus === "PENDING_APPROVAL") pSuppliers++;
+            else aSuppliers++;
+          });
+          setStats(prev => ({ ...prev, pendingSuppliers: pSuppliers, totalActiveSuppliers: aSuppliers }));
         });
 
-        // 2. Fetch pending & active properties
-        const snapProps = await getDocs(collection(db, "properties"));
-        let pProps = 0;
-        let aProps = 0;
-        snapProps.forEach(doc => {
-          const d = doc.data();
-          if (d.status === "PENDING_APPROVAL") pProps++;
-          else aProps++;
+        // 2. Pending & active properties
+        unsubProps = onSnapshot(collection(db, "properties"), (snapProps) => {
+          let pProps = 0;
+          let aProps = 0;
+          snapProps.forEach(doc => {
+            const d = doc.data();
+            if (d.status === "PENDING_APPROVAL") pProps++;
+            else aProps++;
+          });
+          setStats(prev => ({ ...prev, pendingProperties: pProps, totalProperties: aProps }));
         });
 
-        // 3. Fetch pending & active products
-        const snapProducts = await getDocs(collection(db, "products"));
-        let pProds = 0;
-        let aProds = 0;
-        snapProducts.forEach(doc => {
-          const d = doc.data();
-          if (d.status === "PENDING_APPROVAL" || d.status === "pending_approval") pProds++;
-          else aProds++;
-        });
-
-        setStats({
-          pendingSuppliers: pSuppliers,
-          pendingProperties: pProps,
-          pendingProducts: pProds,
-          totalActiveSuppliers: aSuppliers,
-          totalProperties: aProps,
-          totalProducts: aProds,
+        // 3. Pending & active products
+        unsubProds = onSnapshot(collection(db, "products"), (snapProducts) => {
+          let pProds = 0;
+          let aProds = 0;
+          snapProducts.forEach(doc => {
+            const d = doc.data();
+            if (d.status === "PENDING_APPROVAL" || d.status === "pending_approval") pProds++;
+            else aProds++;
+          });
+          setStats(prev => ({ ...prev, pendingProducts: pProds, totalProducts: aProds }));
+          setDataLoading(false);
         });
 
       } catch (err) {
-        console.error("Error fetching stats:", err);
-      } finally {
+        console.error("Error setting up dashboard data:", err);
         setDataLoading(false);
       }
     };
 
-    fetchDashboardData();
+    setupListeners();
+
+    return () => {
+      if (unsubUsers) unsubUsers();
+      if (unsubProps) unsubProps();
+      if (unsubProds) unsubProds();
+    };
   }, [user, userData]);
 
   const isSuperAdmin = user?.email === "danielkiboko218@gmail.com" || userData?.role === "SUPER_ADMIN";

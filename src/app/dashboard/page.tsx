@@ -38,6 +38,9 @@ export default function DashboardRedirect() {
       case "ADMIN":
         router.replace("/admin/dashboard")
         break
+      case "CLIENT":
+        router.replace("/dashboard/client")
+        break
       default:
         console.warn("Rôle non reconnu ou manquant:", userData?.role);
         router.replace("/")

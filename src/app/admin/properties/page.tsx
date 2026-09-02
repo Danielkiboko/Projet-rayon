@@ -53,7 +53,7 @@ export default function AdminPropertiesPage() {
 
   // Fetch properties
   useEffect(() => {
-    if (!user) return;
+    if (!user || !userData) return;
     const isSuperAdmin = user.email === "danielkiboko218@gmail.com";
     const isAuthorizedSubAdmin = userData?.role === "SUB_ADMIN";
     if (!isSuperAdmin && !isAuthorizedSubAdmin) return;
@@ -67,11 +67,10 @@ export default function AdminPropertiesPage() {
       setProperties(fetchedProperties);
     }, (error) => {
       console.error("Error fetching properties:", error);
-      alert("Erreur lors du chargement des biens immobiliers : " + error.message);
     });
 
     return () => unsubscribe();
-  }, [user]);
+  }, [user, userData]);
 
   const handleDeleteProperty = async (id: string) => {
     if (confirm("Voulez-vous vraiment supprimer cette annonce immobilière ? Cette action est irréversible.")) {

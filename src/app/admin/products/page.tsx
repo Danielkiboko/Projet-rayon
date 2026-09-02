@@ -63,7 +63,7 @@ export default function AdminProductsPage() {
 
   // Fetch products
   useEffect(() => {
-    if (!user) return;
+    if (!user || !userData) return;
     const isSuperAdmin = user.email === "danielkiboko218@gmail.com";
     const isAuthorizedSubAdmin = userData?.role === "SUB_ADMIN";
     if (!isSuperAdmin && !isAuthorizedSubAdmin) return;
@@ -77,11 +77,10 @@ export default function AdminProductsPage() {
       setProducts(fetchedProducts);
     }, (error) => {
       console.error("Error fetching products:", error);
-      alert("Erreur lors du chargement des produits : " + error.message);
     });
 
     return () => unsubscribe();
-  }, [user]);
+  }, [user, userData]);
 
   const openAddModal = () => {
     setEditingId(null);

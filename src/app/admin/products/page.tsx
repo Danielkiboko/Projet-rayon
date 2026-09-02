@@ -278,7 +278,7 @@ export default function AdminProductsPage() {
                       )}
                     </td>
                     <td className="p-4 text-right">
-                      {(product.status === "pending_approval" || product.status === "PENDING_APPROVAL") && (
+                      {(product.status !== "published" && product.status !== "Disponible") && (
                         <>
                           <button 
                             onClick={() => handleApproveProduct(product.id)}

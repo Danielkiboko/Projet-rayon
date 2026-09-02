@@ -291,6 +291,19 @@ export default function SupplierPropertiesPage() {
     }
   };
 
+  const handleDeleteProperty = async (id: string) => {
+    if (confirm("Voulez-vous vraiment supprimer cette propriété ? Cette action est irréversible.")) {
+      try {
+        const { doc, deleteDoc } = await import("firebase/firestore");
+        const { db } = await import("@/lib/firebase");
+        await deleteDoc(doc(db, "products", id));
+      } catch (error) {
+        console.error("Erreur lors de la suppression:", error);
+        alert("Une erreur est survenue lors de la suppression.");
+      }
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -393,8 +406,9 @@ export default function SupplierPropertiesPage() {
                          <div className="text-xs text-red-300 mt-1">Motif: {property.rejectionReason}</div>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-4 text-right space-x-3">
                       <button className="text-primary-light hover:text-white transition-colors">Modifier</button>
+                      <button onClick={() => handleDeleteProperty(property.id)} className="text-red-400 hover:text-red-300 transition-colors">Supprimer</button>
                     </td>
                   </tr>
                 ))

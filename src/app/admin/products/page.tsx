@@ -71,10 +71,13 @@ export default function AdminProductsPage() {
     const q = query(collection(db, "products"), orderBy("createdAt", "desc"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const fetchedProducts: Product[] = [];
-      snapshot.forEach((doc) => {
-        fetchedProducts.push({ id: doc.id, ...doc.data() } as Product);
+      snapshot.forEach((docSnap) => {
+        fetchedProducts.push({ id: docSnap.id, ...docSnap.data() } as Product);
       });
       setProducts(fetchedProducts);
+    }, (error) => {
+      console.error("Error fetching products:", error);
+      alert("Erreur lors du chargement des produits : " + error.message);
     });
 
     return () => unsubscribe();

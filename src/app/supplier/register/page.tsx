@@ -48,6 +48,9 @@ export default function SupplierRegisterPage() {
       // 3. Update the display name
       await updateProfile(user, { displayName: name });
 
+      const endDate = new Date();
+      endDate.setDate(endDate.getDate() + 30);
+
       // 4. Create the supplier profile in Firestore
       await setDoc(doc(db, "users", user.uid), {
         uid: user.uid,
@@ -58,6 +61,8 @@ export default function SupplierRegisterPage() {
         role: businessType === "IMMOBILIER" ? "SUPPLIER_IMMO" : "SUPPLIER", 
         businessType: businessType,
         status: "PENDING_APPROVAL", // Maybe requires admin validation?
+        subscriptionStatus: "TRIAL",
+        subscriptionEndDate: endDate,
         createdAt: serverTimestamp(),
       });
 

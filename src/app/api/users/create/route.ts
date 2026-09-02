@@ -61,6 +61,14 @@ export async function POST(req: Request) {
     };
     await adminAuth.setCustomUserClaims(userRecord.uid, claims);
 
+    let additionalData = { ...extraData };
+    if (roleToCreate === 'supplier' || roleToCreate === 'SUPPLIER_IMMO') {
+      const endDate = new Date();
+      endDate.setDate(endDate.getDate() + 30);
+      additionalData.subscriptionStatus = 'TRIAL';
+      additionalData.subscriptionEndDate = endDate;
+    }
+
     // 6. Save User Metadata in Firestore
     const userDocRef = adminDb.collection('users').doc(userRecord.uid);
     await userDocRef.set({
@@ -72,7 +80,7 @@ export async function POST(req: Request) {
       creatorRole: callerRole,
       createdAt: new Date(),
       status: 'active',
-      ...extraData
+      ...additionalData
     });
 
     // 7. Route to specific collections (drivers, suppliers) if needed

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Save, Phone, Palette, Image as ImageIcon } from "lucide-react";
+import { Save, Phone, Palette, Image as ImageIcon, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
 import { doc, updateDoc } from "firebase/firestore";
@@ -12,6 +12,8 @@ export default function SupplierSettingsPage() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [primaryColor, setPrimaryColor] = useState("#8b5cf6");
   const [logoUrl, setLogoUrl] = useState("");
+  const [companyName, setCompanyName] = useState("");
+  const [nif, setNif] = useState("");
   
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState("");
@@ -24,6 +26,8 @@ export default function SupplierSettingsPage() {
       if (userData.phone) setPhoneNumber(userData.phone);
       if (userData.primaryColor) setPrimaryColor(userData.primaryColor);
       if (userData.logoUrl) setLogoUrl(userData.logoUrl);
+      if (userData.companyName || userData.company) setCompanyName(userData.companyName || userData.company);
+      if (userData.nif) setNif(userData.nif);
     }
   }, [userData]);
 
@@ -38,14 +42,21 @@ export default function SupplierSettingsPage() {
     try {
       const userRef = doc(db, "users", user.uid);
       
-      const updateData: any = {
+      const pendingProfile: any = {
         phone: phoneNumber
       };
 
       if (isImmo) {
-        updateData.primaryColor = primaryColor;
-        updateData.logoUrl = logoUrl;
+        pendingProfile.primaryColor = primaryColor;
+        pendingProfile.logoUrl = logoUrl;
+        pendingProfile.companyName = companyName;
+        pendingProfile.nif = nif;
       }
+
+      const updateData = {
+        pendingProfile,
+        profileUpdateStatus: "PENDING_APPROVAL"
+      };
 
       await updateDoc(userRef, updateData);
       setSuccess("Vos paramètres ont été mis à jour avec succès.");
@@ -57,8 +68,48 @@ export default function SupplierSettingsPage() {
     }
   };
 
+  // Helper to format date
+  const formatDate = (timestamp: any) => {
+    if (!timestamp) return "Non définie";
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    return date.toLocaleDateString("fr-FR");
+  };
+
+  const isSubscriptionExpired = () => {
+    if (!userData?.subscriptionEndDate) return false;
+    const endDate = userData.subscriptionEndDate.toDate ? userData.subscriptionEndDate.toDate() : new Date(userData.subscriptionEndDate);
+    return new Date() > endDate;
+  };
+
   return (
     <div className="space-y-6">
+      {/* Subscription Banner */}
+      <div className={`p-4 rounded-xl border flex items-center justify-between ${
+        isSubscriptionExpired() 
+          ? "bg-red-500/10 border-red-500/20 text-red-400"
+          : userData?.subscriptionStatus === "TRIAL"
+          ? "bg-blue-500/10 border-blue-500/20 text-blue-400"
+          : "bg-green-500/10 border-green-500/20 text-green-400"
+      }`}>
+        <div>
+          <h2 className="font-semibold text-lg">
+            Abonnement: {
+              isSubscriptionExpired() ? "Expiré" 
+              : userData?.subscriptionStatus === "TRIAL" ? "Période d'essai (30 Jours)" 
+              : "Actif"
+            }
+          </h2>
+          <p className="text-sm opacity-80 mt-1">
+            Date de fin: {formatDate(userData?.subscriptionEndDate)}
+          </p>
+        </div>
+        {isSubscriptionExpired() && (
+          <button className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-lg transition-colors">
+            Renouveler
+          </button>
+        )}
+      </div>
+
       <div>
         <h1 className="text-2xl font-bold text-white">Paramètres</h1>
         <p className="text-sm text-gray-400">Gérez les informations de votre compte fournisseur.</p>
@@ -71,6 +122,16 @@ export default function SupplierSettingsPage() {
           transition={{ duration: 0.3 }}
           className="bg-white/5 border border-white/10 rounded-2xl p-6"
         >
+          {userData?.profileUpdateStatus === "PENDING_APPROVAL" && (
+            <div className="mb-6 p-4 bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-sm rounded-lg flex items-start space-x-3">
+              <AlertCircle size={18} className="mt-0.5 shrink-0" />
+              <div>
+                <p className="font-semibold">Modifications en attente</p>
+                <p>Vos modifications de profil sont en attente d'approbation par un administrateur.</p>
+              </div>
+            </div>
+          )}
+
           <div className="space-y-6">
             <h2 className="text-xl font-semibold text-white border-b border-white/10 pb-4">Profil</h2>
             
@@ -106,7 +167,31 @@ export default function SupplierSettingsPage() {
 
               {isImmo && (
                 <div className="pt-4 border-t border-white/10 space-y-4">
-                  <h3 className="text-lg font-medium text-white mb-2">Marque Blanche (Agence)</h3>
+                  <h3 className="text-lg font-medium text-white mb-2">Profil Entreprise & Facturation</h3>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">Nom de l'entreprise</label>
+                    <input 
+                      type="text" 
+                      value={companyName}
+                      onChange={(e) => setCompanyName(e.target.value)}
+                      placeholder="Ex: Agence Immo XYZ" 
+                      className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white" 
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">NIF (Numéro d'Identification Fiscale)</label>
+                    <input 
+                      type="text" 
+                      value={nif}
+                      onChange={(e) => setNif(e.target.value)}
+                      placeholder="Ex: 0123456789" 
+                      className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white" 
+                    />
+                  </div>
+
+                  <h3 className="text-lg font-medium text-white mb-2 mt-6">Marque Blanche (Apparence)</h3>
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-300 mb-1">Couleur Principale</label>

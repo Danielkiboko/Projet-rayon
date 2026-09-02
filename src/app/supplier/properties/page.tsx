@@ -283,9 +283,9 @@ export default function SupplierPropertiesPage() {
       setPropertyLocation("");
       setPropertyDesc("");
       setLevels([]);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erreur lors de l'ajout de la propriété:", error);
-      alert("Une erreur est survenue.");
+      alert("Une erreur est survenue: " + error.message);
     } finally {
       setIsAiLoading(false);
     }
@@ -678,9 +678,10 @@ export default function SupplierPropertiesPage() {
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-2 bg-primary hover:bg-primary-light text-white font-semibold rounded-lg transition-colors"
+                    disabled={isAiLoading}
+                    className="px-6 py-2 bg-primary hover:bg-primary-light text-white font-semibold rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center"
                   >
-                    Publier l'annonce
+                    {isAiLoading ? "Traitement..." : "Publier l'annonce"}
                   </button>
                 </div>
               </form>

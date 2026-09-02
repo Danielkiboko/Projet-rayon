@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, X, Search, Store } from "lucide-react";
 import { auth, db } from "@/lib/firebase";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, getDocs, query, where, doc, updateDoc } from "firebase/firestore";
 import { sendPasswordResetEmail } from "firebase/auth";
 
 interface Supplier {
@@ -13,10 +13,17 @@ interface Supplier {
   email: string;
   rayon: string;
   status: string;
+  profileUpdateStatus?: string;
+  pendingProfile?: any;
+  subscriptionStatus?: string;
+  subscriptionEndDate?: any;
 }
 
 export default function SuppliersPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSubModalOpen, setIsSubModalOpen] = useState(false);
+  const [selectedSupplierId, setSelectedSupplierId] = useState("");
+  const [newSubDate, setNewSubDate] = useState("");
   const [search, setSearch] = useState("");
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -36,17 +43,21 @@ export default function SuppliersPage() {
     setIsLoading(true);
     try {
       const { limit } = await import("firebase/firestore");
-      const q = query(collection(db, "users"), where("role", "==", "supplier"), limit(50));
+      const q = query(collection(db, "users"), where("role", "in", ["supplier", "SUPPLIER_IMMO"]), limit(50));
       const querySnapshot = await getDocs(q);
       const suppliersData: Supplier[] = [];
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
+      querySnapshot.forEach((docSnap) => {
+        const data = docSnap.data();
         suppliersData.push({
-          id: doc.id,
+          id: docSnap.id,
           name: data.displayName || "Sans nom",
           email: data.email || "",
           rayon: data.rayon || "Non assigné",
           status: data.status === "active" ? "Actif" : "Inactif",
+          profileUpdateStatus: data.profileUpdateStatus,
+          pendingProfile: data.pendingProfile,
+          subscriptionStatus: data.subscriptionStatus,
+          subscriptionEndDate: data.subscriptionEndDate,
         });
       });
       setSuppliers(suppliersData);
@@ -60,6 +71,44 @@ export default function SuppliersPage() {
   useEffect(() => {
     fetchSuppliers();
   }, []);
+
+  const handleApproveProfile = async (supplierId: string, pendingProfile: any) => {
+    if (!confirm("Approuver ces modifications de profil ?")) return;
+    setIsLoading(true);
+    try {
+      const ref = doc(db, "users", supplierId);
+      await updateDoc(ref, {
+        ...pendingProfile,
+        pendingProfile: null,
+        profileUpdateStatus: "APPROVED"
+      });
+      setSuccessMessage("Profil approuvé avec succès.");
+      fetchSuppliers();
+    } catch (err) {
+      console.error(err);
+      setError("Erreur lors de l'approbation.");
+      setIsLoading(false);
+    }
+  };
+
+  const handleUpdateSubscription = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      const ref = doc(db, "users", selectedSupplierId);
+      await updateDoc(ref, {
+        subscriptionEndDate: new Date(newSubDate),
+        subscriptionStatus: "ACTIVE"
+      });
+      setSuccessMessage("Abonnement mis à jour.");
+      setIsSubModalOpen(false);
+      fetchSuppliers();
+    } catch (err) {
+      console.error(err);
+      setError("Erreur lors de la mise à jour de l'abonnement.");
+      setIsLoading(false);
+    }
+  };
 
   const handleDeleteSupplier = async (supplierId: string) => {
     if (!confirm("Voulez-vous vraiment supprimer ce fournisseur ? Cette action effacera toutes ses données (et propriétés).")) {
@@ -209,8 +258,9 @@ export default function SuppliersPage() {
               <tr>
                 <th className="px-6 py-4">Nom</th>
                 <th className="px-6 py-4">Email</th>
-                <th className="px-6 py-4">Rayon associé</th>
-                <th className="px-6 py-4">Statut</th>
+                <th className="px-6 py-4">Rayon</th>
+                <th className="px-6 py-4">Abonnement</th>
+                <th className="px-6 py-4">Statut Profil</th>
                 <th className="px-6 py-4 text-right">Actions</th>
               </tr>
             </thead>
@@ -243,9 +293,37 @@ export default function SuppliersPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={supplier.status === "Actif" ? "text-green-400" : "text-red-400"}>
-                        {supplier.status}
-                      </span>
+                      <div className="flex flex-col">
+                        <span className={supplier.subscriptionStatus === "TRIAL" ? "text-blue-400" : (supplier.subscriptionStatus === "ACTIVE" ? "text-green-400" : "text-red-400")}>
+                          {supplier.subscriptionStatus || "Non défini"}
+                        </span>
+                        {supplier.subscriptionEndDate && (
+                          <span className="text-xs text-gray-500">
+                            Échéance: {new Date(supplier.subscriptionEndDate.toDate ? supplier.subscriptionEndDate.toDate() : supplier.subscriptionEndDate).toLocaleDateString("fr-FR")}
+                          </span>
+                        )}
+                        <button 
+                          onClick={() => { setSelectedSupplierId(supplier.id); setIsSubModalOpen(true); }}
+                          className="text-xs text-primary-light mt-1 text-left hover:underline"
+                        >
+                          Prolonger
+                        </button>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      {supplier.profileUpdateStatus === "PENDING_APPROVAL" ? (
+                        <div className="flex flex-col space-y-2">
+                          <span className="text-yellow-400 text-xs font-semibold">En attente</span>
+                          <button 
+                            onClick={() => handleApproveProfile(supplier.id, supplier.pendingProfile)}
+                            className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded hover:bg-green-500/30 transition-colors"
+                          >
+                            Approuver
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-gray-500 text-xs">À jour</span>
+                      )}
                     </td>
                     <td className="px-6 py-4 text-right">
                       <button 
@@ -378,6 +456,49 @@ export default function SuppliersPage() {
                     className="px-6 py-2 bg-primary hover:bg-primary-light text-white font-semibold rounded-lg transition-colors flex items-center disabled:opacity-50"
                   >
                     {isSubmitting ? "Création en cours..." : "Créer le compte"}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Subscription Update Modal */}
+      <AnimatePresence>
+        {isSubModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-sm bg-[#140b2e] border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+            >
+              <div className="flex items-center justify-between p-6 border-b border-white/10">
+                <h2 className="text-xl font-semibold text-white">Renouveler Abonnement</h2>
+                <button onClick={() => setIsSubModalOpen(false)} className="text-gray-400 hover:text-white">
+                  <X size={24} />
+                </button>
+              </div>
+
+              <form onSubmit={handleUpdateSubscription} className="p-6 space-y-4">
+                <div className="space-y-1">
+                  <label className="text-sm font-medium text-gray-300">Nouvelle date d'échéance</label>
+                  <input
+                    type="date"
+                    required
+                    value={newSubDate}
+                    onChange={(e) => setNewSubDate(e.target.value)}
+                    className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white"
+                  />
+                </div>
+                
+                <div className="pt-4 flex justify-end space-x-3">
+                  <button type="button" onClick={() => setIsSubModalOpen(false)} className="px-4 py-2 text-gray-400 hover:text-white transition-colors">
+                    Annuler
+                  </button>
+                  <button type="submit" disabled={isLoading} className="bg-primary hover:bg-primary-light text-white px-6 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center space-x-2">
+                    {isLoading ? "En cours..." : "Sauvegarder"}
                   </button>
                 </div>
               </form>

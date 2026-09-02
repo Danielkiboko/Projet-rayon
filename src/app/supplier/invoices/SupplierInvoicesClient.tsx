@@ -71,14 +71,54 @@ export default function SupplierInvoices() {
     if (due) doc.text(`Échéance: ${new Date(due).toLocaleDateString("fr-FR")}`, 14, 40);
 
     // Supplier Info
+    let supplierStartY = 20;
+
+    if (userData?.logoUrl) {
+      try {
+        const img = new Image();
+        img.crossOrigin = "Anonymous";
+        img.src = userData.logoUrl;
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+        });
+        
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+          const dataUrl = canvas.toDataURL("image/png");
+          doc.addImage(dataUrl, 'PNG', 120, 5, 20, 20);
+          supplierStartY = 30; // Shift text down if logo is present
+        }
+      } catch (e) {
+        console.warn("Could not load logo for PDF", e);
+      }
+    }
+
     doc.setFontSize(12);
     doc.setTextColor(0);
-    doc.text("Émetteur :", 120, 20);
+    doc.text("Émetteur :", 120, supplierStartY);
     doc.setFontSize(10);
     doc.setTextColor(100);
-    doc.text(userData?.nom || "Bailleur", 120, 25);
-    if (userData?.email) doc.text(userData.email, 120, 30);
-    if (userData?.phone) doc.text(userData.phone, 120, 35);
+    
+    let currentY = supplierStartY + 5;
+    doc.text(userData?.companyName || userData?.company || userData?.nom || "Bailleur", 120, currentY);
+    
+    if (userData?.nif) {
+      currentY += 5;
+      doc.text(`NIF: ${userData.nif}`, 120, currentY);
+    }
+    if (userData?.email) {
+      currentY += 5;
+      doc.text(userData.email, 120, currentY);
+    }
+    if (userData?.phone) {
+      currentY += 5;
+      doc.text(userData.phone, 120, currentY);
+    }
 
     // Client Info
     doc.setFontSize(12);

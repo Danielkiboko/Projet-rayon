@@ -93,7 +93,14 @@ export default function SupplierPaymentsClient() {
     const t = tenants.find(x => x.id === tenantId);
     if (t) {
       setClientName(t.name || "");
-      if (t.rentAmount) {
+      
+      const tenantPayments = payments.filter(p => p.tenantId === tenantId);
+      const lastPayment = tenantPayments[0]; // Payments are already sorted by date desc
+      
+      if (lastPayment && lastPayment.remainingAmount && lastPayment.remainingAmount > 0) {
+        setTotalAmount(lastPayment.remainingAmount.toString());
+        setAmount(lastPayment.remainingAmount.toString());
+      } else if (t.rentAmount) {
         setTotalAmount(t.rentAmount.toString());
         setAmount(t.rentAmount.toString());
       } else {

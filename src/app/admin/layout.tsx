@@ -33,23 +33,6 @@ export default function AdminLayout({
   const isSubAdmin = userData?.role === "SUB_ADMIN";
   const hasAccess = isSuperAdmin || isSubAdmin;
 
-  if (loading) {
-    return <div className="h-screen w-full flex items-center justify-center bg-[#0b061c] text-white">Chargement...</div>;
-  }
-
-  if (!hasAccess) {
-    return (
-      <div className="h-screen w-full flex items-center justify-center bg-[#0b061c] text-white flex-col">
-        <ShieldAlert size={48} className="mb-4 text-red-500" />
-        <h1 className="text-2xl font-bold mb-2">Accès Refusé</h1>
-        <p className="text-gray-400">Cette zone est strictement réservée à la direction.</p>
-        <Link href="/" className="mt-6 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors">
-          Retour à l&apos;accueil
-        </Link>
-      </div>
-    );
-  }
-
   // Notifications logic
   const [notifications, setNotifications] = useState<any[]>([]);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
@@ -149,6 +132,23 @@ export default function AdminLayout({
       if (unsubProds) unsubProds();
     };
   }, [hasAccess]);
+
+  if (loading) {
+    return <div className="h-screen w-full flex items-center justify-center bg-[#0b061c] text-white">Chargement...</div>;
+  }
+
+  if (!hasAccess) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center bg-[#0b061c] text-white flex-col">
+        <ShieldAlert size={48} className="mb-4 text-red-500" />
+        <h1 className="text-2xl font-bold mb-2">Accès Refusé</h1>
+        <p className="text-gray-400">Cette zone est strictement réservée à la direction.</p>
+        <Link href="/" className="mt-6 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors">
+          Retour à l&apos;accueil
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-[#121212] overflow-hidden font-sans">

@@ -162,8 +162,6 @@ export default function AdminLayout({
 
       {/* Sidebar - Slim or Normal depending on design, here we keep it structured */}
       <motion.aside
-        initial={{ x: -300 }}
-        animate={{ x: isSidebarOpen ? 0 : 0 }}
         className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#0A0A0A] border-r border-white/5 flex flex-col transition-transform duration-300 lg:translate-x-0 lg:static ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}

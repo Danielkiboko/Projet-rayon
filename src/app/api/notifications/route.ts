@@ -77,6 +77,20 @@ export async function POST(req: Request) {
     // Note: L'envoi de SMS pour les visites immobilières a été supprimé. 
     // La communication se fait désormais via le système de chat intégré.
 
+    // 3. PROPERTY_APPROVED : Notify Supplier
+    if (action === "PROPERTY_APPROVED") {
+      if (supplierEmail) {
+        tasks.push(sendEmail(
+          supplierEmail,
+          `Votre annonce immobilière est publiée`,
+          `Félicitations, votre annonce immobilière a été approuvée et est désormais visible par tous les clients sur Rayons.NET.`
+        ));
+      }
+      if (supplierPhone) {
+        tasks.push(sendSMS(supplierPhone, `Rayon: Votre annonce immobilière est publiée avec succès.`));
+      }
+    }
+
     await Promise.allSettled(tasks);
     return NextResponse.json({ success: true, message: "Notifications dispatched" });
 

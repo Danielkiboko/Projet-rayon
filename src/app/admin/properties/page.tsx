@@ -83,12 +83,24 @@ export default function AdminPropertiesPage() {
     }
   };
 
-  const handleApproveProperty = async (id: string) => {
+  const handleApproveProperty = async (property: Property) => {
     if (confirm("Approuver et publier ce bien immobilier ?")) {
       try {
-        await updateDoc(doc(db, "properties", id), {
+        await updateDoc(doc(db, "properties", property.id), {
           status: "Disponible" 
         });
+
+        // Notify supplier
+        if (property.supplierId) {
+          await fetch("/api/notifications", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action: "PROPERTY_APPROVED",
+              supplierId: property.supplierId
+            })
+          });
+        }
       } catch (error) {
         console.error("Error approving property", error);
         alert("Erreur lors de l'approbation.");
@@ -215,7 +227,7 @@ export default function AdminPropertiesPage() {
                       {(property.status !== "Disponible") && (
                         <>
                           <button 
-                            onClick={() => handleApproveProperty(property.id)}
+                            onClick={() => handleApproveProperty(property)}
                             title="Approuver et Publier"
                             className="inline-flex p-2 bg-white/5 text-orange-500 hover:text-white rounded-lg hover:bg-green-500 transition-colors border border-transparent hover:border-green-500"
                           >

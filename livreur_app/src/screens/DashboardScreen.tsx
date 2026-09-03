@@ -48,7 +48,7 @@ export default function DashboardScreen({ onLogout, userName = "Livreur", userId
 
   React.useEffect(() => {
     // Listen for pending orders
-    const q = query(collection(db, 'orders'), where('status', '==', 'pending'));
+    const q = query(collection(db, 'orders'), where('status', '==', 'CONFIRMED_AWAITING_DRIVER'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const fetchedOrders: any[] = [];
       snapshot.forEach((doc) => {
@@ -71,7 +71,7 @@ export default function DashboardScreen({ onLogout, userName = "Livreur", userId
     try {
       const orderRef = doc(db, 'orders', orderId);
       await updateDoc(orderRef, {
-        status: 'accepted',
+        status: 'ACCEPTED',
         driverId: userId
       });
       setStatus("Commande confirmée !");

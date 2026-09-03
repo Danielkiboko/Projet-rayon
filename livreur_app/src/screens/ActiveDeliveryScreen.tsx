@@ -47,7 +47,7 @@ export default function ActiveDeliveryScreen({ orderId, onBack, userId }: { orde
   const handleCompleteDelivery = async () => {
     try {
       await updateDoc(doc(db, 'orders', orderId), {
-        status: 'delivered',
+        status: 'DELIVERED',
         deliveredAt: new Date()
       });
       alert('Course terminée !');

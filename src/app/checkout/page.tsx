@@ -107,7 +107,7 @@ export default function CheckoutPage() {
         itemsTotal: itemsTotal,
         feePaid: DISPATCH_FEE,
         remainingBalance: itemsTotal, // The rest of the items price
-        status: "EN_ATTENTE", // Waiting for driver to accept
+        status: "CONFIRMED_AWAITING_DRIVER", // Waiting for driver to accept
         createdAt: serverTimestamp(),
       });
 

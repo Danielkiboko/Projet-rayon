@@ -45,7 +45,7 @@ export default function DriverDashboard() {
         } else {
           qAvailable = query(
             collection(db, "orders"), 
-            where("supplierId", "==", supplierId),
+            where("supplierIds", "array-contains", supplierId),
             where("status", "==", "CONFIRMED_AWAITING_DRIVER"),
             orderBy("createdAt", "desc")
           );

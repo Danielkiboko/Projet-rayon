@@ -94,12 +94,25 @@ export default function SupplierPaymentsClient() {
     if (t) {
       setClientName(t.name || "");
       
-      const tenantPayments = payments.filter(p => p.tenantId === tenantId);
-      const lastPayment = tenantPayments[0]; // Payments are already sorted by date desc
+      const tenantPayments = payments
+        .filter(p => p.tenantId === tenantId)
+        .sort((a, b) => {
+          const timeA = a.createdAt?.seconds || 0;
+          const timeB = b.createdAt?.seconds || 0;
+          return timeB - timeA; // Descending
+        });
+      const lastPayment = tenantPayments[0]; 
       
-      if (lastPayment && lastPayment.remainingAmount && lastPayment.remainingAmount > 0) {
-        setTotalAmount(lastPayment.remainingAmount.toString());
-        setAmount(lastPayment.remainingAmount.toString());
+      let remaining = 0;
+      if (lastPayment) {
+        remaining = lastPayment.remainingAmount !== undefined 
+          ? lastPayment.remainingAmount 
+          : ((lastPayment.totalAmount || 0) - lastPayment.amount);
+      }
+
+      if (remaining > 0) {
+        setTotalAmount(remaining.toString());
+        setAmount(remaining.toString());
       } else if (t.rentAmount) {
         setTotalAmount(t.rentAmount.toString());
         setAmount(t.rentAmount.toString());
@@ -151,9 +164,7 @@ export default function SupplierPaymentsClient() {
     }
   };
 
-  const totalCompleted = payments
-    .filter(p => p.status === "COMPLETED")
-    .reduce((sum, p) => sum + p.amount, 0);
+  const totalCompleted = payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
 
   const filteredPayments = payments.filter(p => 
     p.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||

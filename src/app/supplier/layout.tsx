@@ -31,6 +31,42 @@ export default function SupplierLayout({
     );
   }
 
+  let isSubscriptionExpired = false;
+  if (userData?.subscriptionEndDate) {
+    const endDate = userData.subscriptionEndDate.toDate 
+      ? userData.subscriptionEndDate.toDate() 
+      : new Date(userData.subscriptionEndDate);
+    if (new Date() > endDate) {
+      isSubscriptionExpired = true;
+    }
+  }
+
+  if (isSubscriptionExpired) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center bg-[#0b061c] text-white flex-col text-center px-4">
+        <ShieldAlert size={64} className="mb-6 text-amber-500" />
+        <h1 className="text-2xl font-bold mb-2">Abonnement Expiré</h1>
+        <p className="text-gray-400 mb-8 max-w-md">
+          Votre abonnement est arrivé à échéance. Vous n'avez plus accès à votre tableau de bord. Veuillez renouveler votre abonnement pour continuer à gérer vos activités.
+        </p>
+        <button 
+          onClick={() => {
+            alert("Veuillez contacter l'administrateur pour renouveler votre abonnement.");
+          }}
+          className="bg-amber-600 hover:bg-amber-700 text-white px-6 py-3 rounded-xl font-medium transition-colors"
+        >
+          Renouveler mon abonnement
+        </button>
+        <button 
+          onClick={() => signOut()}
+          className="mt-6 text-gray-500 hover:text-white underline text-sm"
+        >
+          Se déconnecter
+        </button>
+      </div>
+    );
+  }
+
   let service: ServiceType = (userData?.serviceAttached as ServiceType) || "default";
   
   const isImmoSupplier = 

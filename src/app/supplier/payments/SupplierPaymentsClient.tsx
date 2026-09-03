@@ -23,7 +23,7 @@ interface Payment {
 
 interface Tenant {
   id: string;
-  tenantName: string;
+  name: string;
   rentAmount: number;
   propertyId?: string;
   propertyName?: string;
@@ -92,7 +92,7 @@ export default function SupplierPaymentsClient() {
     setSelectedTenant(tenantId);
     const t = tenants.find(x => x.id === tenantId);
     if (t) {
-      setClientName(t.tenantName);
+      setClientName(t.name || "");
       if (t.rentAmount) {
         setTotalAmount(t.rentAmount.toString());
         setAmount(t.rentAmount.toString());
@@ -309,7 +309,7 @@ export default function SupplierPaymentsClient() {
                     <option value="">Sélectionner un locataire...</option>
                     {tenants.map(t => (
                       <option key={t.id} value={t.id}>
-                        {t.tenantName} {t.propertyName ? `(${t.propertyName})` : ''} - Loyer: ${t.rentAmount}
+                        {t.name} {t.propertyName ? `(${t.propertyName})` : ''} - Loyer: ${t.rentAmount}
                       </option>
                     ))}
                   </select>

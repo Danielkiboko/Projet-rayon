@@ -9,9 +9,9 @@ import { collection, query, where, onSnapshot, addDoc, serverTimestamp } from "f
 
 interface Tenant {
   id: string;
-  tenantName: string;
-  tenantEmail: string;
-  tenantPhone: string;
+  name: string;
+  email: string;
+  phone: string;
   rentAmount: number;
   propertyId?: string;
   propertyName?: string;
@@ -140,9 +140,9 @@ export default function SupplierInvoices() {
     doc.text("Adressé à :", 14, 55);
     doc.setFontSize(10);
     doc.setTextColor(100);
-    doc.text(tenant.tenantName || "Client", 14, 60);
-    if (tenant.tenantEmail) doc.text(tenant.tenantEmail, 14, 65);
-    if (tenant.tenantPhone) doc.text(tenant.tenantPhone, 14, 70);
+    doc.text(tenant.name || "Client", 14, 60);
+    if (tenant.email) doc.text(tenant.email, 14, 65);
+    if (tenant.phone) doc.text(tenant.phone, 14, 70);
 
     // Table
     autoTable(doc, {
@@ -187,13 +187,13 @@ export default function SupplierInvoices() {
       const { doc, invoiceNum } = await generatePDF(tenant, invoiceType, amount, description, dueDate);
       
       // 2. Save file
-      doc.save(`${invoiceType}_${tenant.tenantName}_${invoiceNum}.pdf`);
+      doc.save(`${invoiceType}_${tenant.name}_${invoiceNum}.pdf`);
 
       // 3. Save to Firestore
       await addDoc(collection(db, "invoices"), {
         supplierId: user?.uid,
         tenantId: tenant.id,
-        tenantName: tenant.tenantName,
+        tenantName: tenant.name,
         type: invoiceType,
         amount: Number(amount),
         description,
@@ -321,7 +321,7 @@ export default function SupplierInvoices() {
                     <option value="">Sélectionner un locataire...</option>
                     {tenants.map(t => (
                       <option key={t.id} value={t.id} disabled={!t.propertyId}>
-                        {t.tenantName} {t.propertyName ? `(${t.propertyName})` : '(Aucun bien rattaché - Invalide)'}
+                        {t.name} {t.propertyName ? `(${t.propertyName})` : '(Aucun bien rattaché - Invalide)'}
                       </option>
                     ))}
                   </select>

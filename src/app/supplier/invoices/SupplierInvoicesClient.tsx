@@ -55,7 +55,7 @@ export default function SupplierInvoices() {
   const generatePDF = async (tenant: Tenant, type: string, invAmount: string, invDesc: string, due: string) => {
     // Dynamic import for client side only
     const { default: jsPDF } = await import("jspdf");
-    await import("jspdf-autotable");
+    const { default: autoTable } = await import("jspdf-autotable");
 
     const doc = new jsPDF();
     const invoiceNum = `INV-${Math.floor(Math.random() * 1000000)}`;
@@ -140,12 +140,11 @@ export default function SupplierInvoices() {
     doc.text("Adressé à :", 14, 55);
     doc.setFontSize(10);
     doc.setTextColor(100);
-    doc.text(tenant.tenantName, 14, 60);
+    doc.text(tenant.tenantName || "Client", 14, 60);
     if (tenant.tenantEmail) doc.text(tenant.tenantEmail, 14, 65);
     if (tenant.tenantPhone) doc.text(tenant.tenantPhone, 14, 70);
 
     // Table
-    const autoTable = (await import("jspdf-autotable")).default;
     autoTable(doc, {
       startY: 85,
       head: [['Description', 'Quantité', 'Prix Unitaire', 'Total']],
@@ -220,9 +219,8 @@ export default function SupplierInvoices() {
     setSelectedTenant(tenantId);
     const t = tenants.find(x => x.id === tenantId);
     if (t) {
-      if (t.rentAmount) {
-        setAmount(t.rentAmount.toString());
-      }
+      setAmount(t.rentAmount ? t.rentAmount.toString() : "");
+      
       if (t.propertyName) {
         setDescription(`Loyer pour ${new Date().toLocaleString('fr-FR', { month: 'long' })} - ${t.propertyName}`);
       } else {

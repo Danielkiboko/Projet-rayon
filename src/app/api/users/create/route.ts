@@ -12,10 +12,13 @@ export async function POST(req: Request) {
     const token = authHeader.split('Bearer ')[1];
     let decodedToken;
     try {
+      if (!adminAuth || typeof adminAuth.verifyIdToken !== 'function') {
+         throw new Error("Firebase admin is not properly initialized. adminAuth.verifyIdToken is missing.");
+      }
       decodedToken = await adminAuth.verifyIdToken(token);
     } catch (error: any) {
       console.error('Verify ID token error:', error);
-      return NextResponse.json({ error: 'Unauthorized: Invalid token' }, { status: 401 });
+      return NextResponse.json({ error: `Unauthorized: Invalid token. Details: ${error.message}` }, { status: 401 });
     }
 
     let callerRole = decodedToken.role;

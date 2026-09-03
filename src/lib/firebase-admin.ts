@@ -17,11 +17,19 @@ export function initFirebaseAdmin() {
            const keys = Object.keys(process.env).filter(k => k.includes('FIREBASE')).join(', ');
            throw new Error(`FIREBASE_PRIVATE_KEY is missing. Found keys: ${keys}`);
         }
+        let privateKey = process.env.FIREBASE_PRIVATE_KEY;
+        // Hostinger (ou cPanel) peut parfois inclure les guillemets dans la valeur
+        if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
+          privateKey = privateKey.slice(1, -1);
+        } else if (privateKey.startsWith("'") && privateKey.endsWith("'")) {
+          privateKey = privateKey.slice(1, -1);
+        }
+        
         initializeApp({
           credential: cert({
             projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
             clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-            privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+            privateKey: privateKey.replace(/\\n/g, '\n'),
           }),
         });
       }

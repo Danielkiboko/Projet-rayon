@@ -368,15 +368,15 @@ export default function AdminProductsPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-300 mb-2">Rayon / Catégorie</label>
-                  <select 
+                    <select 
                     value={category} 
                     onChange={(e) => setCategory(e.target.value)} 
                     className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-white appearance-none"
                   >
-                    <option className="bg-[#1a1a1a]" value="mode">Mode</option>
-                    <option className="bg-[#1a1a1a]" value="connect">Connect</option>
-                    <option className="bg-[#1a1a1a]" value="immo">Immo</option>
-                    <option className="bg-[#1a1a1a]" value="General">Général</option>
+                    <option className="bg-[#1a1a1a]" value="mode">Mode (Vêtements & Accessoires)</option>
+                    <option className="bg-[#1a1a1a]" value="connect">Connect (Électronique & Télécom)</option>
+                    <option className="bg-[#1a1a1a]" value="immo">Immo (Immobilier)</option>
+                    <option className="bg-[#1a1a1a]" value="general">Général (Divers)</option>
                   </select>
                 </div>
                 

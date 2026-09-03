@@ -139,7 +139,7 @@ export default function ModePage() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const q = query(collection(db, "products"), where("category", "in", ["Mode", "Vêtements"]));
+        const q = query(collection(db, "products"), where("category", "==", "mode"));
         const querySnapshot = await getDocs(q);
         const productsList = querySnapshot.docs.map(doc => ({
           id: doc.id,

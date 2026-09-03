@@ -451,13 +451,13 @@ export default function SupplierProductsPage() {
                   </div>
                   <div className="space-y-1">
                     <label className="text-sm font-medium text-gray-300">Catégorie</label>
-                    <select required value={productCategory} onChange={(e) => setProductCategory(e.target.value)} className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white">
-                      <option value="">Sélectionner une catégorie</option>
-                      <option value="electronique">Électronique</option>
-                      <option value="vetements">Vêtements</option>
-                      <option value="maison">Maison & Décoration</option>
-                      <option value="beaute">Beauté</option>
-                    </select>
+                     <select required value={productCategory} onChange={(e) => setProductCategory(e.target.value)} className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white">
+                       <option value="">Sélectionner un rayon</option>
+                       <option value="mode">Mode (Vêtements & Accessoires)</option>
+                       <option value="connect">Connect (Électronique & Télécom)</option>
+                       <option value="immo">Immo (Immobilier)</option>
+                       <option value="general">Général (Divers)</option>
+                     </select>
                   </div>
                 </div>
 

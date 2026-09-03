@@ -31,41 +31,14 @@ export default function SupplierLayout({
     );
   }
 
-  let isSubscriptionExpired = false;
-  if (userData?.subscriptionEndDate) {
-    const endDate = userData.subscriptionEndDate.toDate 
-      ? userData.subscriptionEndDate.toDate() 
+  // Subscription expired: show banner but still allow access so supplier receives notifications
+  const isSubscriptionExpired = (() => {
+    if (!userData?.subscriptionEndDate) return false;
+    const endDate = userData.subscriptionEndDate.toDate
+      ? userData.subscriptionEndDate.toDate()
       : new Date(userData.subscriptionEndDate);
-    if (new Date() > endDate) {
-      isSubscriptionExpired = true;
-    }
-  }
-
-  if (isSubscriptionExpired) {
-    return (
-      <div className="h-screen w-full flex items-center justify-center bg-[#0b061c] text-white flex-col text-center px-4">
-        <ShieldAlert size={64} className="mb-6 text-amber-500" />
-        <h1 className="text-2xl font-bold mb-2">Abonnement Expiré</h1>
-        <p className="text-gray-400 mb-8 max-w-md">
-          Votre abonnement est arrivé à échéance. Vous n'avez plus accès à votre tableau de bord. Veuillez renouveler votre abonnement pour continuer à gérer vos activités.
-        </p>
-        <button 
-          onClick={() => {
-            alert("Veuillez contacter l'administrateur pour renouveler votre abonnement.");
-          }}
-          className="bg-amber-600 hover:bg-amber-700 text-white px-6 py-3 rounded-xl font-medium transition-colors"
-        >
-          Renouveler mon abonnement
-        </button>
-        <button 
-          onClick={() => signOut()}
-          className="mt-6 text-gray-500 hover:text-white underline text-sm"
-        >
-          Se déconnecter
-        </button>
-      </div>
-    );
-  }
+    return new Date() > endDate;
+  })();
 
   let service: ServiceType = (userData?.serviceAttached as ServiceType) || "default";
   
@@ -185,6 +158,26 @@ export default function SupplierLayout({
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto p-6 md:p-8">
           <div className="max-w-7xl mx-auto space-y-6">
+            {/* ── Subscription Expired Banner ── */}
+            {isSubscriptionExpired && (
+              <div className="bg-amber-500/10 border border-amber-500/30 p-4 rounded-xl flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <ShieldAlert className="text-amber-400 shrink-0" size={22} />
+                  <div>
+                    <p className="text-amber-400 font-semibold text-sm">Abonnement expiré</p>
+                    <p className="text-amber-400/70 text-xs mt-0.5">
+                      Votre abonnement a expiré. Vous pouvez toujours consulter vos notifications et commandes, mais la publication de nouveaux produits est suspendue jusqu'au renouvellement.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => alert("Veuillez contacter l'administrateur Rayons pour renouveler votre abonnement.")}
+                  className="shrink-0 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition-colors whitespace-nowrap"
+                >
+                  Contacter l'admin
+                </button>
+              </div>
+            )}
             {isImmoSupplier && 
              (!userData?.rccm || !userData?.nif || !userData?.logoUrl || !userData?.idNat) && (
               <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-xl flex items-start space-x-3">

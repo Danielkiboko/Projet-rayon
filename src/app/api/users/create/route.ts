@@ -66,8 +66,21 @@ export async function POST(req: Request) {
 
     let additionalData = { ...extraData };
     if (roleToCreate === 'supplier' || roleToCreate === 'SUPPLIER_IMMO') {
+      // Read trial duration from platform settings (default: 30 days)
+      let trialDays = 30;
+      try {
+        const settingsDoc = await adminDb.collection('settings').doc('platform').get();
+        if (settingsDoc.exists) {
+          const settingsData = settingsDoc.data();
+          if (settingsData?.trialDurationDays && settingsData.trialDurationDays > 0) {
+            trialDays = settingsData.trialDurationDays;
+          }
+        }
+      } catch (settingsErr) {
+        console.warn('Could not read platform settings, using default 30 days trial:', settingsErr);
+      }
       const endDate = new Date();
-      endDate.setDate(endDate.getDate() + 30);
+      endDate.setDate(endDate.getDate() + trialDays);
       additionalData.subscriptionStatus = 'TRIAL';
       additionalData.subscriptionEndDate = endDate;
     }

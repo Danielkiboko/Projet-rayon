@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { adminAuth, adminDb } from '@/lib/firebase-admin';
+import { adminAuth, adminDb, adminInitError } from '@/lib/firebase-admin';
 
 export async function POST(req: Request) {
   try {
@@ -13,7 +13,7 @@ export async function POST(req: Request) {
     let decodedToken;
     try {
       if (!adminAuth || typeof adminAuth.verifyIdToken !== 'function') {
-         throw new Error("Firebase admin is not properly initialized. adminAuth.verifyIdToken is missing.");
+         throw new Error(`Firebase admin is not properly initialized. adminAuth.verifyIdToken is missing. Init error: ${adminInitError?.message || adminInitError || 'Unknown'}`);
       }
       decodedToken = await adminAuth.verifyIdToken(token);
     } catch (error: any) {

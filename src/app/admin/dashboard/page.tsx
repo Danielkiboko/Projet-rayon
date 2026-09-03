@@ -164,20 +164,20 @@ export default function AdminDashboardPage() {
             </Link>
           </div>
 
-          {/* Validation Immo */}
+          {/* Validation Immo — géré par les agents SUPPLIER_IMMO */}
           <div className="bg-[#1a1a1a] p-6 rounded-2xl border border-blue-500/20 relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl -mr-10 -mt-10" />
             <h4 className="text-sm font-semibold text-gray-300 flex justify-between">
-              Annonces Immo
+              Agents Immo
               <Building size={16} className="text-blue-500" />
             </h4>
             <div className="mt-4 flex items-baseline space-x-2">
               <span className="text-4xl font-bold text-white">{dataLoading ? "-" : stats.pendingProperties}</span>
-              <span className="text-sm text-gray-500">en attente</span>
+              <span className="text-sm text-gray-500">biens en attente</span>
             </div>
-            <Link href="/admin/properties">
+            <Link href="/admin/suppliers">
               <button className="mt-6 w-full py-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 font-medium rounded-lg text-sm transition-colors border border-blue-500/20">
-                Examiner les biens
+                Gérer les agents
               </button>
             </Link>
           </div>

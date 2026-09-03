@@ -5,13 +5,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { motion } from "framer-motion";
-import { LogOut, Menu, X, ShieldAlert, Bell, UserCircle, Search, LayoutDashboard, Package, Users, Settings, UserCheck, Store, Truck, Building, ShoppingCart } from "lucide-react";
+import { LogOut, Menu, X, ShieldAlert, Bell, UserCircle, Search, LayoutDashboard, Package, Users, Settings, UserCheck, Store, Truck, ShoppingCart } from "lucide-react";
 
 const ADMIN_MENU = [
   { title: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
   { title: "Commandes", href: "/admin/orders", icon: ShoppingCart },
   { title: "Produits", href: "/admin/products", icon: Package },
-  { title: "Immobilier", href: "/admin/properties", icon: Building },
   { title: "Clients", href: "/admin/clients", icon: UserCheck },
   { title: "Fournisseurs", href: "/admin/suppliers", icon: Store },
   { title: "Livreurs", href: "/admin/drivers", icon: Truck },
@@ -95,7 +94,7 @@ export default function AdminLayout({
               title: "Nouveau Bien Immobilier",
               message: `${d.title || 'Bien'} est en attente de validation.`,
               time: Date.now(),
-              link: "/admin/properties"
+              link: "/admin/suppliers"
             });
           });
           updateNotifications("property", items);

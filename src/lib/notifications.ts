@@ -1,4 +1,6 @@
 // src/lib/notifications.ts
+import { sendMobiShastraSMS } from "@/lib/sms";
+
 
 export async function sendEmail(to: string, subject: string, text: string) {
   const RESEND_API_KEY = process.env.RESEND_API_KEY;
@@ -30,22 +32,11 @@ export async function sendEmail(to: string, subject: string, text: string) {
 }
 
 export async function sendSMS(phone: string, message: string) {
-  const MOBISHASTRA_API_KEY = process.env.MOBISHASTRA_API_KEY;
-  const MOBISHASTRA_SENDER_ID = process.env.MOBISHASTRA_SENDER_ID;
-
-  if (!MOBISHASTRA_API_KEY || !MOBISHASTRA_SENDER_ID) {
-    console.warn("SMS ignoré : Identifiants Mobishastra manquants.");
-    return;
-  }
-
   try {
-    const url = `https://api.mobishastra.com/sms/send?apikey=${MOBISHASTRA_API_KEY}&sender=${MOBISHASTRA_SENDER_ID}&to=${phone}&message=${encodeURIComponent(message)}`;
-    
-    const response = await fetch(url);
-    const data = await response.json();
-    return data;
+    const result = await sendMobiShastraSMS({ mobileNo: phone, message });
+    return result;
   } catch (err) {
-    console.error("Erreur d'envoi SMS:", err);
+    console.error("Erreur d'envoi SMS via lib/sms:", err);
   }
 }
 

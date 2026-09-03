@@ -15,7 +15,8 @@ if (!getApps().length) {
     } else {
       // Fallback for some hosting environments (like Vercel) where env vars might be split
       if (!process.env.FIREBASE_PRIVATE_KEY) {
-         throw new Error("FIREBASE_PRIVATE_KEY is missing from environment variables.");
+         const keys = Object.keys(process.env).filter(k => k.includes('FIREBASE')).join(', ');
+         throw new Error(`FIREBASE_PRIVATE_KEY is missing. Found keys: ${keys}`);
       }
       initializeApp({
         credential: cert({

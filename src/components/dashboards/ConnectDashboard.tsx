@@ -55,7 +55,7 @@ export default function ConnectDashboard() {
     // Fetch Orders & Revenue
     const qOrders = query(
       collection(db, "orders"),
-      where("supplierId", "==", user.uid),
+      where("supplierIds", "array-contains", user.uid),
       orderBy("createdAt", "desc"),
       limit(50)
     );

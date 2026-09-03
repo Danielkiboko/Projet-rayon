@@ -61,7 +61,7 @@ export default function AdminDashboardPage() {
 
     const setupListeners = async () => {
       try {
-        const { onSnapshot, query, collection, where } = await import("firebase/firestore");
+        const { onSnapshot, query, collection, where, limit: fsLimit, orderBy } = await import("firebase/firestore");
         const { db } = await import("@/lib/firebase");
 
         // 1. Pending & active suppliers
@@ -77,8 +77,9 @@ export default function AdminDashboardPage() {
           setStats(prev => ({ ...prev, pendingSuppliers: pSuppliers, totalActiveSuppliers: aSuppliers }));
         });
 
-        // 2. Pending & active properties
-        unsubProps = onSnapshot(collection(db, "properties"), (snapProps) => {
+        // 2. Pending & active properties (limited to 500 most recent)
+        const qProps = query(collection(db, "properties"), orderBy("createdAt", "desc"), fsLimit(500));
+        unsubProps = onSnapshot(qProps, (snapProps) => {
           let pProps = 0;
           let aProps = 0;
           snapProps.forEach(doc => {
@@ -89,8 +90,9 @@ export default function AdminDashboardPage() {
           setStats(prev => ({ ...prev, pendingProperties: pProps, totalProperties: aProps }));
         });
 
-        // 3. Pending & active products
-        unsubProds = onSnapshot(collection(db, "products"), (snapProducts) => {
+        // 3. Pending & active products (limited to 500 most recent)
+        const qProds = query(collection(db, "products"), orderBy("createdAt", "desc"), fsLimit(500));
+        unsubProds = onSnapshot(qProds, (snapProducts) => {
           let pProds = 0;
           let aProds = 0;
           snapProducts.forEach(doc => {

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Calendar, CheckCircle2, MapPin } from "lucide-react";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, setDoc, doc } from "firebase/firestore";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 
@@ -70,6 +70,38 @@ export function ImmoContactModal({ isOpen, onClose, property }: ImmoContactModal
         status: "PENDING",
         createdAt: serverTimestamp()
       });
+
+      if (user?.uid && property.supplierId) {
+        const chatId = `${user.uid}_${property.supplierId}`;
+        const msgText = `Demande de visite pour le bien: ${propertyTitle}. Nom: ${name}. Téléphone: ${phone}. Date souhaitée: ${date || "Non spécifiée"}. GPS: ${visitorCoords ? 'Oui' : 'Non'}`;
+
+        await setDoc(doc(db, "chats", chatId), {
+          clientId: user.uid,
+          supplierId: property.supplierId,
+          lastProductId: property.id,
+          lastMessage: msgText,
+          lastMessageTime: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          unreadSupplier: true
+        }, { merge: true });
+
+        await addDoc(collection(db, `chats/${chatId}/messages`), {
+          text: msgText,
+          senderId: user.uid,
+          createdAt: serverTimestamp()
+        });
+
+        // Notify Supplier via API
+        fetch("/api/notifications", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "NEW_VISIT_REQUEST",
+            supplierId: property.supplierId,
+            propertyTitle: propertyTitle
+          })
+        }).catch(err => console.error("Error sending visit notification", err));
+      }
 
       setIsSubmitted(true);
       setTimeout(() => {

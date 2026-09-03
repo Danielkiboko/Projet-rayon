@@ -74,8 +74,20 @@ export async function POST(req: Request) {
       }
     }
 
-    // Note: L'envoi de SMS pour les visites immobilières a été supprimé. 
-    // La communication se fait désormais via le système de chat intégré.
+    // 3. NEW_VISIT_REQUEST : Notify Supplier
+    if (action === "NEW_VISIT_REQUEST") {
+      const propertyTitle = body.propertyTitle || "Un bien immobilier";
+      if (supplierEmail) {
+        tasks.push(sendEmail(
+          supplierEmail,
+          `Nouvelle demande de visite !`,
+          `Un client souhaite visiter votre bien : ${propertyTitle}. Connectez-vous sur votre tableau de bord (onglet Messages) pour lui répondre et organiser la visite.`
+        ));
+      }
+      if (supplierPhone) {
+        tasks.push(sendSMS(supplierPhone, `Rayon: Nouvelle demande de visite pour ${propertyTitle}. Vérifiez vos messages sur la plateforme.`));
+      }
+    }
 
     // 3. PROPERTY_APPROVED : Notify Supplier
     if (action === "PROPERTY_APPROVED") {

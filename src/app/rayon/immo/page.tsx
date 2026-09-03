@@ -39,62 +39,7 @@ const DICT = {
   }
 };
 
-const DUMMY_PROPERTIES = [
-  {
-    id: "dummy-immo-1",
-    title: { fr: "Villa Contemporaine avec Piscine", en: "Contemporary Villa with Pool" },
-    location: "Kinshasa, Gombe",
-    typeTransaction: "Vente",
-    price: 850000,
-    image: "https://images.unsplash.com/photo-1613490908592-fd5e0c6c9e99?auto=format&fit=crop&q=80&w=800",
-    immoDetails: { area: 450, beds: 5, baths: 4 }
-  },
-  {
-    id: "dummy-immo-2",
-    title: { fr: "Appartement de Standing Vue Fleuve", en: "Luxury Apartment with River View" },
-    location: "Kinshasa, Ngaliema",
-    typeTransaction: "Location",
-    price: 3500, // Mensuel
-    image: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80&w=800",
-    immoDetails: { area: 180, beds: 3, baths: 2 }
-  },
-  {
-    id: "dummy-immo-3",
-    title: { fr: "Maison Familiale Jardin Arboré", en: "Family House with Wooded Garden" },
-    location: "Lubumbashi, Golf",
-    typeTransaction: "Vente",
-    price: 420000,
-    image: "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&q=80&w=800",
-    immoDetails: { area: 320, beds: 4, baths: 3 }
-  },
-  {
-    id: "dummy-immo-4",
-    title: { fr: "Duplex Moderne Centre-Ville", en: "Modern Downtown Duplex" },
-    location: "Kinshasa, Limete",
-    typeTransaction: "Location",
-    price: 2800,
-    image: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=80&w=800",
-    immoDetails: { area: 210, beds: 3, baths: 2 }
-  },
-  {
-    id: "dummy-immo-5",
-    title: { fr: "Terrain Constructible Clôturé", en: "Fenced Building Plot" },
-    location: "Kinshasa, Macampagne",
-    typeTransaction: "Vente",
-    price: 150000,
-    image: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80&w=800",
-    immoDetails: { area: 1200, beds: 0, baths: 0 }
-  },
-  {
-    id: "dummy-immo-6",
-    title: { fr: "Studio Meublé Haut de Gamme", en: "High-end Furnished Studio" },
-    location: "Kinshasa, Gombe",
-    typeTransaction: "Location",
-    price: 1500,
-    image: "https://images.unsplash.com/photo-1536376072261-38c75010e6c9?auto=format&fit=crop&q=80&w=800",
-    immoDetails: { area: 65, beds: 1, baths: 1 }
-  }
-];
+
 
 export default function ImmoPage() {
   const [lang, setLang] = useState<"fr" | "en">("fr");
@@ -118,13 +63,13 @@ export default function ImmoPage() {
         }));
         
         if (productsList.length === 0) {
-          setProducts(DUMMY_PROPERTIES);
+          setProducts([]);
         } else {
           setProducts(productsList);
         }
       } catch (error) {
         console.error("Error fetching properties:", error);
-        setProducts(DUMMY_PROPERTIES);
+        setProducts([]);
       } finally {
         setIsLoading(false);
       }

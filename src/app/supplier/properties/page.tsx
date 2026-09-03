@@ -6,11 +6,7 @@ import { Plus, X, Search, Home, Image as ImageIcon, AlertCircle, Send, Bot, MapP
 import imageCompression from 'browser-image-compression';
 import { useAuth } from "@/context/AuthContext";
 
-const MOCK_PROPERTIES = [
-  { id: "1", title: "Appartement 3 pièces", price: "500 $ / mois", type: "Appartement", status: "Vide", location: "Gombe" },
-  { id: "2", title: "Villa avec piscine", price: "2500 $ / mois", type: "Maison", status: "Occupé", location: "Ngaliema" },
-  { id: "3", title: "Studio meublé", price: "300 $ / mois", type: "Studio", status: "Vide", location: "Limete" },
-];
+
 
 export default function SupplierPropertiesPage() {
   const { user } = useAuth();
@@ -36,8 +32,8 @@ export default function SupplierPropertiesPage() {
         const { db, auth } = await import("@/lib/firebase");
         
         if (!user) {
-          // Si pas co, on met des mocks pour pas casser le design
-          setProperties(MOCK_PROPERTIES);
+          // Si pas co, on met un tableau vide pour ne pas casser le design
+          setProperties([]);
           setIsLoading(false);
           return;
         }

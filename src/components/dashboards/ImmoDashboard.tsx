@@ -33,6 +33,7 @@ export default function ImmoDashboard() {
     totalTenants: 0,
     totalRent: 0,
     lateRents: 0,
+    lateRentAmount: 0,
     occupiedUnits: 0,
     totalUnits: 0,
   });
@@ -105,6 +106,7 @@ export default function ImmoDashboard() {
       let activeTenants = 0;
       let totalRent = 0;
       let lateRents = 0;
+      let lateRentAmount = 0;
 
       snapshot.docs.forEach(doc => {
         const data = doc.data();
@@ -114,6 +116,7 @@ export default function ImmoDashboard() {
         }
         if (data.status === "LATE" || data.status === "En retard") {
           lateRents++;
+          lateRentAmount += (data.rentAmount || 0);
         }
       });
 
@@ -122,6 +125,7 @@ export default function ImmoDashboard() {
         totalTenants: activeTenants, 
         totalRent,
         lateRents,
+        lateRentAmount,
         occupiedUnits: activeTenants
       }));
       setLoading(false);
@@ -208,9 +212,10 @@ export default function ImmoDashboard() {
     }
   };
 
-  const occupancyRate = stats.totalUnits > 0 
+  const rawOccupancyRate = stats.totalUnits > 0 
     ? Math.round((stats.occupiedUnits / stats.totalUnits) * 100) 
     : 0;
+  const occupancyRate = Math.min(rawOccupancyRate, 100);
 
   const occupancyData = [
     { name: "Occupées", value: stats.occupiedUnits },
@@ -221,7 +226,7 @@ export default function ImmoDashboard() {
     { title: "Propriétés", value: stats.totalProperties.toString(), subtitle: "Total enregistrées", subInfo: "Gérez votre parc", icon: Home },
     { title: "Locataires Actifs", value: stats.totalTenants.toString(), subtitle: "Total", subInfo: "Taux d'occupation: " + occupancyRate + "%", icon: Users },
     { title: "Total Encaissé", value: `$${totalCollected.toFixed(2)}`, subtitle: "Cumul", subInfo: `Attendus ce mois: $${stats.totalRent}`, icon: DollarSign },
-    { title: "Loyers en Retard", value: stats.lateRents.toString(), subtitle: "Action requise", subInfo: stats.lateRents > 0 ? "Envoyez des relances" : "Tout est à jour", icon: AlertCircle },
+    { title: "Loyers en Retard", value: `$${stats.lateRentAmount.toFixed(2)}`, subtitle: `${stats.lateRents} en dépassement`, subInfo: stats.lateRentAmount > 0 ? "Envoyez des relances" : "Tout est à jour", icon: AlertCircle },
   ];
 
   if (loading) {

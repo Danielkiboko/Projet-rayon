@@ -13,33 +13,6 @@ import { db } from "@/lib/firebase";
 import { collection, query, getDocs, limit, where } from "firebase/firestore";
 import { CurrencySelector } from "@/components/CurrencySelector";
 
-// Mock products for testing
-const TEST_PRODUCTS = [
-  {
-    id: "test-1",
-    name: "Avocats Bio (Test)",
-    price: 15.50,
-    image: "https://images.unsplash.com/photo-1519996409144-56c88c9aa612?auto=format&fit=crop&q=80&w=400",
-    category: "Fruits & Légumes",
-    rating: 4.8
-  },
-  {
-    id: "test-2",
-    name: "Croissants Pur Beurre (Test)",
-    price: 8.00,
-    image: "https://images.unsplash.com/photo-1555507036-ab1e403214a6?auto=format&fit=crop&q=80&w=400",
-    category: "Boulangerie",
-    rating: 4.9
-  },
-  {
-    id: "test-3",
-    name: "Jus d'Orange Pressé (Test)",
-    price: 12.00,
-    image: "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&q=80&w=400",
-    category: "Boissons",
-    rating: 4.5
-  }
-];
 
 export default function Home() {
   const { user, userData, signOut } = useAuth();
@@ -74,8 +47,8 @@ export default function Home() {
     fetchProducts();
   }, []);
 
-  // Combine real products and test products
-  const allProducts = [...dbProducts, ...TEST_PRODUCTS];
+  // Use real products
+  const allProducts = dbProducts;
 
   // Filter products by category
   const filteredProducts = activeCategory === "Tout" 

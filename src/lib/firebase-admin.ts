@@ -36,7 +36,12 @@ export function initFirebaseAdmin() {
 export const adminDb = new Proxy({} as any, {
   get: (target, prop) => {
     initFirebaseAdmin();
-    return (getFirestore('default') as any)[prop];
+    const firestore = getFirestore('default');
+    const value = (firestore as any)[prop];
+    if (typeof value === 'function') {
+      return value.bind(firestore);
+    }
+    return value;
   }
 });
 
@@ -46,6 +51,11 @@ export const adminAuth = new Proxy({} as any, {
     if (prop === 'verifyIdToken' && adminInitError) {
       throw adminInitError;
     }
-    return (getAuth() as any)[prop];
+    const auth = getAuth();
+    const value = (auth as any)[prop];
+    if (typeof value === 'function') {
+      return value.bind(auth);
+    }
+    return value;
   }
 });

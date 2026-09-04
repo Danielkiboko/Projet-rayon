@@ -1,12 +1,14 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { ArrowRight } from "lucide-react";
 
 export type ActionItem = {
   title: string;
   description: string;
   buttonText: string;
-  href: string;
+  href?: string;
+  onClick?: () => void;
   buttonColor?: string; // e.g. "bg-amber-600 hover:bg-amber-700"
   hoverBorderColor?: string; // e.g. "hover:border-amber-500/20"
 };
@@ -37,21 +39,31 @@ export default function ActionCard({
         const buttonColor = action.buttonColor || "bg-blue-600 hover:bg-blue-700";
         
         return (
-          <div 
+          <motion.div 
             key={idx}
-            className={`relative z-10 bg-white/5 rounded-xl p-4 border border-white/5 transition-colors mb-4 cursor-pointer ${hoverBorderColor}`} 
-            onClick={() => window.location.href = action.href}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className={`group relative z-10 bg-white/5 rounded-xl p-4 border border-white/5 transition-all mb-4 cursor-pointer hover:shadow-lg hover:shadow-black/20 ${hoverBorderColor}`} 
+            onClick={() => {
+              if (action.onClick) {
+                action.onClick();
+              } else if (action.href) {
+                window.location.href = action.href;
+              }
+            }}
           >
             <h3 className="text-sm font-semibold text-white mb-2">{action.title}</h3>
             <p className="text-xs text-gray-400 mb-4 leading-relaxed">
               {action.description}
             </p>
-            <button className={`${buttonColor} text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors w-full`}>
-              {action.buttonText}
+            <button className={`${buttonColor} flex items-center justify-center space-x-2 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors w-full`}>
+              <span>{action.buttonText}</span>
+              <ArrowRight size={16} className="transform transition-transform group-hover:translate-x-1" />
             </button>
-          </div>
+          </motion.div>
         );
       })}
     </motion.div>
   );
 }
+

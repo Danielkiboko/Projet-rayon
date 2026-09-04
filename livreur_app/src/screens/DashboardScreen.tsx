@@ -2,16 +2,16 @@ import React from 'react';
 import { StyleSheet, Text, View, SafeAreaView, TouchableOpacity, FlatList } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
 import SwipeButton from '../components/SwipeButton';
-import * as Location from 'expo-location';
 import { collection, query, where, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { useLocationTracking } from '../hooks/useLocationTracking';
 
 export default function DashboardScreen({ onLogout, userName = "Livreur", userId = "", onAcceptOrder }: { onLogout: () => void, userName?: string, userId?: string, onAcceptOrder?: (id: string) => void }) {
   const [greeting, setGreeting] = React.useState("Bonjour");
   const [status, setStatus] = React.useState("En attente de commandes...");
   const [radarColor, setRadarColor] = React.useState("#38bdf8");
-  const [location, setLocation] = React.useState<any>(null);
-  const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
+  
+  const { location, errorMsg } = useLocationTracking();
   const [orders, setOrders] = React.useState<any[]>([]);
 
   React.useEffect(() => {
@@ -21,29 +21,6 @@ export default function DashboardScreen({ onLogout, userName = "Livreur", userId
     } else {
       setGreeting("Bonjour");
     }
-    
-    (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        setErrorMsg('Permission d\'accès au GPS refusée');
-        return;
-      }
-
-      let currentLocation = await Location.getCurrentPositionAsync({});
-      setLocation(currentLocation);
-      
-      // Setup live tracking (mocking Firebase update here)
-      Location.watchPositionAsync(
-        {
-          accuracy: Location.Accuracy.High,
-          distanceInterval: 10, // update every 10 meters
-        },
-        (newLocation) => {
-          setLocation(newLocation);
-          // TODO: Push to Firebase here
-        }
-      );
-    })();
   }, []);
 
   React.useEffect(() => {

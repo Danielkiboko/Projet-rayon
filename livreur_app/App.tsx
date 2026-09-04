@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     height: '100%',
     // @ts-ignore
-    outlineStyle: 'none',
+    outlineStyle: 'none' as any,
   },
   forgotPassword: {
     alignSelf: 'flex-end',

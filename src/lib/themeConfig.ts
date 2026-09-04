@@ -7,7 +7,8 @@ import {
   FileText,
   Wifi,
   Settings,
-  Wallet
+  Wallet,
+  CreditCard
 } from "lucide-react";
 
 export type ServiceType = "mode" | "immo" | "connect" | "default";
@@ -46,7 +47,8 @@ export const themeConfig: Record<ServiceType, ServiceTheme> = {
     },
     menu: [
       { title: "Dashboard", href: "/supplier", icon: LayoutDashboard },
-      { title: "Paiements", href: "/supplier/payments", icon: Wallet },
+      { title: "Finances", href: "/supplier/finance", icon: Wallet },
+      { title: "Abonnement", href: "/supplier/billing", icon: CreditCard },
       { title: "Paramètres", href: "/supplier/settings", icon: Settings },
     ]
   },
@@ -55,17 +57,19 @@ export const themeConfig: Record<ServiceType, ServiceTheme> = {
     colors: {
       sidebarBg: "bg-[#0A0A0A]",
       sidebarText: "text-white",
-      primaryBtn: "bg-blue-600",
-      primaryBtnHover: "hover:bg-blue-700",
-      accentText: "text-blue-500",
-      activeMenuBg: "bg-blue-600/10",
-      activeMenuText: "text-blue-500",
+      primaryBtn: "bg-purple-600",
+      primaryBtnHover: "hover:bg-purple-700",
+      accentText: "text-purple-500",
+      activeMenuBg: "bg-purple-600/10",
+      activeMenuText: "text-purple-500",
     },
     menu: [
       { title: "Dashboard", href: "/supplier", icon: LayoutDashboard },
       { title: "Mes Produits", href: "/supplier/products", icon: Package },
       { title: "Commandes", href: "/supplier/orders", icon: ShoppingCart },
-      { title: "Paiements", href: "/supplier/payments", icon: Wallet },
+      { title: "Finances", href: "/supplier/finance", icon: Wallet },
+      { title: "Abonnement", href: "/supplier/billing", icon: CreditCard },
+      { title: "Paramètres", href: "/supplier/settings", icon: Settings },
     ]
   },
   immo: {
@@ -84,27 +88,29 @@ export const themeConfig: Record<ServiceType, ServiceTheme> = {
       { title: "Mes Biens", href: "/supplier/properties", icon: Building },
       { title: "Locataires", href: "/supplier/tenants", icon: Users },
       { title: "Facturation", href: "/supplier/invoices", icon: FileText },
-      { title: "Livre de Caisse", href: "/supplier/ledger", icon: FileText },
-      { title: "Paiements", href: "/supplier/payments", icon: Wallet },
+      { title: "Finances", href: "/supplier/finance", icon: Wallet },
+      { title: "Abonnement", href: "/supplier/billing", icon: CreditCard },
       { title: "Paramètres", href: "/supplier/settings", icon: Settings },
     ]
   },
   connect: {
     name: "Rayon Connect",
     colors: {
-      sidebarBg: "bg-[#064e3b]", // Dark emerald
-      sidebarText: "text-emerald-100",
-      primaryBtn: "bg-emerald-600",
-      primaryBtnHover: "hover:bg-emerald-700",
-      accentText: "text-emerald-500",
-      activeMenuBg: "bg-emerald-600/20",
-      activeMenuText: "text-emerald-400",
+      sidebarBg: "bg-[#0A0A0A]", 
+      sidebarText: "text-blue-100",
+      primaryBtn: "bg-blue-600",
+      primaryBtnHover: "hover:bg-blue-700",
+      accentText: "text-blue-500",
+      activeMenuBg: "bg-blue-600/20",
+      activeMenuText: "text-blue-400",
     },
     menu: [
       { title: "Dashboard", href: "/supplier", icon: LayoutDashboard },
       { title: "Services Réseau", href: "/supplier/services", icon: Wifi },
       { title: "Abonnements", href: "/supplier/subscriptions", icon: Users },
-      { title: "Paiements", href: "/supplier/payments", icon: Wallet },
+      { title: "Finances", href: "/supplier/finance", icon: Wallet },
+      { title: "Abonnement", href: "/supplier/billing", icon: CreditCard },
+      { title: "Paramètres", href: "/supplier/settings", icon: Settings },
     ]
   }
 };

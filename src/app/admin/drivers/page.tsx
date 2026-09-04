@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, X, Search, Truck } from "lucide-react";
+import { Plus, X, Search, Truck, Smartphone } from "lucide-react";
 import { auth, db } from "@/lib/firebase";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { sendPasswordResetEmail } from "firebase/auth";
@@ -202,7 +202,19 @@ export default function DriversPage() {
                         {driver.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-4 text-right space-x-4">
+                      <button 
+                        onClick={() => {
+                          const firstName = driver.name.split(' ')[0];
+                          const shareText = `Bonjour ${firstName} !\n\nVotre compte livreur Rayons a été créé.\n\n📱 Cliquez sur ce lien pour installer l'application :\nhttps://rayons.net/livreur-app/\n\n(Ouvrez le lien et choisissez "Ajouter à l'écran d'accueil")`;
+                          window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, "_blank");
+                        }}
+                        className="text-green-400 hover:text-green-300 transition-colors inline-flex items-center"
+                        title="Envoyer l'application par WhatsApp"
+                      >
+                        <Smartphone size={16} className="mr-1" />
+                        <span>Envoyer App</span>
+                      </button>
                       <button className="text-primary-light hover:text-white transition-colors">Gérer</button>
                     </td>
                   </tr>

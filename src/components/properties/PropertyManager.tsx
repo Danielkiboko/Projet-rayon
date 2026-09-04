@@ -38,6 +38,7 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
 
   const [propertyTitle, setPropertyTitle] = useState("");
   const [propertyType, setPropertyType] = useState("");
+  const [typeTransaction, setTypeTransaction] = useState("Vente");
   const [propertyPrice, setPropertyPrice] = useState("");
   const [propertyLocation, setPropertyLocation] = useState("");
   const [propertyCoords, setPropertyCoords] = useState<{lat: number, lng: number} | null>(null);
@@ -112,6 +113,7 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
     setEditingId(null);
     setPropertyTitle("");
     setPropertyType("");
+    setTypeTransaction("Vente");
     setPropertyPrice("");
     setPropertyLocation("");
     setPropertyCoords(null);
@@ -207,6 +209,7 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
     const propertyData = {
       title: { fr: propertyTitle, en: propertyTitle }, // Simulating i18n
       type: propertyType,
+      typeTransaction,
       price: parseFloat(propertyPrice.toString().replace(/[^0-9.]/g, '') || "0"),
       location: propertyLocation,
       description: propertyDesc,
@@ -520,7 +523,7 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-1">
+                  <div className="space-y-1 md:col-span-2">
                     <label className="text-sm font-medium text-gray-300">Titre de l'annonce</label>
                     <input
                       type="text"
@@ -540,6 +543,13 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
                       <option value="studio">Studio</option>
                       <option value="terrain">Terrain</option>
                       <option value="commercial">Local Commercial</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium text-gray-300">Type de Transaction</label>
+                    <select required value={typeTransaction} onChange={(e) => setTypeTransaction(e.target.value)} className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white">
+                      <option value="Vente">À Vendre</option>
+                      <option value="Location">À Louer</option>
                     </select>
                   </div>
                 </div>

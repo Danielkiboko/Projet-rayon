@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "livreur_app",
+    "name": "Rayon Livreur",
     "slug": "livreur_app",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -10,6 +10,8 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.rayon.livreur",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",

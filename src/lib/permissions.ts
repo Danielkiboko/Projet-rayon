@@ -39,10 +39,21 @@ export const getSupplierType = (userData: any): "immo" | "mode" | "connect" | "d
     userData?.role === "SUPPLIER_IMMO" || 
     userData?.businessType === "IMMOBILIER" || 
     userData?.rayon?.type === "REAL_ESTATE" || 
-    userData?.rayon === "immo";
+    userData?.rayon === "immo" ||
+    (userData?.assignedRayons && userData.assignedRayons.includes("immo"));
 
   if (isImmo) return "immo";
 
-  // Otherwise, fallback to the serviceAttached property, or default
-  return (userData?.serviceAttached as "mode" | "connect" | "default") || "default";
+  const service = userData?.serviceAttached || userData?.rayon;
+  if (service === "mode" || service === "connect") {
+    return service as "mode" | "connect";
+  }
+  
+  if (userData?.assignedRayons && userData.assignedRayons.length > 0) {
+    if (userData.assignedRayons.includes("mode")) return "mode";
+    if (userData.assignedRayons.includes("connect")) return "connect";
+  }
+
+  // Otherwise, fallback to default
+  return "default";
 };

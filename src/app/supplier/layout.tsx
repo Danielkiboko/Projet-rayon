@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { ShieldAlert } from "lucide-react";
+import { ShieldAlert, LayoutDashboard, Package, ShoppingCart, Truck, Wallet, CreditCard } from "lucide-react";
 import { themeConfig } from "@/lib/themeConfig";
 import ProfileUpdateModal from "@/components/ProfileUpdateModal";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
@@ -14,6 +16,25 @@ export default function SupplierLayout({
   children: React.ReactNode;
 }) {
   const { user, userData, loading } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  // Redirect to billing if trial expired
+  useEffect(() => {
+    if (!loading && user && userData && isSupplier(userData)) {
+      // Don't redirect if they are already on the billing page
+      if (pathname === "/supplier/billing") return;
+
+      if (userData.subscriptionStatus === "TRIAL" && userData.subscriptionEndDate) {
+        const endDate = userData.subscriptionEndDate.toDate ? userData.subscriptionEndDate.toDate() : new Date(userData.subscriptionEndDate);
+        if (new Date() > endDate) {
+          router.push("/supplier/billing");
+        }
+      } else if (userData.subscriptionStatus === "EXPIRED") {
+        router.push("/supplier/billing");
+      }
+    }
+  }, [user, userData, loading, pathname, router]);
 
   if (loading) {
     return <div className="h-screen w-full flex items-center justify-center bg-[#0b061c] text-white">Chargement...</div>;

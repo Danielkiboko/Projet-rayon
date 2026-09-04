@@ -39,13 +39,17 @@ export default function KpiGrid({
             key={kpi.title}
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
+            whileHover={{ scale: 1.02, y: -2 }}
+            whileTap={{ scale: 0.98 }}
             transition={{ delay: idx * 0.1, duration: 0.4 }}
-            className="bg-[#1a1a1a] border border-white/5 rounded-2xl p-5 flex flex-col justify-between h-32 hover:border-white/10 transition-colors shadow-sm relative overflow-hidden group"
+            className="bg-[#1a1a1a] border border-white/5 rounded-2xl p-5 flex flex-col justify-between h-32 hover:border-white/10 hover:shadow-lg hover:shadow-black/20 transition-all shadow-sm relative overflow-hidden group cursor-pointer"
           >
             <div className={`absolute top-0 right-0 w-24 h-24 rounded-full blur-2xl -mr-10 -mt-10 transition-colors ${bgGradientColor} ${hoverGradientColor}`} />
             <div className="flex justify-between items-start relative z-10">
               <h3 className="text-sm font-semibold text-gray-300">{kpi.title}</h3>
-              <Icon size={16} className={highlightColor} />
+              <div className="p-2 rounded-lg bg-white/5 group-hover:bg-white/10 transition-colors">
+                <Icon size={16} className={`${highlightColor} group-hover:scale-110 transition-transform`} />
+              </div>
             </div>
             <div className="mt-2 relative z-10">
               <div className={`text-3xl font-bold ${highlightColor !== defaultHighlightColor ? highlightColor : "text-white"}`}>

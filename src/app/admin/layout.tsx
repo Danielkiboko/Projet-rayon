@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
-import { ShieldAlert, LayoutDashboard, Package, Users, Settings, UserCheck, Store, Truck, ShoppingCart, Building } from "lucide-react";
+import { ShieldAlert, LayoutDashboard, Package, Users, Settings, UserCheck, Store, Truck, ShoppingCart, Building, Wallet } from "lucide-react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { hasAdminAccess, isSuperAdmin } from "@/lib/permissions";
 
@@ -14,7 +14,9 @@ const ADMIN_MENU = [
   { title: "Immobilier", href: "/admin/properties", icon: Building },
   { title: "Clients", href: "/admin/clients", icon: UserCheck },
   { title: "Fournisseurs", href: "/admin/suppliers", icon: Store },
+  { title: "Finances", href: "/admin/finance", icon: Wallet },
   { title: "Livreurs", href: "/admin/drivers", icon: Truck },
+  { title: "Santé & Bugs", href: "/admin/health", icon: ShieldAlert },
   { title: "Équipe", href: "/admin/team", icon: Users },
   { title: "Paramètres", href: "/admin/settings", icon: Settings },
 ];

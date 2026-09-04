@@ -3,12 +3,13 @@ import { StyleSheet, Text, View, SafeAreaView, TouchableOpacity, Linking, Platfo
 import { FontAwesome5 } from '@expo/vector-icons';
 import { doc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import * as Location from 'expo-location';
+import { useLocationTracking } from '../hooks/useLocationTracking';
 
 export default function ActiveDeliveryScreen({ orderId, onBack, userId }: { orderId: string, onBack: () => void, userId: string }) {
   const [order, setOrder] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
-  const [location, setLocation] = React.useState<any>(null);
+  
+  const { location, errorMsg } = useLocationTracking();
 
   React.useEffect(() => {
     // Listen to order
@@ -21,28 +22,6 @@ export default function ActiveDeliveryScreen({ orderId, onBack, userId }: { orde
 
     return () => unsub();
   }, [orderId]);
-
-  React.useEffect(() => {
-    let watchSubscription: Location.LocationSubscription;
-    (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        console.warn('Permission GPS refusée');
-        return;
-      }
-      watchSubscription = await Location.watchPositionAsync(
-        { accuracy: Location.Accuracy.High, distanceInterval: 10 },
-        (newLocation) => {
-          setLocation(newLocation);
-          // In a real app, we would update Firestore with driver location here
-        }
-      );
-    })();
-
-    return () => {
-      if (watchSubscription) watchSubscription.remove();
-    };
-  }, []);
 
   const handleCompleteDelivery = async () => {
     try {

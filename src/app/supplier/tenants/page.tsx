@@ -19,6 +19,10 @@ interface Tenant {
   nextPayment: string;
   status: string;
   periodicity: string;
+  debtAmount?: number;
+  departureDate?: string;
+  levelId?: string;
+  unitId?: string;
 }
 
 interface Property {
@@ -50,6 +54,12 @@ export default function SupplierTenantsPage() {
   const [nextPayment, setNextPayment] = useState("");
   const [periodicity, setPeriodicity] = useState("Mensuel");
 
+  // Departure Modal State
+  const [isDepartureModalOpen, setIsDepartureModalOpen] = useState(false);
+  const [tenantToDepart, setTenantToDepart] = useState<Tenant | null>(null);
+  const [departureDate, setDepartureDate] = useState("");
+  const [debtAmount, setDebtAmount] = useState<number | "">(0);
+
   const fetchData = async () => {
     if (!user) return;
     setIsLoading(true);
@@ -68,7 +78,7 @@ export default function SupplierTenantsPage() {
         const data = d.data();
         let calculatedStatus = data.status || "À jour";
         
-        if (data.nextPayment) {
+        if (data.status !== "PARTI" && data.nextPayment) {
           const paymentDate = new Date(data.nextPayment);
           const today = new Date();
           paymentDate.setHours(0, 0, 0, 0);
@@ -207,6 +217,70 @@ export default function SupplierTenantsPage() {
     }
   };
 
+  const handleDeclareDeparture = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tenantToDepart || !departureDate) return;
+    setIsSubmitting(true);
+    
+    try {
+      // 1. Update tenant status to PARTI
+      const tenantRef = doc(db, "tenants", tenantToDepart.id);
+      await updateDoc(tenantRef, {
+        status: "PARTI",
+        departureDate,
+        debtAmount: Number(debtAmount)
+      });
+      
+      // 2. Release property/unit
+      const propRef = doc(db, "properties", tenantToDepart.propertyId);
+      const propDoc = await getDoc(propRef);
+      if (propDoc.exists()) {
+        const propData = propDoc.data();
+        const propLevels = propData.immoDetails?.levels || [];
+        
+        if (propLevels.length === 0) {
+           await updateDoc(propRef, { status: "Disponible" });
+        } else {
+           let allUnitsTaken = true;
+           const updatedLevels = propLevels.map((l: any) => {
+              if (l.id === tenantToDepart.levelId) {
+                 l.units = l.units.map((u: any) => {
+                    if (u.id === tenantToDepart.unitId) {
+                       u.capacity = (u.capacity || 0) + 1; // Release the capacity
+                    }
+                    if ((u.capacity || 1) > 0) allUnitsTaken = false;
+                    return u;
+                 });
+              } else {
+                 l.units.forEach((u: any) => {
+                    if ((u.capacity || 1) > 0) allUnitsTaken = false;
+                 });
+              }
+              return l;
+           });
+           
+           await updateDoc(propRef, {
+             "immoDetails.levels": updatedLevels,
+             status: allUnitsTaken ? "Loué" : "Disponible"
+           });
+        }
+      }
+      
+      alert("Départ du locataire enregistré. La propriété a été libérée.");
+      setIsDepartureModalOpen(false);
+      setTenantToDepart(null);
+      setDepartureDate("");
+      setDebtAmount(0);
+      fetchData();
+      
+    } catch (err) {
+      console.error(err);
+      alert("Erreur lors de la déclaration du départ.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const filteredTenants = tenants.filter(
     (t) => (t.name || "").toLowerCase().includes(search.toLowerCase()) || (t.propertyName || "").toLowerCase().includes(search.toLowerCase())
   );
@@ -227,11 +301,11 @@ export default function SupplierTenantsPage() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center justify-between">
           <div>
-            <p className="text-sm text-gray-400">Total Locataires</p>
-            <p className="text-2xl font-bold text-white mt-1">{tenants.length}</p>
+            <p className="text-sm text-gray-400">Locataires Actifs</p>
+            <p className="text-2xl font-bold text-white mt-1">{tenants.filter(t => t.status !== "PARTI").length}</p>
           </div>
           <div className="p-3 bg-blue-400/10 text-blue-400 rounded-lg">
             <Users size={20} />
@@ -245,6 +319,21 @@ export default function SupplierTenantsPage() {
           <div className="p-3 bg-red-400/10 text-red-400 rounded-lg">
             <Bell size={20} />
           </div>
+        </div>
+        <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center justify-between">
+          <div>
+            <p className="text-sm text-gray-400">Anciens (Partis)</p>
+            <p className="text-2xl font-bold text-gray-400 mt-1">{tenants.filter(t => t.status === "PARTI").length}</p>
+          </div>
+          <div className="p-3 bg-gray-500/10 text-gray-400 rounded-lg">
+            <Users size={20} />
+          </div>
+        </div>
+        <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex flex-col justify-center">
+          <p className="text-sm text-gray-400">Dettes Locataires</p>
+          <p className="text-lg font-bold text-red-400 mt-1">
+            {tenants.reduce((sum, t) => sum + (t.status === "PARTI" ? (t.debtAmount || 0) : 0), 0)} $
+          </p>
         </div>
       </div>
 
@@ -304,15 +393,31 @@ export default function SupplierTenantsPage() {
                     <td className="px-6 py-4 font-semibold text-white">{tenant.rentAmount} $</td>
                     <td className="px-6 py-4">{new Date(tenant.nextPayment).toLocaleDateString()}</td>
                     <td className="px-6 py-4">
-                      <span className={`px-2 py-1 rounded text-xs ${tenant.status === "À jour" ? "bg-green-400/10 text-green-400" : "bg-red-400/10 text-red-400"}`}>
+                      <span className={`px-2 py-1 rounded text-xs ${tenant.status === "À jour" ? "bg-green-400/10 text-green-400" : tenant.status === "PARTI" ? "bg-gray-500/10 text-gray-400" : "bg-red-400/10 text-red-400"}`}>
                         {tenant.status}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button className="text-primary-light hover:text-white transition-colors flex items-center justify-end space-x-1 ml-auto">
-                        <Bell size={16} />
-                        <span>Rappeler</span>
-                      </button>
+                      <div className="flex items-center justify-end space-x-2">
+                        {tenant.status !== "PARTI" ? (
+                          <>
+                            <button className="text-primary-light hover:text-white transition-colors flex items-center space-x-1" title="Rappeler">
+                              <Bell size={16} />
+                            </button>
+                            <button 
+                              onClick={() => {
+                                setTenantToDepart(tenant);
+                                setIsDepartureModalOpen(true);
+                              }}
+                              className="text-red-400 hover:text-red-300 transition-colors flex items-center space-x-1 text-xs bg-red-400/10 px-2 py-1 rounded"
+                            >
+                              <span>Départ</span>
+                            </button>
+                          </>
+                        ) : (
+                          <span className="text-xs text-gray-500">Dette: {tenant.debtAmount || 0} $</span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -416,6 +521,53 @@ export default function SupplierTenantsPage() {
                   </button>
                   <button type="submit" disabled={isSubmitting} className="px-6 py-2 bg-primary hover:bg-primary-light text-white font-semibold rounded-lg transition-colors flex items-center disabled:opacity-50">
                     {isSubmitting ? "Ajout..." : "Confirmer"}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* DECLARE DEPARTURE MODAL */}
+      <AnimatePresence>
+        {isDepartureModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-sm bg-[#140b2e] border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+            >
+              <div className="flex items-center justify-between p-6 border-b border-white/10 bg-[#140b2e]">
+                <h2 className="text-lg font-semibold text-white">Déclarer un départ</h2>
+                <button onClick={() => setIsDepartureModalOpen(false)} className="text-gray-400 hover:text-white">
+                  <X size={20} />
+                </button>
+              </div>
+
+              <form onSubmit={handleDeclareDeparture} className="p-6 space-y-4">
+                <p className="text-sm text-gray-400 mb-4">
+                  Vous déclarez le départ de <strong className="text-white">{tenantToDepart?.name}</strong> de la propriété <strong className="text-white">{tenantToDepart?.propertyName}</strong>.
+                </p>
+
+                <div className="space-y-1">
+                  <label className="text-sm font-medium text-gray-300">Date de départ</label>
+                  <input type="date" required value={departureDate} onChange={(e) => setDepartureDate(e.target.value)} className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-400 text-white [color-scheme:dark]" />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-sm font-medium text-gray-300">Dette restante ($)</label>
+                  <input type="number" required min="0" value={debtAmount} onChange={(e) => setDebtAmount(e.target.value === "" ? "" : Number(e.target.value))} className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-400 text-white" placeholder="0 si aucune dette" />
+                  <p className="text-xs text-gray-500 mt-1">Saisissez 0 si le locataire est à jour de ses paiements.</p>
+                </div>
+
+                <div className="pt-4 flex justify-end space-x-3 border-t border-white/10">
+                  <button type="button" onClick={() => setIsDepartureModalOpen(false)} disabled={isSubmitting} className="px-4 py-2 text-gray-400 hover:text-white transition-colors disabled:opacity-50">
+                    Annuler
+                  </button>
+                  <button type="submit" disabled={isSubmitting} className="px-6 py-2 bg-red-500 hover:bg-red-400 text-white font-semibold rounded-lg transition-colors flex items-center disabled:opacity-50">
+                    {isSubmitting ? "Traitement..." : "Confirmer le départ"}
                   </button>
                 </div>
               </form>

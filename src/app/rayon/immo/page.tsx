@@ -5,6 +5,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { Home as HomeIcon, Wifi, Building2, Globe, MapPin, Maximize, BedDouble, Bath, ChevronRight, Shirt, User } from "lucide-react";
 import { ImmoContactModal } from "@/components/ImmoContactModal";
+import { RayonNavbar } from "@/components/rayon/RayonNavbar";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { ProductSkeleton } from "@/components/ui/Skeleton";
@@ -79,62 +80,13 @@ export default function ImmoPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200">
-        <nav className="flex items-center justify-between p-4 lg:px-8 max-w-7xl mx-auto">
-          {/* Logo */}
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 rounded-lg bg-green-600 flex items-center justify-center shadow-sm">
-              <Building2 size={18} className="text-white" />
-            </div>
-            <span className="text-xl font-bold text-gray-900 tracking-wider">
-              Rayons<span className="text-green-600 text-sm">.IMMO</span>
-            </span>
-          </div>
-          
-          {/* Main Navigation (Tabs) */}
-          <div className="hidden lg:flex items-center space-x-2">
-            <Link href="/" className="flex items-center px-4 py-2 hover:bg-gray-100 rounded-lg text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
-              <HomeIcon size={16} className="mr-2" /> {t.home}
-            </Link>
-            <Link href="/rayon/mode" className="flex items-center px-4 py-2 hover:bg-gray-100 rounded-lg text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
-              <Shirt size={16} className="mr-2 text-purple-600" /> Mode
-            </Link>
-            <Link href="/rayon/connect" className="flex items-center px-4 py-2 hover:bg-gray-100 rounded-lg text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
-              <Wifi size={16} className="mr-2 text-blue-600" /> {t.connect}
-            </Link>
-            <Link href="/rayon/immo" className="flex items-center px-4 py-2 bg-gray-100 rounded-lg text-sm font-medium text-gray-900 transition-colors">
-              <Building2 size={16} className="mr-2 text-green-600" /> {t.immo}
-            </Link>
-          </div>
-          
-          {/* Right side actions */}
-          <div className="flex items-center space-x-4">
-            <button 
-              onClick={() => setLang(lang === "fr" ? "en" : "fr")}
-              className="flex items-center px-3 py-1.5 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-md text-xs font-medium text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              <Globe size={14} className="mr-1" /> {lang.toUpperCase()}
-            </button>
-            {user ? (
-              <div className="hidden sm:flex items-center gap-2">
-                <Link href="/dashboard" className="flex items-center gap-1 text-sm font-bold text-gray-700 hover:text-gray-900 bg-gray-100 px-4 py-2 rounded-full">
-                  <User size={18} />
-                  {user.displayName || "Mon compte"}
-                </Link>
-                <button onClick={() => signOut()} className="text-sm font-bold text-red-500 hover:text-red-700 bg-red-50 px-3 py-2 rounded-full">
-                  Déconnexion
-                </button>
-              </div>
-            ) : (
-              <Link href="/login" className="hidden sm:flex items-center gap-1 text-sm font-bold text-gray-700 hover:text-gray-900 bg-gray-100 px-4 py-2 rounded-full">
-                <User size={18} />
-                {t.login}
-              </Link>
-            )}
-          </div>
-        </nav>
-      </header>
+      <RayonNavbar 
+        category="immo"
+        lang={lang}
+        setLang={setLang}
+        t={t}
+        hideCart={true}
+      />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

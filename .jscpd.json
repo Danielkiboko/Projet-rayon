@@ -1,0 +1,14 @@
+{
+  "threshold": 5,
+  "reporters": ["html", "console"],
+  "ignore": [
+    "**/node_modules/**",
+    "**/.next/**",
+    "**/public/**",
+    "**/build/**",
+    "**/*.config.*",
+    "**/.eslintrc.*"
+  ],
+  "absolute": true,
+  "format": ["javascript", "typescript", "jsx", "tsx", "css"]
+}

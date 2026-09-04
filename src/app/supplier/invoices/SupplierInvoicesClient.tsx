@@ -5,7 +5,8 @@ import { motion } from "framer-motion";
 import { FileText, Download, Send, Plus, Search, Calendar, User, DollarSign, X } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
-import { collection, query, where, onSnapshot, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, query, where, getDocs, addDoc, updateDoc, doc, serverTimestamp, orderBy, onSnapshot } from "firebase/firestore";
+import ModalActions from "@/components/shared/ModalActions";
 
 interface Tenant {
   id: string;
@@ -374,31 +375,12 @@ export default function SupplierInvoices() {
                 </div>
               </div>
 
-              {/* Actions */}
-              <div className="pt-4 flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="flex-1 py-2.5 bg-white/5 hover:bg-white/10 text-white rounded-xl text-sm font-medium transition-colors"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-colors flex justify-center items-center gap-2"
-                >
-                  {isSubmitting ? (
-                    <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    <>
-                      <Download size={16} />
-                      <span>Générer le PDF</span>
-                    </>
-                  )}
-                </button>
-              </div>
-
+              <ModalActions 
+                onCancel={() => setShowModal(false)}
+                isSubmitting={isSubmitting}
+                submitIcon="download"
+                submitText="Créer la facture"
+              />
             </form>
           </motion.div>
         </div>

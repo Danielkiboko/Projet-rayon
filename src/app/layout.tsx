@@ -17,6 +17,7 @@ export const metadata: Metadata = {
 import { AuthProvider } from "@/context/AuthContext";
 import { CurrencyProvider } from "@/context/CurrencyContext";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -36,6 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </CurrencyProvider>
           </AuthProvider>
         </ThemeProvider>
+        <SpeedInsights />
       </body>
     </html>
   );

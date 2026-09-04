@@ -11,6 +11,7 @@ export interface KpiConfig {
   subInfo: string;
   icon: any; // Lucide icon
   alertCondition?: boolean;
+  onClick?: () => void;
 }
 
 export interface ActionConfig {
@@ -74,7 +75,8 @@ export default function GenericDashboard<T>({
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.1, duration: 0.4 }}
-              className="bg-[#1a1a1a] border border-white/5 rounded-2xl p-5 flex flex-col justify-between h-32 hover:border-emerald-500/10 transition-colors shadow-sm relative overflow-hidden group"
+              onClick={kpi.onClick}
+              className={`bg-[#1a1a1a] border border-white/5 rounded-2xl p-5 flex flex-col justify-between h-32 hover:border-emerald-500/10 transition-colors shadow-sm relative overflow-hidden group ${kpi.onClick ? 'cursor-pointer hover:scale-[1.02] active:scale-[0.98]' : ''}`}
             >
               <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl -mr-10 -mt-10 group-hover:bg-emerald-500/10 transition-colors" />
               <div className="flex justify-between items-start relative z-10">

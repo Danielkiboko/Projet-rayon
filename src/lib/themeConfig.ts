@@ -84,6 +84,7 @@ export const themeConfig: Record<ServiceType, ServiceTheme> = {
       { title: "Mes Biens", href: "/supplier/properties", icon: Building },
       { title: "Locataires", href: "/supplier/tenants", icon: Users },
       { title: "Facturation", href: "/supplier/invoices", icon: FileText },
+      { title: "Livre de Caisse", href: "/supplier/ledger", icon: FileText },
       { title: "Paiements", href: "/supplier/payments", icon: Wallet },
       { title: "Paramètres", href: "/supplier/settings", icon: Settings },
     ]

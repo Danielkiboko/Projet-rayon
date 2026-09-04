@@ -209,7 +209,15 @@ export default function DashboardLayout({
 
             <div className="flex items-center space-x-2 pl-4 border-l border-white/10">
               <div className="hidden md:block text-right">
-                <span className="text-sm font-medium text-gray-300 block leading-tight">{userName}</span>
+                <span className="text-sm font-medium text-gray-300 block leading-tight">
+                  {(() => {
+                    const currentHour = new Date().getHours();
+                    const greeting = currentHour >= 5 && currentHour < 18 ? "Bonjour" : "Bonsoir";
+                    return (userName && userName !== "Fournisseur" && userName !== "Utilisateur")
+                      ? `${greeting} ${userName}`
+                      : userName;
+                  })()}
+                </span>
                 <span className="text-[10px] text-gray-500 block leading-tight">{userRole}</span>
               </div>
               <button className="p-1 rounded-full bg-white/5 text-gray-400 hover:text-white border border-white/5">

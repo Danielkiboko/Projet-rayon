@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Plus, X, Search, Home, Image as ImageIcon, AlertCircle, 
-  MapPin, CheckCircle, XCircle, Trash2, Building 
+  MapPin, CheckCircle, XCircle, Trash2, Building, Eye
 } from "lucide-react";
 import { useProductAiAssistant, handleImageUploadShared } from "@/hooks/useProductAiAssistant";
 import AiAssistantChat from "@/components/shared/AiAssistantChat";
@@ -30,6 +30,7 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [previewProperty, setPreviewProperty] = useState<any | null>(null);
 
   // Form State
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -38,7 +39,7 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
 
   const [propertyTitle, setPropertyTitle] = useState("");
   const [propertyType, setPropertyType] = useState("");
-  const [typeTransaction, setTypeTransaction] = useState("Vente");
+  const [typeTransaction, setTypeTransaction] = useState("");
   const [propertyPrice, setPropertyPrice] = useState("");
   const [propertyLocation, setPropertyLocation] = useState("");
   const [propertyCoords, setPropertyCoords] = useState<{lat: number, lng: number} | null>(null);
@@ -264,13 +265,26 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
         });
 
         if (property.supplierId) {
-          await fetch("/api/notifications", {
+          // Push notification email/sms
+          fetch("/api/notifications", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               action: "PROPERTY_APPROVED",
               supplierId: property.supplierId
             })
+          }).catch(console.error);
+
+          // In-app notification
+          await addDoc(collection(db, "inapp_notifications"), {
+            supplierId: property.supplierId,
+            type: "property",
+            title: "Annonce Publiée",
+            message: `Félicitations, votre bien "${property.title?.fr || property.title || 'Immobilier'}" est maintenant en ligne !`,
+            time: Date.now(),
+            link: "/supplier/properties",
+            read: false,
+            createdAt: serverTimestamp()
           });
         }
       } catch (error) {
@@ -285,10 +299,27 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
     const reason = prompt("Motif de rejet (sera visible par le fournisseur) :");
     if (reason !== null) {
       try {
+        // Find property to get supplierId
+        const prop = properties.find(p => p.id === id);
+        
         await updateDoc(doc(db, "properties", id), {
           status: "REJECTED",
           rejectionReason: reason
         });
+
+        if (prop && prop.supplierId) {
+          // In-app notification
+          await addDoc(collection(db, "inapp_notifications"), {
+            supplierId: prop.supplierId,
+            type: "property",
+            title: "Annonce Rejetée",
+            message: `Votre bien "${prop.title?.fr || prop.title || 'Immobilier'}" a été rejeté. Motif : ${reason}`,
+            time: Date.now(),
+            link: "/supplier/properties",
+            read: false,
+            createdAt: serverTimestamp()
+          });
+        }
       } catch (error) {
         console.error("Error rejecting property", error);
         alert("Erreur lors du rejet.");
@@ -458,6 +489,15 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
                           </button>
                         </>
                       )}
+                      {isAdmin && (
+                        <button 
+                          onClick={() => setPreviewProperty(property)}
+                          title="Prévisualiser"
+                          className="inline-flex p-2 bg-white/5 text-blue-400 hover:text-white rounded-lg hover:bg-blue-600 transition-colors border border-transparent hover:border-blue-600 mr-2"
+                        >
+                          <Eye size={18} />
+                        </button>
+                      )}
                       <button 
                         onClick={() => handleDeleteProperty(property.id)}
                         className="inline-flex p-2 bg-white/5 text-gray-400 hover:text-white rounded-lg hover:bg-red-600 transition-colors border border-transparent hover:border-red-600"
@@ -546,11 +586,22 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
                     </select>
                   </div>
                   <div className="space-y-1">
-                    <label className="text-sm font-medium text-gray-300">Type de Transaction</label>
-                    <select required value={typeTransaction} onChange={(e) => setTypeTransaction(e.target.value)} className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white">
-                      <option value="Vente">À Vendre</option>
-                      <option value="Location">À Louer</option>
-                    </select>
+                    <label className="text-sm font-medium text-gray-300">Statut / Transaction</label>
+                    <input
+                      type="text"
+                      required
+                      value={typeTransaction}
+                      onChange={(e) => setTypeTransaction(e.target.value)}
+                      placeholder="Ex: À Vendre, À Louer, Colocation, etc."
+                      list="transaction-types"
+                      className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white"
+                    />
+                    <datalist id="transaction-types">
+                      <option value="À Vendre" />
+                      <option value="À Louer" />
+                      <option value="Colocation" />
+                      <option value="Location Journalière" />
+                    </datalist>
                   </div>
                 </div>
 
@@ -710,6 +761,136 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Preview Property Modal */}
+      <AnimatePresence>
+        {previewProperty && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="w-full max-w-3xl bg-[#140b2e] border border-white/10 rounded-2xl shadow-2xl flex flex-col max-h-[90vh] my-4"
+            >
+              <div className="flex items-center justify-between p-4 border-b border-white/10 shrink-0 bg-[#140b2e]">
+                <h2 className="text-xl font-semibold text-white">Prévisualisation de l'annonce</h2>
+                <button onClick={() => setPreviewProperty(null)} className="text-gray-400 hover:text-white transition-colors">
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-6 overflow-y-auto scrollbar-hide">
+                {/* Header Info */}
+                <div className="flex flex-col md:flex-row gap-6">
+                  {/* Image */}
+                  <div className="w-full md:w-1/3 aspect-square rounded-xl overflow-hidden bg-white/5 border border-white/10 shrink-0">
+                    {previewProperty.image ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={previewProperty.image} alt={getTitle(previewProperty.title)} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-500">
+                        <Home size={48} />
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Details */}
+                  <div className="flex-1 space-y-4">
+                    <div>
+                      <h3 className="text-2xl font-bold text-white">{getTitle(previewProperty.title)}</h3>
+                      <p className="text-primary font-semibold text-xl mt-1">
+                        {typeof previewProperty.price === "number" ? formatPrice(previewProperty.price) : previewProperty.price} {currency}
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="bg-white/5 p-3 rounded-lg">
+                        <span className="text-gray-400 block mb-1">Type</span>
+                        <span className="text-white font-medium capitalize">{previewProperty.type || "Non défini"}</span>
+                      </div>
+                      <div className="bg-white/5 p-3 rounded-lg">
+                        <span className="text-gray-400 block mb-1">Transaction</span>
+                        <span className="text-white font-medium">{previewProperty.typeTransaction || "Vente"}</span>
+                      </div>
+                      <div className="bg-white/5 p-3 rounded-lg col-span-2 flex items-center gap-2">
+                        <MapPin size={16} className="text-gray-400" />
+                        <span className="text-white">{previewProperty.location || "-"}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div>
+                  <h4 className="text-lg font-semibold text-white mb-2">Description</h4>
+                  <div className="bg-white/5 p-4 rounded-xl text-gray-300 text-sm whitespace-pre-wrap">
+                    {previewProperty.description || "Aucune description fournie."}
+                  </div>
+                </div>
+
+                {/* Structure (Levels/Units) */}
+                {previewProperty.levels && previewProperty.levels.length > 0 && (
+                  <div>
+                    <h4 className="text-lg font-semibold text-white mb-2 flex items-center gap-2">
+                      <Building size={18} /> Structure du bâtiment
+                    </h4>
+                    <div className="space-y-3">
+                      {previewProperty.levels.map((level: any) => (
+                        <div key={level.id} className="bg-white/5 p-4 rounded-xl border border-white/10">
+                          <h5 className="font-semibold text-white mb-3">{level.name}</h5>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {level.units && level.units.map((unit: any) => (
+                              <div key={unit.id} className="flex items-center justify-between bg-black/20 p-2 rounded-lg text-sm">
+                                <span className="text-gray-300">{unit.name}</span>
+                                <span className="text-gray-400 text-xs px-2 py-1 bg-white/5 rounded">
+                                  {unit.type} {unit.type !== 'appartement' && `(${unit.capacity} places)`}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Actions Footer */}
+              <div className="flex items-center justify-end gap-3 p-4 border-t border-white/10 shrink-0 bg-[#140b2e]">
+                <button
+                  type="button"
+                  onClick={() => setPreviewProperty(null)}
+                  className="px-4 py-2 text-gray-400 hover:text-white transition-colors"
+                >
+                  Fermer
+                </button>
+                {isAdmin && previewProperty.status !== "Disponible" && (
+                  <>
+                    <button
+                      onClick={() => {
+                        handleRejectProperty(previewProperty.id);
+                        setPreviewProperty(null);
+                      }}
+                      className="px-4 py-2 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white font-medium rounded-lg transition-colors flex items-center gap-2"
+                    >
+                      <XCircle size={18} /> Rejeter
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleApproveProperty(previewProperty);
+                        setPreviewProperty(null);
+                      }}
+                      className="px-6 py-2 bg-green-500 text-white font-medium rounded-lg hover:bg-green-600 transition-colors flex items-center gap-2"
+                    >
+                      <CheckCircle size={18} /> Approuver et Publier
+                    </button>
+                  </>
+                )}
+              </div>
             </motion.div>
           </div>
         )}

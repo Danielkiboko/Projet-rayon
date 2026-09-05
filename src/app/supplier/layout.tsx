@@ -19,6 +19,9 @@ export default function SupplierLayout({
   const router = useRouter();
   const pathname = usePathname();
 
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+
   // Redirect to billing if trial expired
   useEffect(() => {
     if (!loading && user && userData && isSupplier(userData)) {
@@ -35,6 +38,53 @@ export default function SupplierLayout({
       }
     }
   }, [user, userData, loading, pathname, router]);
+
+  // Listen to in-app notifications
+  useEffect(() => {
+    if (!user) return;
+    
+    let unsubNotifs: any;
+    
+    const setupNotifications = async () => {
+      try {
+        const { collection, query, where, onSnapshot } = await import("firebase/firestore");
+        const { db } = await import("@/lib/firebase");
+
+        const qNotifs = query(
+          collection(db, "inapp_notifications"),
+          where("supplierId", "==", user.uid),
+          where("read", "==", false)
+        );
+
+        unsubNotifs = onSnapshot(qNotifs, (snapshot) => {
+          const items: any[] = [];
+          snapshot.forEach(doc => {
+            const d = doc.data();
+            items.push({
+              id: doc.id,
+              type: d.type || "system",
+              title: d.title || "Notification",
+              message: d.message || "",
+              time: d.time || Date.now(),
+              link: d.link || "#"
+            });
+          });
+          // Sort by newest first
+          items.sort((a, b) => b.time - a.time);
+          setNotifications(items);
+          setUnreadCount(items.length);
+        });
+      } catch (err) {
+        console.error("Error setting up supplier notifications:", err);
+      }
+    };
+
+    setupNotifications();
+
+    return () => {
+      if (unsubNotifs) unsubNotifs();
+    };
+  }, [user]);
 
   if (loading) {
     return <div className="h-screen w-full flex items-center justify-center bg-[#0b061c] text-white">Chargement...</div>;
@@ -71,6 +121,8 @@ export default function SupplierLayout({
       topbarTitle="Tableau de bord"
       userName={userData?.displayName || userData?.name || "Fournisseur"}
       userRole="Partenaire"
+      notifications={notifications}
+      unreadCount={unreadCount}
       customProfileModal={
         <ProfileUpdateModal 
           user={user} 

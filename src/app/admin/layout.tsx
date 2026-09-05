@@ -88,7 +88,7 @@ export default function AdminLayout({
               title: "Nouveau Bien Immobilier",
               message: `${d.title || 'Bien'} est en attente de validation.`,
               time: Date.now(),
-              link: "/admin/suppliers"
+              link: "/admin/properties"
             });
           });
           updateNotifications("property", items);

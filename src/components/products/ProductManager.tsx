@@ -221,9 +221,22 @@ export default function ProductManager({ isAdmin }: ProductManagerProps) {
     if (!isAdmin) return;
     if (confirm("Approuver et publier ce produit ?")) {
       try {
+        const prod = products.find(p => p.id === id);
         await updateDoc(doc(db, "products", id), {
           status: "Disponible"
         });
+        if (prod && prod.supplierId) {
+          await addDoc(collection(db, "inapp_notifications"), {
+            supplierId: prod.supplierId,
+            type: "product",
+            title: "Produit Publié",
+            message: `Votre produit "${prod.name?.fr || prod.name || 'Produit'}" a été validé et est en ligne !`,
+            time: Date.now(),
+            link: "/supplier/products",
+            read: false,
+            createdAt: serverTimestamp()
+          });
+        }
       } catch (error) {
         console.error("Error approving product", error);
         alert("Erreur lors de l'approbation.");
@@ -236,10 +249,23 @@ export default function ProductManager({ isAdmin }: ProductManagerProps) {
     const reason = prompt("Motif de rejet (sera visible par le fournisseur) :");
     if (reason !== null) {
       try {
+        const prod = products.find(p => p.id === id);
         await updateDoc(doc(db, "products", id), {
           status: "REJECTED",
           rejectionReason: reason
         });
+        if (prod && prod.supplierId) {
+          await addDoc(collection(db, "inapp_notifications"), {
+            supplierId: prod.supplierId,
+            type: "product",
+            title: "Produit Rejeté",
+            message: `Votre produit "${prod.name?.fr || prod.name || 'Produit'}" a été rejeté. Motif : ${reason}`,
+            time: Date.now(),
+            link: "/supplier/products",
+            read: false,
+            createdAt: serverTimestamp()
+          });
+        }
       } catch (error) {
         console.error("Error rejecting product", error);
         alert("Erreur lors du rejet.");

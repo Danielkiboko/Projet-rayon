@@ -124,5 +124,14 @@ service cloud.firestore {
       allow create: if true; // Anyone can generate an error log
       allow read, update, delete: if isSuperAdmin() || isAdmin();
     }
+
+    match /transactions/{transactionId} {
+      allow read, write: if isSuperAdmin() || isAdmin();
+    }
+    match /supplier_transactions/{transactionId} {
+      allow create: if isSupplier() && request.resource.data.supplierId == request.auth.uid;
+      allow read, update, delete: if isSupplier() && resource.data.supplierId == request.auth.uid;
+      allow read, update, delete: if isSuperAdmin() || isAdmin();
+    }
   }
 }

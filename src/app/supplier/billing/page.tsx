@@ -23,7 +23,7 @@ export default function BillingPage() {
     const diffTime = endDate.getTime() - now.getTime();
     daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     
-    if (daysLeft <= 0) {
+    if (now > endDate) {
       isExpired = true;
     }
   }
@@ -81,11 +81,11 @@ export default function BillingPage() {
           <Lock className="text-red-400" size={40} />
         </div>
         <h1 className="text-3xl font-bold text-white mb-4">
-          {isExpired ? "Votre période d'essai est terminée" : "Abonnement Fournisseur"}
+          {isExpired ? "Abonnement expiré" : "Abonnement Fournisseur"}
         </h1>
         <p className="text-gray-400 text-lg max-w-2xl mx-auto">
           {isExpired 
-            ? "Pour continuer à vendre vos produits et accéder à votre tableau de bord, veuillez activer votre abonnement mensuel." 
+            ? "Pour continuer à vendre vos produits et accéder à votre tableau de bord, veuillez renouveler votre abonnement mensuel." 
             : `Il vous reste ${daysLeft} jours d'essai gratuit. Vous pouvez anticiper et activer votre abonnement dès maintenant.`}
         </p>
       </div>

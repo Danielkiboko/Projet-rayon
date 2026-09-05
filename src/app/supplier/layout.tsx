@@ -144,10 +144,10 @@ export default function SupplierLayout({
             </div>
           </div>
           <button
-            onClick={() => alert("Veuillez contacter l'administrateur Rayons pour renouveler votre abonnement.")}
+            onClick={() => router.push('/supplier/billing')}
             className="shrink-0 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition-colors whitespace-nowrap"
           >
-            Contacter l'admin
+            Renouveler
           </button>
         </div>
       )}

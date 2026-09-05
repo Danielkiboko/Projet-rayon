@@ -33,14 +33,27 @@ export async function POST(req: Request) {
 
       // Créer une transaction dans la collection 'transactions'
       const { collection, addDoc, serverTimestamp } = await import("firebase/firestore");
+      const refId = `MAKUTA-${Math.floor(Math.random() * 1000000)}`;
       await addDoc(collection(db, "transactions"), {
         type: "SUBSCRIPTION",
         amount: 20,
         description: `Paiement Abonnement - ${userDoc.data().displayName || userDoc.data().email || 'Fournisseur'}`,
-        referenceId: `MAKUTA-${Math.floor(Math.random() * 1000000)}`,
+        referenceId: refId,
         status: "COMPLETED",
         supplierId: supplierId,
         createdAt: serverTimestamp()
+      });
+
+      await addDoc(collection(db, "supplier_transactions"), {
+        supplierId: supplierId,
+        type: "EXPENSE",
+        amount: 20,
+        currency: "USD",
+        description: "Paiement Abonnement Plateforme",
+        referenceId: refId,
+        status: "COMPLETED",
+        createdAt: serverTimestamp(),
+        createdBy: supplierId
       });
 
       return NextResponse.json({ success: true, message: "Paiement réussi" });

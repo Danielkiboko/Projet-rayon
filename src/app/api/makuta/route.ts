@@ -31,6 +31,18 @@ export async function POST(req: Request) {
         subscriptionEndDate: newEndDate
       });
 
+      // Créer une transaction dans la collection 'transactions'
+      const { collection, addDoc, serverTimestamp } = await import("firebase/firestore");
+      await addDoc(collection(db, "transactions"), {
+        type: "SUBSCRIPTION",
+        amount: 20,
+        description: `Paiement Abonnement - ${userDoc.data().displayName || userDoc.data().email || 'Fournisseur'}`,
+        referenceId: `MAKUTA-${Math.floor(Math.random() * 1000000)}`,
+        status: "COMPLETED",
+        supplierId: supplierId,
+        createdAt: serverTimestamp()
+      });
+
       return NextResponse.json({ success: true, message: "Paiement réussi" });
     } else {
       return NextResponse.json({ success: false, error: "Utilisateur non trouvé" }, { status: 404 });

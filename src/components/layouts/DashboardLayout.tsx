@@ -11,6 +11,10 @@ export type MenuItem = {
   title: string;
   href: string;
   icon: any;
+  colorClass?: {
+    bg: string;
+    text: string;
+  };
 };
 
 export type ThemeColors = {
@@ -100,11 +104,14 @@ export default function DashboardLayout({
             const isActive = pathname.startsWith(item.href);
             const Icon = item.icon;
             
+            const activeBg = item.colorClass ? item.colorClass.bg : themeColors.activeMenuBg;
+            const activeText = item.colorClass ? item.colorClass.text : themeColors.activeMenuText;
+            
             return (
               <Link key={item.title} href={item.href}>
                 <div className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all ${
                   isActive 
-                    ? `${themeColors.activeMenuBg} ${themeColors.activeMenuText}` 
+                    ? `${activeBg} ${activeText}` 
                     : "text-gray-400 hover:bg-white/5 hover:text-white"
                 }`}>
                   <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />

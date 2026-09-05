@@ -19,6 +19,8 @@ interface Transaction {
   createdAt: any;
 }
 
+import { hasAdminAccess } from "@/lib/permissions";
+
 export default function AdminFinancePage() {
   const { user, userData, loading } = useAuth();
   const router = useRouter();
@@ -37,7 +39,7 @@ export default function AdminFinancePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!loading && (!user || (userData?.role !== "SUPER_ADMIN" && userData?.role !== "SUB_ADMIN"))) {
+    if (!loading && !hasAdminAccess(user, userData)) {
       router.push("/");
       return;
     }

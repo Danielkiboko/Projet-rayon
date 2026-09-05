@@ -1,11 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Lock, CreditCard, CheckCircle, ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function BillingPage() {
-  const { userData, loading } = useAuth();
+  const { user, userData, loading } = useAuth();
   const router = useRouter();
 
   if (loading) {
@@ -28,7 +29,31 @@ export default function BillingPage() {
   }
 
   const isTrial = userData?.subscriptionStatus === "TRIAL";
-  const isActive = userData?.subscriptionStatus === "ACTIVE";
+  const isActive = userData?.subscriptionStatus === "ACTIVE" && !isExpired;
+  
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handleMakutaPayment = async () => {
+    setIsProcessing(true);
+    try {
+      const res = await fetch("/api/makuta", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ supplierId: user?.uid })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert("Paiement réussi ! Votre abonnement est renouvelé pour 1 mois.");
+        window.location.href = "/supplier/dashboard";
+      } else {
+        alert("Erreur de paiement : " + data.error);
+      }
+    } catch (error) {
+      alert("Une erreur est survenue.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   if (isActive) {
     return (
@@ -100,10 +125,12 @@ export default function BillingPage() {
 
         <div className="pt-6 border-t border-white/10">
           <button 
-            className="w-full bg-primary hover:bg-primary-light text-white font-bold py-4 rounded-xl flex items-center justify-center space-x-2 transition-transform transform active:scale-95 shadow-lg"
+            onClick={handleMakutaPayment}
+            disabled={isProcessing}
+            className={`w-full ${isProcessing ? 'bg-primary/50 cursor-not-allowed' : 'bg-primary hover:bg-primary-light active:scale-95'} text-white font-bold py-4 rounded-xl flex items-center justify-center space-x-2 transition-transform shadow-lg`}
           >
             <CreditCard size={24} />
-            <span>Payer avec Makuta ($20)</span>
+            <span>{isProcessing ? "Traitement en cours..." : "Payer avec Makuta ($20)"}</span>
           </button>
           <p className="text-center text-sm text-gray-500 mt-4">
             Paiement sécurisé par la passerelle Makuta.

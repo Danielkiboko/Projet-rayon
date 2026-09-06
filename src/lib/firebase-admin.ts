@@ -44,6 +44,9 @@ export function initFirebaseAdmin() {
 export const adminDb = new Proxy({} as any, {
   get: (target, prop) => {
     initFirebaseAdmin();
+    if (adminInitError) {
+      throw adminInitError;
+    }
     const firestore = getFirestore('default');
     const value = (firestore as any)[prop];
     if (typeof value === 'function') {
@@ -56,7 +59,7 @@ export const adminDb = new Proxy({} as any, {
 export const adminAuth = new Proxy({} as any, {
   get: (target, prop) => {
     initFirebaseAdmin();
-    if (prop === 'verifyIdToken' && adminInitError) {
+    if (adminInitError) {
       throw adminInitError;
     }
     const auth = getAuth();

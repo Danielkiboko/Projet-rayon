@@ -18,18 +18,37 @@ export function initFirebaseAdmin() {
            throw new Error(`FIREBASE_PRIVATE_KEY is missing. Found keys: ${keys}`);
         }
         let privateKey = process.env.FIREBASE_PRIVATE_KEY;
-        // Hostinger (ou cPanel) peut parfois inclure les guillemets dans la valeur
+        // Fix for Vercel/Hostinger where newlines might be stripped or keys have quotes
         if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
           privateKey = privateKey.slice(1, -1);
         } else if (privateKey.startsWith("'") && privateKey.endsWith("'")) {
           privateKey = privateKey.slice(1, -1);
+        }
+        privateKey = privateKey.replace(/\\n/g, '\n');
+        
+        // If the key is just one single line with spaces instead of newlines (common copy-paste error)
+        if (!privateKey.includes('\n')) {
+          const beginHeader = "-----BEGIN PRIVATE KEY-----";
+          const endHeader = "-----END PRIVATE KEY-----";
+          if (privateKey.includes(beginHeader) && privateKey.includes(endHeader)) {
+            const body = privateKey
+              .replace(beginHeader, "")
+              .replace(endHeader, "")
+              .replace(/\s+/g, ""); // remove all whitespaces from the body
+            
+            // Reconstruct the key with proper newlines
+            const match = body.match(/.{1,64}/g);
+            if (match) {
+              privateKey = `${beginHeader}\n${match.join('\n')}\n${endHeader}\n`;
+            }
+          }
         }
         
         initializeApp({
           credential: cert({
             projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
             clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-            privateKey: privateKey.replace(/\\n/g, '\n'),
+            privateKey: privateKey,
           }),
         });
       }

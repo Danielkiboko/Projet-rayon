@@ -66,8 +66,7 @@ export default function SuppliersPage() {
     // Fetch suppliers (including property agents)
     const q = query(
       collection(db, "users"), 
-      where("role", "in", ["SUPPLIER", "supplier", "SUPPLIER_IMMO", "supplier_immo"]),
-      orderBy("createdAt", "desc")
+      where("role", "in", ["SUPPLIER", "supplier", "SUPPLIER_IMMO", "supplier_immo"])
     );
     
     const unsubscribe = onSnapshot(q, (snapshot) => {

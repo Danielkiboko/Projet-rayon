@@ -260,9 +260,19 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
     if (!isAdmin) return;
     if (confirm("Approuver et publier ce bien immobilier ?")) {
       try {
-        await updateDoc(doc(db, "properties", property.id), {
-          status: "Disponible" 
+        const response = await fetch("/api/properties/update-status", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            propertyId: property.id,
+            supplierId: property.supplierId,
+            title: property.title,
+            status: "Disponible"
+          })
         });
+
+        const result = await response.json();
+        if (!result.success) throw new Error(result.error);
 
         if (property.supplierId) {
           // Push notification email/sms
@@ -274,22 +284,10 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
               supplierId: property.supplierId
             })
           }).catch(console.error);
-
-          // In-app notification
-          await addDoc(collection(db, "inapp_notifications"), {
-            supplierId: property.supplierId,
-            type: "property",
-            title: "Annonce Publiée",
-            message: `Félicitations, votre bien "${property.title?.fr || property.title || 'Immobilier'}" est maintenant en ligne !`,
-            time: Date.now(),
-            link: "/supplier/properties",
-            read: false,
-            createdAt: serverTimestamp()
-          });
         }
-      } catch (error) {
-        console.error("Error approving property", error);
-        alert("Erreur lors de l'approbation.");
+      } catch (error: any) {
+        console.error("Error approving property: " + String(error));
+        alert("Erreur lors de l'approbation: " + (error?.message || "Erreur inconnue"));
       }
     }
   };
@@ -299,30 +297,25 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
     const reason = prompt("Motif de rejet (sera visible par le fournisseur) :");
     if (reason !== null) {
       try {
-        // Find property to get supplierId
         const prop = properties.find(p => p.id === id);
-        
-        await updateDoc(doc(db, "properties", id), {
-          status: "REJECTED",
-          rejectionReason: reason
+        const response = await fetch("/api/properties/update-status", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            propertyId: id,
+            supplierId: prop?.supplierId,
+            title: prop?.title,
+            status: "REJECTED",
+            rejectionReason: reason
+          })
         });
 
-        if (prop && prop.supplierId) {
-          // In-app notification
-          await addDoc(collection(db, "inapp_notifications"), {
-            supplierId: prop.supplierId,
-            type: "property",
-            title: "Annonce Rejetée",
-            message: `Votre bien "${prop.title?.fr || prop.title || 'Immobilier'}" a été rejeté. Motif : ${reason}`,
-            time: Date.now(),
-            link: "/supplier/properties",
-            read: false,
-            createdAt: serverTimestamp()
-          });
-        }
-      } catch (error) {
-        console.error("Error rejecting property", error);
-        alert("Erreur lors du rejet.");
+        const result = await response.json();
+        if (!result.success) throw new Error(result.error);
+
+      } catch (error: any) {
+        console.error("Error rejecting property: " + String(error));
+        alert("Erreur lors du rejet: " + (error?.message || "Erreur inconnue"));
       }
     }
   };

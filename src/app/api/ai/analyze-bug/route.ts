@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
-import { getFirestore } from "firebase-admin/firestore";
-import { initFirebaseAdmin } from "@/lib/firebase-admin";
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+import { initFirebaseAdmin, adminDb } from "@/lib/firebase-admin";
 
 export async function POST(req: NextRequest) {
   try {
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     const { logId } = await req.json();
 
     if (!logId) {
@@ -14,7 +12,7 @@ export async function POST(req: NextRequest) {
     }
 
     await initFirebaseAdmin();
-    const db = getFirestore();
+    const db = adminDb;
     const logRef = db.collection("error_logs").doc(logId);
     const logDoc = await logRef.get();
 

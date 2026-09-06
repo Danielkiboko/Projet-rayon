@@ -65,7 +65,15 @@ export default function AdminDashboardPage() {
         const { db } = await import("@/lib/firebase");
 
         // 1. Pending & active suppliers
-        const qUsers = query(collection(db, "users"), where("role", "in", ["SUPPLIER", "supplier", "SUPPLIER_IMMO", "supplier_immo"]));
+        const qUsers = query(
+          collection(db, "users"), 
+          where("role", "in", [
+            "SUPPLIER", "supplier", "Supplier", 
+            "SUPPLIER_IMMO", "supplier_immo",
+            "SUB_ADMIN", "sub_admin",
+            "fournisseur", "Fournisseur", "FOURNISSEUR"
+          ])
+        );
         unsubUsers = onSnapshot(qUsers, (snapUsers) => {
           let pSuppliers = 0;
           let aSuppliers = 0;

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
-import { doc, updateDoc, getDoc } from "firebase/firestore";
+import { FieldValue } from "firebase-admin/firestore";
+import { initFirebaseAdmin, adminDb } from "@/lib/firebase-admin";
 
 export async function POST(req: Request) {
   try {
@@ -17,34 +17,36 @@ export async function POST(req: Request) {
     // Pour l'instant, on simule un succès immédiat après 2 secondes
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
-    // Si le paiement réussit, on met à jour l'abonnement
-    const userRef = doc(db, "users", supplierId);
-    const userDoc = await getDoc(userRef);
+    await initFirebaseAdmin();
+    const db = adminDb;
+    const userRef = db.collection("users").doc(supplierId);
+    const userDoc = await userRef.get();
 
-    if (userDoc.exists()) {
+    if (userDoc.exists) {
       // Calculer la nouvelle date de fin (+30 jours)
       const now = new Date();
       const newEndDate = new Date(now.setDate(now.getDate() + 30));
 
-      await updateDoc(userRef, {
+      await userRef.update({
         subscriptionStatus: "ACTIVE",
         subscriptionEndDate: newEndDate
       });
 
-      // Créer une transaction dans la collection 'transactions'
-      const { collection, addDoc, serverTimestamp } = await import("firebase/firestore");
       const refId = `MAKUTA-${Math.floor(Math.random() * 1000000)}`;
-      await addDoc(collection(db, "transactions"), {
+      
+      const transactionsRef = db.collection("transactions");
+      await transactionsRef.add({
         type: "SUBSCRIPTION",
         amount: 20,
-        description: `Paiement Abonnement - ${userDoc.data().displayName || userDoc.data().email || 'Fournisseur'}`,
+        description: `Paiement Abonnement - ${userDoc.data()?.displayName || userDoc.data()?.email || 'Fournisseur'}`,
         referenceId: refId,
         status: "COMPLETED",
         supplierId: supplierId,
-        createdAt: serverTimestamp()
+        createdAt: FieldValue.serverTimestamp()
       });
 
-      await addDoc(collection(db, "supplier_transactions"), {
+      const supplierTransactionsRef = db.collection("supplier_transactions");
+      await supplierTransactionsRef.add({
         supplierId: supplierId,
         type: "EXPENSE",
         amount: 20,
@@ -52,7 +54,7 @@ export async function POST(req: Request) {
         description: "Paiement Abonnement Plateforme",
         referenceId: refId,
         status: "COMPLETED",
-        createdAt: serverTimestamp(),
+        createdAt: FieldValue.serverTimestamp(),
         createdBy: supplierId
       });
 

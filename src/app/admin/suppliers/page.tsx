@@ -63,10 +63,15 @@ export default function SuppliersPage() {
       return;
     }
 
-    // Fetch suppliers (including property agents)
+    // Fetch suppliers (including property agents and sub-admins)
     const q = query(
       collection(db, "users"), 
-      where("role", "in", ["SUPPLIER", "supplier", "SUPPLIER_IMMO", "supplier_immo"])
+      where("role", "in", [
+        "SUPPLIER", "supplier", "Supplier", 
+        "SUPPLIER_IMMO", "supplier_immo",
+        "SUB_ADMIN", "sub_admin",
+        "fournisseur", "Fournisseur", "FOURNISSEUR"
+      ])
     );
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -90,6 +95,7 @@ export default function SuppliersPage() {
       setIsLoading(false);
     }, (error) => {
       console.error("Error fetching suppliers:", error);
+      setError("Erreur d'accès aux fournisseurs : " + error.message);
       setIsLoading(false);
     });
 
@@ -379,9 +385,28 @@ export default function SuppliersPage() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
-                        <span className={supplier.subscriptionStatus === "TRIAL" ? "text-blue-400" : (supplier.subscriptionStatus === "ACTIVE" ? "text-green-400" : "text-red-400")}>
-                          {supplier.subscriptionStatus || "Non défini"}
-                        </span>
+                        {(() => {
+                          let statusStr = supplier.subscriptionStatus || "Non défini";
+                          let statusClass = "text-gray-400";
+                          
+                          if (statusStr === "ACTIVE" || statusStr === "TRIAL") {
+                            if (supplier.subscriptionEndDate) {
+                              const endDate = new Date(supplier.subscriptionEndDate.toDate ? supplier.subscriptionEndDate.toDate() : supplier.subscriptionEndDate);
+                              if (new Date() > endDate) {
+                                statusStr = "EXPIRÉ";
+                                statusClass = "text-red-500 font-bold";
+                              } else {
+                                statusClass = statusStr === "TRIAL" ? "text-blue-400" : "text-green-400";
+                              }
+                            } else {
+                              statusClass = statusStr === "TRIAL" ? "text-blue-400" : "text-green-400";
+                            }
+                          } else {
+                            statusClass = "text-red-400";
+                          }
+
+                          return <span className={statusClass}>{statusStr}</span>;
+                        })()}
                         {supplier.subscriptionEndDate && (
                           <span className="text-xs text-gray-500">
                             Échéance: {new Date(supplier.subscriptionEndDate.toDate ? supplier.subscriptionEndDate.toDate() : supplier.subscriptionEndDate).toLocaleDateString("fr-FR")}

@@ -1,7 +1,7 @@
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "./firebase";
 
-export type BugSeverity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+type BugSeverity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 
 export interface LogOptions {
   severity?: BugSeverity;

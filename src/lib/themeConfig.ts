@@ -13,10 +13,10 @@ import {
 
 export type ServiceType = "mode" | "immo" | "connect" | "default";
 
-export interface MenuItem {
+interface MenuItem {
   title: string;
   href: string;
-  icon: any; // Lucide icon
+  icon: React.ElementType;
 }
 
 export interface ServiceTheme {

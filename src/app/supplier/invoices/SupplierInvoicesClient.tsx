@@ -192,7 +192,7 @@ export default function SupplierInvoices() {
       doc.save(`${invoiceType}_${tenant.name}_${invoiceNum}.pdf`);
 
       // 3. Save to Firestore
-      await addDoc(collection(db, "invoices"), {
+      const invoiceData = {
         supplierId: activeSupplierId,
         tenantId: tenant.id,
         tenantName: tenant.name,
@@ -203,7 +203,26 @@ export default function SupplierInvoices() {
         invoiceNum,
         createdAt: serverTimestamp(),
         status: "SENT"
-      });
+      };
+      
+      await addDoc(collection(db, "invoices"), invoiceData);
+
+      // 4. Automatically create a pending payment for rent
+      if (invoiceType === "Facture") {
+        await addDoc(collection(db, "payments"), {
+          supplierId: activeSupplierId,
+          tenantId: tenant.id,
+          clientName: tenant.name,
+          totalAmount: Number(amount),
+          amount: 0,
+          remainingAmount: Number(amount),
+          method: "-",
+          reference: invoiceNum,
+          status: "PENDING",
+          notes: `Facture auto-générée: ${description}`,
+          createdAt: serverTimestamp(),
+        });
+      }
 
       setShowModal(false);
       setSelectedTenant("");

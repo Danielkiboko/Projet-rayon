@@ -37,14 +37,18 @@ export default function SupplierFinancePage() {
   const [description, setDescription] = useState("");
   const [referenceId, setReferenceId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const role = (userData?.role || "").toUpperCase();
+  const isImmo = role === "SUPPLIER_IMMO" || role === "SUB_SUPPLIER"; // Basic check
 
   useEffect(() => {
-    if (!loading && (!user || !userData || (userData.role !== "SUPPLIER" && userData.role !== "supplier" && userData.role !== "SUPPLIER_IMMO" && userData.role !== "supplier_immo"))) {
+    if (!loading && (!user || !userData || (userData.role !== "SUPPLIER" && userData.role !== "supplier" && userData.role !== "SUPPLIER_IMMO" && userData.role !== "supplier_immo" && userData.role !== "SUB_SUPPLIER"))) {
       router.push("/");
       return;
     }
 
     if (user) {
+
       // 1. Fetch manual transactions
       const qTx = query(
         collection(db, "supplier_transactions"), 
@@ -52,18 +56,11 @@ export default function SupplierFinancePage() {
         orderBy("createdAt", "desc")
       );
       
-      // 2. Fetch orders to extract automatic sales
-      const qOrders = query(
-        collection(db, "orders"),
-        where("supplierIds", "array-contains", activeSupplierId),
-        orderBy("createdAt", "desc")
-      );
-
       let manualTx: Transaction[] = [];
-      let orderTx: Transaction[] = [];
+      let automaticTx: Transaction[] = [];
 
       const updateCombined = () => {
-        const combined = [...manualTx, ...orderTx].sort((a, b) => {
+        const combined = [...manualTx, ...automaticTx].sort((a, b) => {
           const tA = a.createdAt?.seconds || 0;
           const tB = b.createdAt?.seconds || 0;
           return tB - tA;
@@ -84,37 +81,73 @@ export default function SupplierFinancePage() {
         setIsLoading(false);
       });
 
-      const unsubOrders = onSnapshot(qOrders, (snapshot) => {
-        const data: Transaction[] = [];
-        snapshot.forEach((doc) => {
-          const order = doc.data();
-          const status = (order.status || "").toUpperCase();
-          if (status === "COMPLETED" || status === "LIVRÉE" || status === "DELIVERED") {
-            data.push({
-              id: `order_${doc.id}`,
-              type: "INCOME",
-              amount: order.itemsTotal || 0,
-              currency: "USD",
-              description: `Vente en ligne (Cmd #${doc.id.substring(0,6).toUpperCase()})`,
-              referenceId: doc.id,
-              status: "COMPLETED",
-              createdAt: order.createdAt,
-              supplierId: activeSupplierId
-            });
-          }
+      let unsubAutomatic: any = () => {};
+
+      if (isImmo) {
+        // Fetch rent payments for Immo
+        const qPayments = query(
+          collection(db, "payments"),
+          where("supplierId", "==", activeSupplierId),
+          orderBy("createdAt", "desc")
+        );
+        unsubAutomatic = onSnapshot(qPayments, (snapshot) => {
+          const data: Transaction[] = [];
+          snapshot.forEach((doc) => {
+            const payment = doc.data();
+            if (payment.status === "COMPLETED") {
+              data.push({
+                id: `payment_${doc.id}`,
+                type: "INCOME",
+                amount: payment.amount || 0,
+                currency: "USD",
+                description: `Paiement Loyer - ${payment.clientName}`,
+                referenceId: payment.reference,
+                status: "COMPLETED",
+                createdAt: payment.createdAt,
+                supplierId: activeSupplierId
+              });
+            }
+          });
+          automaticTx = data;
+          updateCombined();
         });
-        orderTx = data;
-        updateCombined();
-      }, (error) => {
-        console.error("Error fetching orders:", error);
-      });
+      } else {
+        // Fetch orders for regular E-commerce
+        const qOrders = query(
+          collection(db, "orders"),
+          where("supplierIds", "array-contains", activeSupplierId),
+          orderBy("createdAt", "desc")
+        );
+        unsubAutomatic = onSnapshot(qOrders, (snapshot) => {
+          const data: Transaction[] = [];
+          snapshot.forEach((doc) => {
+            const order = doc.data();
+            const status = (order.status || "").toUpperCase();
+            if (status === "COMPLETED" || status === "LIVRÉE" || status === "DELIVERED") {
+              data.push({
+                id: `order_${doc.id}`,
+                type: "INCOME",
+                amount: order.itemsTotal || 0,
+                currency: "USD",
+                description: `Vente en ligne (Cmd #${doc.id.substring(0,6).toUpperCase()})`,
+                referenceId: doc.id,
+                status: "COMPLETED",
+                createdAt: order.createdAt,
+                supplierId: activeSupplierId
+              });
+            }
+          });
+          automaticTx = data;
+          updateCombined();
+        });
+      }
 
       return () => {
         unsubTx();
-        unsubOrders();
+        unsubAutomatic();
       };
     }
-  }, [user, userData, loading, router]);
+  }, [user, userData, loading, router, activeSupplierId]);
 
   const handleAddTransaction = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -250,14 +283,16 @@ export default function SupplierFinancePage() {
               onClick={() => setFilter("INCOME")}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === "INCOME" ? "bg-green-500/20 text-green-400" : "text-gray-400 hover:text-white"}`}
             >
-              Entrées (Ventes)
+              {isImmo ? "Loyers Perçus" : "Entrées (Ventes)"}
             </button>
-            <button
-              onClick={() => setFilter("PAYOUT")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === "PAYOUT" ? "bg-blue-500/20 text-blue-400" : "text-gray-400 hover:text-white"}`}
-            >
-              Paiements Livreurs
-            </button>
+            {!isImmo && (
+              <button
+                onClick={() => setFilter("PAYOUT")}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === "PAYOUT" ? "bg-blue-500/20 text-blue-400" : "text-gray-400 hover:text-white"}`}
+              >
+                Paiements Livreurs
+              </button>
+            )}
             <button
               onClick={() => setFilter("EXPENSE")}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === "EXPENSE" ? "bg-red-500/20 text-red-400" : "text-gray-400 hover:text-white"}`}

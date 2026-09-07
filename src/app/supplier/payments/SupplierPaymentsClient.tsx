@@ -167,6 +167,11 @@ export default function SupplierPaymentsClient() {
   };
 
   const totalCompleted = payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+  const totalBilled = payments.reduce((sum, p) => {
+    // Si on a un totalAmount défini, on l'utilise, sinon on suppose que le montant payé était le total
+    return sum + (p.totalAmount ? Number(p.totalAmount) : (Number(p.amount) || 0));
+  }, 0);
+  const collectionRate = totalBilled > 0 ? (totalCompleted / totalBilled) * 100 : 0;
 
   const filteredPayments = payments.filter(p => 
     p.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -190,15 +195,27 @@ export default function SupplierPaymentsClient() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-[#1a1a1a] border border-white/5 rounded-2xl p-6">
           <div className="flex items-center space-x-4">
             <div className="w-12 h-12 bg-blue-500/20 text-blue-500 rounded-xl flex items-center justify-center">
               <Wallet size={24} />
             </div>
             <div>
-              <p className="text-gray-400 text-sm">Total Encaissé</p>
-              <h3 className="text-2xl font-bold text-white">${totalCompleted.toFixed(2)}</h3>
+              <p className="text-gray-400 text-sm">Total Encaissé / Total Attendu</p>
+              <h3 className="text-2xl font-bold text-white">${totalCompleted.toFixed(2)} / ${totalBilled.toFixed(2)}</h3>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-[#1a1a1a] border border-white/5 rounded-2xl p-6">
+          <div className="flex items-center space-x-4">
+            <div className="w-12 h-12 bg-green-500/20 text-green-500 rounded-xl flex items-center justify-center">
+              <DollarSign size={24} />
+            </div>
+            <div>
+              <p className="text-gray-400 text-sm">Taux de Recouvrement</p>
+              <h3 className="text-2xl font-bold text-white">{collectionRate.toFixed(1)}%</h3>
             </div>
           </div>
         </div>

@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 
-export type KpiItem = {
+type KpiItem = {
   title: string;
   value: string;
   subtitle: string;

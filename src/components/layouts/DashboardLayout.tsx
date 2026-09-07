@@ -7,30 +7,29 @@ import { useAuth } from "@/context/AuthContext";
 import { motion } from "framer-motion";
 import { LogOut, Menu, X, Bell, UserCircle, Search, ShieldAlert } from "lucide-react";
 
-export type MenuItem = {
+type MenuItem = {
   title: string;
   href: string;
-  icon: any;
-  colorClass?: {
-    bg: string;
-    text: string;
-  };
+  icon: React.ElementType;
+  badge?: number;
+  requiresPremium?: boolean;
 };
 
-export type ThemeColors = {
-  sidebarBg: string;
-  activeMenuBg: string;
-  activeMenuText: string;
-  accentText: string;
+type ThemeColors = {
+  primary: string;
+  secondary: string;
+  accent: string;
+  bg: string;
 };
 
-export type Notification = {
+type Notification = {
   id: string;
-  type: string;
   title: string;
   message: string;
   time: number;
-  link: string;
+  read?: boolean;
+  type?: string;
+  link?: string;
 };
 
 interface DashboardLayoutProps {

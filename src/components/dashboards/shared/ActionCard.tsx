@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 
-export type ActionItem = {
+type ActionItem = {
   title: string;
   description: string;
   buttonText: string;

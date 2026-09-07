@@ -70,7 +70,7 @@ export default function SuppliersPage() {
         "SUPPLIER", "supplier", "Supplier", 
         "SUPPLIER_IMMO", "supplier_immo",
         "SUB_ADMIN", "sub_admin",
-        "fournisseur", "Fournisseur", "FOURNISSEUR"
+        "SUB_SUPPLIER", "sub_supplier"
       ])
     );
     

@@ -58,10 +58,13 @@ export async function POST(req: Request) {
     });
 
     // 5. Set Custom Claims (Role & Creation lineage)
-    const claims = {
+    const claims: any = {
       role: roleToCreate,
       createdBy: callerRole === 'supplier' ? callerUid : callerRole,
     };
+    if (extraData?.parentSupplierId) {
+      claims.parentSupplierId = extraData.parentSupplierId;
+    }
     await adminAuth.setCustomUserClaims(userRecord.uid, claims);
 
     let additionalData = { ...extraData };

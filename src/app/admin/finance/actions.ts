@@ -5,7 +5,7 @@ import { adminDb } from "@/lib/firebase-admin";
 export async function fetchSuppliersAction() {
   try {
     const usersSnap = await adminDb.collection("users").where("role", "in", ["SUPPLIER", "supplier"]).get();
-    const suppliers = [];
+    const suppliers: any[] = [];
     usersSnap.forEach(doc => {
       const data = doc.data();
       suppliers.push({

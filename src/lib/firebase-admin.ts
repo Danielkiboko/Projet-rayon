@@ -18,33 +18,28 @@ export function initFirebaseAdmin() {
            throw new Error(`FIREBASE_PRIVATE_KEY is missing. Found keys: ${keys}`);
         }
         let privateKey = process.env.FIREBASE_PRIVATE_KEY || '';
-        privateKey = privateKey.trim();
-        // Fix for Vercel/Hostinger where newlines might be stripped or keys have quotes
-        if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
-          privateKey = privateKey.slice(1, -1);
-        } else if (privateKey.startsWith("'") && privateKey.endsWith("'")) {
-          privateKey = privateKey.slice(1, -1);
-        }
         
-        // Handle literal escaped \n
-        privateKey = privateKey.replace(/\\n/g, '\n');
+        // Remove surrounding quotes if any
+        if (privateKey.startsWith('"') && privateKey.endsWith('"')) privateKey = privateKey.slice(1, -1);
+        if (privateKey.startsWith("'") && privateKey.endsWith("'")) privateKey = privateKey.slice(1, -1);
+
+        // Extract and reconstruct the PEM completely to avoid any formatting issues
+        const beginHeader = "-----BEGIN PRIVATE KEY-----";
+        const endHeader = "-----END PRIVATE KEY-----";
         
-        // If the key is just one single line with spaces or no spaces instead of newlines
-        // Sometimes it is completely unformatted string containing BEGIN and END.
-        if (!privateKey.includes('\n') || privateKey.split('\n').length < 3) {
-          const beginHeader = "-----BEGIN PRIVATE KEY-----";
-          const endHeader = "-----END PRIVATE KEY-----";
-          if (privateKey.includes(beginHeader) && privateKey.includes(endHeader)) {
-            const body = privateKey
-              .substring(privateKey.indexOf(beginHeader) + beginHeader.length, privateKey.indexOf(endHeader))
-              .replace(/\s+/g, ""); // remove all whitespaces from the body
+        if (privateKey.includes(beginHeader) && privateKey.includes(endHeader)) {
+          const body = privateKey
+            .substring(privateKey.indexOf(beginHeader) + beginHeader.length, privateKey.indexOf(endHeader))
+            .replace(/\\n/g, "")
+            .replace(/\s+/g, ""); // remove all whitespace and literal \n
             
-            // Reconstruct the key with proper newlines
-            const match = body.match(/.{1,64}/g);
-            if (match) {
-              privateKey = `${beginHeader}\n${match.join('\n')}\n${endHeader}\n`;
-            }
+          const match = body.match(/.{1,64}/g);
+          if (match) {
+            privateKey = `${beginHeader}\n${match.join('\n')}\n${endHeader}\n`;
           }
+        } else {
+          // Fallback if it doesn't contain headers (which it should)
+          privateKey = privateKey.replace(/\\n/g, '\n');
         }
         
         initializeApp({

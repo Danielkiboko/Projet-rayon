@@ -16,10 +16,13 @@ type MenuItem = {
 };
 
 type ThemeColors = {
-  primary: string;
-  secondary: string;
-  accent: string;
-  bg: string;
+  sidebarBg?: string;
+  sidebarText?: string;
+  primaryBtn?: string;
+  primaryBtnHover?: string;
+  accentText?: string;
+  activeMenuBg?: string;
+  activeMenuText?: string;
 };
 
 type Notification = {

@@ -6,7 +6,7 @@ export async function fetchSuppliersAction() {
   try {
     const usersSnap = await adminDb.collection("users").where("role", "in", ["SUPPLIER", "supplier"]).get();
     const suppliers: any[] = [];
-    usersSnap.forEach(doc => {
+    usersSnap.forEach((doc: any) => {
       const data = doc.data();
       suppliers.push({
         id: doc.id,

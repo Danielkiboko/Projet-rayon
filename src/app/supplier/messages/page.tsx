@@ -23,7 +23,8 @@ type ChatMessage = {
 };
 
 export default function SupplierMessagesPage() {
-  const { user } = useAuth();
+  const { user, userData } = useAuth();
+  const activeSupplierId = userData?.parentSupplierId || user?.uid;
   const [chats, setChats] = useState<Chat[]>([]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -34,7 +35,7 @@ export default function SupplierMessagesPage() {
     if (!user) return;
     const q = query(
       collection(db, "chats"),
-      where("supplierId", "==", user.uid)
+      where("supplierId", "==", activeSupplierId)
     );
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const fetchedChats = snapshot.docs.map(doc => ({
@@ -75,7 +76,7 @@ export default function SupplierMessagesPage() {
     try {
       await addDoc(collection(db, "chats", activeChatId, "messages"), {
         text: newChatMessage,
-        senderId: user.uid,
+        senderId: activeSupplierId,
         createdAt: serverTimestamp()
       });
       
@@ -167,7 +168,7 @@ export default function SupplierMessagesPage() {
                   </div>
                 ) : (
                   chatMessages.map(msg => {
-                    const isMe = msg.senderId === user?.uid;
+                    const isMe = msg.senderId === activeSupplierId;
                     const isSystem = msg.senderId === 'system';
                     
                     if (isSystem) {

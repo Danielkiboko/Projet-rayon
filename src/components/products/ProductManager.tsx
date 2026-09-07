@@ -23,6 +23,7 @@ interface ProductManagerProps {
 
 export default function ProductManager({ isAdmin }: ProductManagerProps) {
   const { user, userData } = useAuth();
+  const activeSupplierId = userData?.parentSupplierId || user?.uid;
   const { formatPrice, currency } = useCurrency();
   const [products, setProducts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -90,7 +91,7 @@ export default function ProductManager({ isAdmin }: ProductManagerProps) {
       // Supplier: Fetch only their products
       const fetchSupplierProducts = async () => {
         try {
-          const q = query(collection(db, "products"), where("supplierId", "==", user.uid));
+          const q = query(collection(db, "products"), where("supplierId", "==", activeSupplierId));
           const snapshot = await getDocs(q);
           const prods: any[] = [];
           snapshot.forEach(docSnap => prods.push({ id: docSnap.id, ...docSnap.data() }));
@@ -174,7 +175,7 @@ export default function ProductManager({ isAdmin }: ProductManagerProps) {
       } else {
         await addDoc(collection(db, "products"), {
           ...productData,
-          supplierId: user.uid,
+          supplierId: activeSupplierId,
           status: isAdmin ? "Disponible" : "pending_approval",
           createdAt: serverTimestamp(),
         });
@@ -183,7 +184,7 @@ export default function ProductManager({ isAdmin }: ProductManagerProps) {
       resetForm();
       if (!isAdmin) {
         // Fetch products manually for supplier to refresh list
-        const q = query(collection(db, "products"), where("supplierId", "==", user.uid));
+        const q = query(collection(db, "products"), where("supplierId", "==", activeSupplierId));
         const snapshot = await getDocs(q);
         const prods: any[] = [];
         snapshot.forEach(docSnap => prods.push({ id: docSnap.id, ...docSnap.data() }));

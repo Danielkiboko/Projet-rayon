@@ -43,8 +43,8 @@ export async function POST(req: Request) {
     }
 
     // 3. Enforce Creation Rules
-    if (callerRole === 'supplier' && roleToCreate !== 'driver') {
-      return NextResponse.json({ error: 'Forbidden: Suppliers can only create drivers' }, { status: 403 });
+    if (callerRole === 'supplier' && !['driver', 'SUB_SUPPLIER'].includes(roleToCreate)) {
+      return NextResponse.json({ error: 'Forbidden: Suppliers can only create drivers and sub-suppliers' }, { status: 403 });
     }
     if (callerRole === 'admin' && roleToCreate === 'superAdmin') {
       return NextResponse.json({ error: 'Forbidden: Admins cannot create super admins' }, { status: 403 });

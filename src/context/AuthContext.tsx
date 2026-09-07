@@ -79,7 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       clearTimeout(inactivityTimer);
       // 10 minutes = 10 * 60 * 1000 ms
       inactivityTimer = setTimeout(() => {
-        if (user && userData && (userData.role === 'admin' || userData.role === 'SUB_ADMIN' || userData.role === 'supplier')) {
+        if (user && userData && (userData.role === 'admin' || userData.role === 'SUB_ADMIN' || userData.role === 'supplier' || userData.role === 'SUB_SUPPLIER')) {
           firebaseSignOut(auth).then(() => {
             router.push("/login?reason=inactivity");
           });
@@ -87,7 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }, 10 * 60 * 1000);
     };
 
-    if (user && userData && (userData.role === 'admin' || userData.role === 'SUB_ADMIN' || userData.role === 'supplier')) {
+    if (user && userData && (userData.role === 'admin' || userData.role === 'SUB_ADMIN' || userData.role === 'supplier' || userData.role === 'SUB_SUPPLIER')) {
       window.addEventListener('mousemove', resetTimer);
       window.addEventListener('keydown', resetTimer);
       window.addEventListener('scroll', resetTimer);

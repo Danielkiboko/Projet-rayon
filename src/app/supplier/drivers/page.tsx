@@ -16,7 +16,8 @@ type Driver = {
 };
 
 export default function SupplierDriversPage() {
-  const { user } = useAuth();
+  const { user, userData } = useAuth();
+  const activeSupplierId = userData?.parentSupplierId || user?.uid;
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -35,7 +36,7 @@ export default function SupplierDriversPage() {
       const q = query(
         collection(db, "users"),
         where("role", "==", "driver"),
-        where("createdBy", "==", user.uid)
+        where("createdBy", "==", activeSupplierId)
       );
       const snapshot = await getDocs(q);
       const fetchedDrivers = snapshot.docs.map(doc => ({

@@ -41,7 +41,8 @@ const getStatusBadge = (status: string) => {
 };
 
 export default function SupplierOrdersPage() {
-  const { user } = useAuth();
+  const { user, userData } = useAuth();
+  const activeSupplierId = userData?.parentSupplierId || user?.uid;
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const [orders, setOrders] = useState<Order[]>([]);
@@ -54,7 +55,7 @@ export default function SupplierOrdersPage() {
     // We query the array-contains.
     const q = query(
       collection(db, "orders"),
-      where("supplierIds", "array-contains", user.uid),
+      where("supplierIds", "array-contains", activeSupplierId),
       orderBy("createdAt", "desc")
     );
 
@@ -150,7 +151,7 @@ export default function SupplierOrdersPage() {
               ) : (
                 filteredOrders.map((order, index) => {
                   // Filter out items that are not from this supplier
-                  const myItems = order.items?.filter(item => item.supplierId === user?.uid) || [];
+                  const myItems = order.items?.filter(item => item.supplierId === activeSupplierId) || [];
                   const myItemsCount = myItems.reduce((acc, item) => acc + (item.quantity || 1), 0);
                   const myTotal = myItems.reduce((acc, item) => acc + (item.price * (item.quantity || 1)), 0);
 

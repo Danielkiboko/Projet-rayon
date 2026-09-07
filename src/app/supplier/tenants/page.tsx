@@ -41,7 +41,8 @@ export default function SupplierTenantsPage() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { user } = useAuth();
+  const { user, userData } = useAuth();
+  const activeSupplierId = userData?.parentSupplierId || user?.uid;
 
   // Form State
   const [name, setName] = useState("");
@@ -66,13 +67,13 @@ export default function SupplierTenantsPage() {
     try {
 
       // Fetch Properties
-      const propsQuery = query(collection(db, "properties"), where("supplierId", "==", user.uid));
+      const propsQuery = query(collection(db, "properties"), where("supplierId", "==", activeSupplierId));
       const propsSnap = await getDocs(propsQuery);
       const propsData = propsSnap.docs.map(d => ({ id: d.id, ...d.data() })) as Property[];
       setProperties(propsData);
 
       // Fetch Tenants
-      const tenantsQuery = query(collection(db, "tenants"), where("supplierId", "==", user.uid));
+      const tenantsQuery = query(collection(db, "tenants"), where("supplierId", "==", activeSupplierId));
       const tenantsSnap = await getDocs(tenantsQuery);
       const tenantsData = tenantsSnap.docs.map(d => {
         const data = d.data();
@@ -142,7 +143,7 @@ export default function SupplierTenantsPage() {
       }
 
       const newTenant = {
-        supplierId: user.uid,
+        supplierId: activeSupplierId,
         name,
         phone,
         email,

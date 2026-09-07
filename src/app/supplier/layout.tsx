@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { ShieldAlert, LayoutDashboard, Package, ShoppingCart, Truck, Wallet, CreditCard } from "lucide-react";
+import { ShieldAlert, LayoutDashboard, Package, ShoppingCart, Truck, Wallet, CreditCard, Users } from "lucide-react";
 import { themeConfig } from "@/lib/themeConfig";
 import ProfileUpdateModal from "@/components/ProfileUpdateModal";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
@@ -22,9 +22,21 @@ export default function SupplierLayout({
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // Redirect to billing if trial expired
+  // Redirect to billing if trial expired, or redirect sub-suppliers lacking permissions
   useEffect(() => {
     if (!loading && user && userData && isSupplier(userData)) {
+      // Permission check for SUB_SUPPLIER
+      if (userData.role === 'SUB_SUPPLIER') {
+        const allowed = pathname === '/supplier' || 
+                        pathname === '/supplier/settings' || 
+                        pathname === '/supplier/billing' || 
+                        (Array.isArray(userData.permissions) && userData.permissions.some((p: string) => pathname.startsWith(p)));
+        if (!allowed) {
+          router.push('/supplier');
+          return;
+        }
+      }
+
       // Don't redirect if they are already on the billing page
       if (pathname === "/supplier/billing") return;
 
@@ -110,8 +122,19 @@ export default function SupplierLayout({
 
   const service = getSupplierType(userData);
   const theme = themeConfig[service] || themeConfig["default"];
-  const navItems = theme.menu;
+  let navItems = [...theme.menu];
 
+  // Le fournisseur principal peut voir le menu Équipe
+  if (userData?.role !== 'SUB_SUPPLIER') {
+    navItems.push({ title: "Équipe", href: "/supplier/team", icon: Users as any });
+  }
+
+  // Le sous-fournisseur ne voit que ce qui est dans ses permissions (et le dashboard)
+  if (userData?.role === 'SUB_SUPPLIER' && Array.isArray(userData?.permissions)) {
+    navItems = navItems.filter(item => 
+      item.href === '/supplier' || userData.permissions.includes(item.href)
+    );
+  }
   return (
     <DashboardLayout
       menuItems={navItems}

@@ -31,7 +31,8 @@ interface Tenant {
 }
 
 export default function SupplierPaymentsClient() {
-  const { user } = useAuth();
+  const { user, userData } = useAuth();
+  const activeSupplierId = userData?.parentSupplierId || user?.uid;
   
   const [payments, setPayments] = useState<Payment[]>([]);
   const [tenants, setTenants] = useState<Tenant[]>([]);
@@ -56,7 +57,7 @@ export default function SupplierPaymentsClient() {
     // Fetch Payments
     const qPayments = query(
       collection(db, "payments"),
-      where("supplierId", "==", user.uid),
+      where("supplierId", "==", activeSupplierId),
       orderBy("createdAt", "desc")
     );
 
@@ -72,7 +73,7 @@ export default function SupplierPaymentsClient() {
     // Fetch Tenants
     const qTenants = query(
       collection(db, "tenants"),
-      where("supplierId", "==", user.uid)
+      where("supplierId", "==", activeSupplierId)
     );
 
     const unsubscribeTenants = onSnapshot(qTenants, (snapshot) => {
@@ -136,7 +137,7 @@ export default function SupplierPaymentsClient() {
 
     try {
       await addDoc(collection(db, "payments"), {
-        supplierId: user?.uid,
+        supplierId: activeSupplierId,
         tenantId: selectedTenant || null,
         clientName,
         totalAmount: numTotal,

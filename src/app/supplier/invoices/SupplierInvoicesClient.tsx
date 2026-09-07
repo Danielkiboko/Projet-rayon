@@ -20,6 +20,7 @@ interface Tenant {
 
 export default function SupplierInvoices() {
   const { user, userData } = useAuth();
+  const activeSupplierId = userData?.parentSupplierId || user?.uid;
   
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,7 +39,7 @@ export default function SupplierInvoices() {
 
     const q = query(
       collection(db, "tenants"),
-      where("supplierId", "==", user.uid)
+      where("supplierId", "==", activeSupplierId)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -192,7 +193,7 @@ export default function SupplierInvoices() {
 
       // 3. Save to Firestore
       await addDoc(collection(db, "invoices"), {
-        supplierId: user?.uid,
+        supplierId: activeSupplierId,
         tenantId: tenant.id,
         tenantName: tenant.name,
         type: invoiceType,

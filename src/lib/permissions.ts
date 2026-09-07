@@ -26,7 +26,7 @@ export const hasAdminAccess = (user: any, userData: any): boolean => {
  */
 export const isSupplier = (userData: any): boolean => {
   const role = userData?.role?.toUpperCase();
-  return role === "SUPPLIER" || role === "SUPPLIER_IMMO";
+  return role === "SUPPLIER" || role === "SUPPLIER_IMMO" || role === "SUB_SUPPLIER";
 };
 
 /**

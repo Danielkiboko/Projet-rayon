@@ -22,6 +22,7 @@ interface Transaction {
 
 export default function SupplierFinancePage() {
   const { user, userData, loading } = useAuth();
+  const activeSupplierId = userData?.parentSupplierId || user?.uid;
   const router = useRouter();
   
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -47,14 +48,14 @@ export default function SupplierFinancePage() {
       // 1. Fetch manual transactions
       const qTx = query(
         collection(db, "supplier_transactions"), 
-        where("supplierId", "==", user.uid),
+        where("supplierId", "==", activeSupplierId),
         orderBy("createdAt", "desc")
       );
       
       // 2. Fetch orders to extract automatic sales
       const qOrders = query(
         collection(db, "orders"),
-        where("supplierIds", "array-contains", user.uid),
+        where("supplierIds", "array-contains", activeSupplierId),
         orderBy("createdAt", "desc")
       );
 
@@ -98,7 +99,7 @@ export default function SupplierFinancePage() {
               referenceId: doc.id,
               status: "COMPLETED",
               createdAt: order.createdAt,
-              supplierId: user.uid
+              supplierId: activeSupplierId
             });
           }
         });
@@ -122,7 +123,7 @@ export default function SupplierFinancePage() {
     setIsSubmitting(true);
     try {
       await addDoc(collection(db, "supplier_transactions"), {
-        supplierId: user.uid,
+        supplierId: activeSupplierId,
         type: txType,
         amount: Number(amount),
         currency: "USD",
@@ -130,7 +131,7 @@ export default function SupplierFinancePage() {
         referenceId: referenceId || null,
         status: "COMPLETED",
         createdAt: serverTimestamp(),
-        createdBy: user.uid
+        createdBy: activeSupplierId
       });
       setIsModalOpen(false);
       setAmount("");

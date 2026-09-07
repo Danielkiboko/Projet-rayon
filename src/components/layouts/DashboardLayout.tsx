@@ -13,6 +13,10 @@ type MenuItem = {
   icon: React.ElementType;
   badge?: number;
   requiresPremium?: boolean;
+  colorClass?: {
+    bg: string;
+    text: string;
+  };
 };
 
 type ThemeColors = {
@@ -194,7 +198,7 @@ export default function DashboardLayout({
                         notifications.map((notif) => (
                           <Link 
                             key={notif.id} 
-                            href={notif.link}
+                            href={notif.link || "#"}
                             onClick={() => setIsNotifOpen(false)}
                             className="block p-4 border-b border-white/5 hover:bg-white/5 transition-colors"
                           >

@@ -3,16 +3,16 @@ rules_version = '2';
 service cloud.firestore {
   // Helper to check role
   function isSuperAdmin() {
-    return request.auth.token.role == 'superAdmin';
+    return request.auth.token.role == 'superAdmin' || request.auth.token.role == 'SUPER_ADMIN' || request.auth.token.email == 'danielkiboko218@gmail.com';
   }
   function isAdmin() {
-    return request.auth.token.role == 'admin' || isSuperAdmin();
+    return request.auth.token.role == 'admin' || request.auth.token.role == 'ADMIN' || request.auth.token.role == 'SUB_ADMIN' || isSuperAdmin();
   }
   function isSupplier() {
-    return request.auth.token.role == 'supplier';
+    return request.auth.token.role == 'supplier' || request.auth.token.role == 'SUPPLIER' || request.auth.token.role == 'SUPPLIER_IMMO';
   }
   function isDriver() {
-    return request.auth.token.role == 'driver';
+    return request.auth.token.role == 'driver' || request.auth.token.role == 'DRIVER';
   }
 
   match /databases/{database}/documents {

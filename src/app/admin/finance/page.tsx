@@ -4,9 +4,10 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Wallet, ArrowDownRight, ArrowUpRight, Plus, Download, X, Search, FileText } from "lucide-react";
 import { db } from "@/lib/firebase";
-import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, updateDoc } from "firebase/firestore";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
+import { fetchSuppliersAction } from "./actions";
 
 interface Transaction {
   id: string;
@@ -17,6 +18,14 @@ interface Transaction {
   referenceId?: string;
   status: "COMPLETED" | "PENDING";
   createdAt: any;
+}
+
+interface User {
+  id: string;
+  displayName: string;
+  email: string;
+  subscriptionEndDate?: any;
+  subscriptionStatus?: string;
 }
 
 import { hasAdminAccess } from "@/lib/permissions";
@@ -30,18 +39,32 @@ export default function AdminFinancePage() {
   const [filter, setFilter] = useState("ALL");
   const [search, setSearch] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [suppliers, setSuppliers] = useState<User[]>([]);
 
   // Form states
   const [txType, setTxType] = useState<"SUBSCRIPTION" | "EXPENSE" | "OTHER_INCOME">("SUBSCRIPTION");
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [referenceId, setReferenceId] = useState("");
+  const [selectedSupplierId, setSelectedSupplierId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (!loading && !hasAdminAccess(user, userData)) {
       router.push("/");
       return;
+    }
+
+    const fetchSuppliers = async () => {
+      try {
+        const sups = await fetchSuppliersAction();
+        setSuppliers(sups as any);
+      } catch (err) {
+        console.error("Error fetching suppliers:", err);
+      }
+    };
+    if (hasAdminAccess(user, userData)) {
+      fetchSuppliers();
     }
 
     const q = query(collection(db, "transactions"), orderBy("createdAt", "desc"));
@@ -64,22 +87,73 @@ export default function AdminFinancePage() {
     e.preventDefault();
     if (!amount || isNaN(Number(amount))) return;
     
+    if (txType === "SUBSCRIPTION" && !selectedSupplierId) {
+      alert("Veuillez sélectionner un fournisseur");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
+      const txRefId = referenceId || `MANUAL-${Math.floor(Math.random() * 1000000)}`;
+      let finalDescription = description;
+
+      if (txType === "SUBSCRIPTION") {
+        const supplier = suppliers.find(s => s.id === selectedSupplierId);
+        if (supplier) {
+          finalDescription = `Paiement Abonnement - ${supplier.displayName || supplier.email || 'Fournisseur'}`;
+          
+          // Calculer la nouvelle date
+          const now = new Date();
+          let baseDate = new Date(now.getTime());
+          if (supplier.subscriptionEndDate) {
+            // Because it's coming from server action or state, it might be an ISO string or a timestamp
+            const currentEnd = typeof supplier.subscriptionEndDate === 'string' 
+              ? new Date(supplier.subscriptionEndDate) 
+              : (supplier.subscriptionEndDate as any).toDate?.() || new Date(supplier.subscriptionEndDate);
+            
+            if (currentEnd > now) {
+              baseDate = new Date(currentEnd.getTime());
+            }
+          }
+          const newEndDate = new Date(baseDate.setDate(baseDate.getDate() + 30));
+
+          // Mettre à jour l'utilisateur
+          await updateDoc(doc(db, "users", selectedSupplierId), {
+            subscriptionStatus: "ACTIVE",
+            subscriptionEndDate: newEndDate.toISOString()
+          });
+
+          // Ajouter dans supplier_transactions
+          await addDoc(collection(db, "supplier_transactions"), {
+            supplierId: selectedSupplierId,
+            type: "EXPENSE",
+            amount: Number(amount),
+            currency: "USD",
+            description: "Paiement Abonnement Plateforme (Manuel)",
+            referenceId: txRefId,
+            status: "COMPLETED",
+            createdAt: serverTimestamp(),
+            createdBy: user?.uid
+          });
+        }
+      }
+
       await addDoc(collection(db, "transactions"), {
         type: txType,
         amount: Number(amount),
         currency: "USD",
-        description,
-        referenceId: referenceId || null,
+        description: finalDescription,
+        referenceId: txRefId,
         status: "COMPLETED",
         createdAt: serverTimestamp(),
-        createdBy: user?.uid
+        createdBy: user?.uid,
+        supplierId: txType === "SUBSCRIPTION" ? selectedSupplierId : null
       });
       setIsModalOpen(false);
       setAmount("");
       setDescription("");
       setReferenceId("");
+      setSelectedSupplierId("");
       setTxType("SUBSCRIPTION");
     } catch (error) {
       console.error("Error adding transaction:", error);
@@ -304,21 +378,72 @@ export default function AdminFinancePage() {
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                     className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white"
-                    placeholder="ex: 150.00"
+                    placeholder="ex: 20.00"
                   />
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-sm font-medium text-gray-300">Description</label>
-                  <input
-                    type="text"
-                    required
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white"
-                    placeholder="ex: Abonnement Magasin Mode XYZ"
-                  />
-                </div>
+                {txType === "SUBSCRIPTION" ? (
+                  <div className="space-y-4">
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium text-gray-300">Fournisseur</label>
+                      <select 
+                        value={selectedSupplierId}
+                        onChange={(e) => setSelectedSupplierId(e.target.value)}
+                        required
+                        className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white"
+                      >
+                        <option value="">Sélectionnez un fournisseur</option>
+                        {suppliers.map(s => (
+                          <option key={s.id} value={s.id}>
+                            {s.displayName || s.email}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    {selectedSupplierId && (
+                      <div className="p-4 bg-white/5 border border-white/10 rounded-lg text-sm text-gray-300">
+                        {(() => {
+                          const sup = suppliers.find(s => s.id === selectedSupplierId);
+                          if (!sup) return null;
+                          const currentEnd = sup.subscriptionEndDate ? (typeof sup.subscriptionEndDate === 'string' ? new Date(sup.subscriptionEndDate) : (sup.subscriptionEndDate as any).toDate?.() || new Date(sup.subscriptionEndDate)) : null;
+                          const hasEnd = !!currentEnd;
+                          const isExpired = !currentEnd || currentEnd < new Date();
+                          
+                          let baseDate = new Date();
+                          if (currentEnd && currentEnd > new Date()) {
+                            baseDate = new Date(currentEnd.getTime());
+                          }
+                          const nextEnd = new Date(baseDate.setDate(baseDate.getDate() + 30));
+
+                          return (
+                            <div className="space-y-2">
+                              <p>
+                                Statut actuel : <span className={isExpired ? "text-red-400 font-medium" : "text-green-400 font-medium"}>
+                                  {hasEnd ? (isExpired ? `Expiré depuis le ${currentEnd.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}` : `À jour jusqu'au ${currentEnd.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}`) : "Jamais abonné"}
+                                </span>
+                              </p>
+                              <p className="text-blue-400">
+                                Après ce paiement, l'abonnement sera valable jusqu'au : <strong>{nextEnd.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}</strong>
+                              </p>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium text-gray-300">Description</label>
+                    <input
+                      type="text"
+                      required
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white"
+                      placeholder="ex: Investissement, Vente matériel, etc."
+                    />
+                  </div>
+                )}
                 
                 <div className="space-y-1">
                   <label className="text-sm font-medium text-gray-300">Référence (Optionnel)</label>

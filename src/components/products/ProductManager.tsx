@@ -35,8 +35,7 @@ export default function ProductManager({ isAdmin }: ProductManagerProps) {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [productTitleFr, setProductTitleFr] = useState("");
-  const [productTitleEn, setProductTitleEn] = useState("");
+  const [productTitle, setProductTitle] = useState("");
   const [productCategory, setProductCategory] = useState("");
   const [productPrice, setProductPrice] = useState("");
   const [productStock, setProductStock] = useState("");
@@ -54,11 +53,9 @@ export default function ProductManager({ isAdmin }: ProductManagerProps) {
     onAiDataParsed: (autoFill) => {
       if (autoFill.title) {
         if (typeof autoFill.title === 'string') {
-          setProductTitleFr(autoFill.title);
-          setProductTitleEn(autoFill.title);
+          setProductTitle(autoFill.title);
         } else {
-          setProductTitleFr(autoFill.title.fr || autoFill.title.français || "");
-          setProductTitleEn(autoFill.title.en || autoFill.title.english || "");
+          setProductTitle(autoFill.title.fr || autoFill.title.en || autoFill.title.français || "");
         }
       }
       if (autoFill.category) setProductCategory(autoFill.category);
@@ -114,8 +111,7 @@ export default function ProductManager({ isAdmin }: ProductManagerProps) {
 
   const resetForm = () => {
     setEditingId(null);
-    setProductTitleFr("");
-    setProductTitleEn("");
+    setProductTitle("");
     setProductCategory("");
     setProductPrice("");
     setProductStock("");
@@ -135,11 +131,9 @@ export default function ProductManager({ isAdmin }: ProductManagerProps) {
     
     // Handle bilingual or string titles
     if (typeof product.title === 'object' && product.title !== null) {
-      setProductTitleFr(product.title.fr || "");
-      setProductTitleEn(product.title.en || "");
+      setProductTitle(product.title.fr || product.title.en || "");
     } else {
-      setProductTitleFr(product.title as string || "");
-      setProductTitleEn(product.title as string || "");
+      setProductTitle(product.title as string || "");
     }
     
     setProductPrice(product.price?.toString() || "");
@@ -166,7 +160,7 @@ export default function ProductManager({ isAdmin }: ProductManagerProps) {
     setIsProcessing(true);
 
     const productData = {
-      title: { fr: productTitleFr, en: productTitleEn }, // Unified Data Model
+      title: { fr: productTitle, en: productTitle }, // Unified Data Model
       category: productCategory,
       price: parseFloat(productPrice),
       stock: parseInt(productStock || "0", 10),
@@ -532,29 +526,16 @@ export default function ProductManager({ isAdmin }: ProductManagerProps) {
                 )}
 
                 {/* Form Fields */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium text-gray-300">Titre (Français)</label>
-                    <input
-                      type="text"
-                      required
-                      value={productTitleFr}
-                      onChange={(e) => setProductTitleFr(e.target.value)}
-                      placeholder="Ex: Veste en cuir"
-                      className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium text-gray-300">Titre (Anglais)</label>
-                    <input
-                      type="text"
-                      required
-                      value={productTitleEn}
-                      onChange={(e) => setProductTitleEn(e.target.value)}
-                      placeholder="Ex: Leather Jacket"
-                      className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white"
-                    />
-                  </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium text-gray-300">Titre</label>
+                  <input
+                    type="text"
+                    required
+                    value={productTitle}
+                    onChange={(e) => setProductTitle(e.target.value)}
+                    placeholder="Ex: Veste en cuir"
+                    className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white"
+                  />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -572,14 +553,31 @@ export default function ProductManager({ isAdmin }: ProductManagerProps) {
                   </div>
                   <div className="space-y-1">
                     <label className="text-sm font-medium text-gray-300">Quantité en stock</label>
-                    <input
-                      type="number"
-                      required
-                      value={productStock}
-                      onChange={(e) => setProductStock(e.target.value)}
-                      placeholder="0"
-                      className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white"
-                    />
+                    <div className="flex items-center space-x-2">
+                      <button 
+                        type="button" 
+                        onClick={() => setProductStock(String(Math.max(0, parseInt(productStock || "0") - 1)))}
+                        className="p-2 bg-black/20 border border-white/10 rounded-lg hover:bg-white/10 transition-colors text-white"
+                      >
+                        -
+                      </button>
+                      <input
+                        type="number"
+                        required
+                        min="0"
+                        value={productStock}
+                        onChange={(e) => setProductStock(e.target.value)}
+                        placeholder="0"
+                        className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white text-center"
+                      />
+                      <button 
+                        type="button" 
+                        onClick={() => setProductStock(String(parseInt(productStock || "0") + 1))}
+                        className="p-2 bg-black/20 border border-white/10 rounded-lg hover:bg-white/10 transition-colors text-white"
+                      >
+                        +
+                      </button>
+                    </div>
                   </div>
                 </div>
 

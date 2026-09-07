@@ -17,23 +17,26 @@ export function initFirebaseAdmin() {
            const keys = Object.keys(process.env).filter(k => k.includes('FIREBASE')).join(', ');
            throw new Error(`FIREBASE_PRIVATE_KEY is missing. Found keys: ${keys}`);
         }
-        let privateKey = process.env.FIREBASE_PRIVATE_KEY;
+        let privateKey = process.env.FIREBASE_PRIVATE_KEY || '';
+        privateKey = privateKey.trim();
         // Fix for Vercel/Hostinger where newlines might be stripped or keys have quotes
         if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
           privateKey = privateKey.slice(1, -1);
         } else if (privateKey.startsWith("'") && privateKey.endsWith("'")) {
           privateKey = privateKey.slice(1, -1);
         }
+        
+        // Handle literal escaped \n
         privateKey = privateKey.replace(/\\n/g, '\n');
         
-        // If the key is just one single line with spaces instead of newlines (common copy-paste error)
-        if (!privateKey.includes('\n')) {
+        // If the key is just one single line with spaces or no spaces instead of newlines
+        // Sometimes it is completely unformatted string containing BEGIN and END.
+        if (!privateKey.includes('\n') || privateKey.split('\n').length < 3) {
           const beginHeader = "-----BEGIN PRIVATE KEY-----";
           const endHeader = "-----END PRIVATE KEY-----";
           if (privateKey.includes(beginHeader) && privateKey.includes(endHeader)) {
             const body = privateKey
-              .replace(beginHeader, "")
-              .replace(endHeader, "")
+              .substring(privateKey.indexOf(beginHeader) + beginHeader.length, privateKey.indexOf(endHeader))
               .replace(/\s+/g, ""); // remove all whitespaces from the body
             
             // Reconstruct the key with proper newlines
@@ -53,10 +56,15 @@ export function initFirebaseAdmin() {
         });
       }
       console.log('Firebase Admin initialized successfully.');
+      // Clear any previous init errors on successful retry
+      adminInitError = null;
     } catch (error) {
       console.error('Firebase Admin initialization error', error);
       adminInitError = error;
     }
+  } else {
+    // If apps exist, clear the error
+    adminInitError = null;
   }
 }
 

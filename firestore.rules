@@ -131,7 +131,7 @@ service cloud.firestore {
     match /supplier_transactions/{transactionId} {
       allow create: if isSupplier() && request.resource.data.supplierId == request.auth.uid;
       allow read, update, delete: if isSupplier() && resource.data.supplierId == request.auth.uid;
-      allow read, update, delete: if isSuperAdmin() || isAdmin();
+      allow read, write: if isSuperAdmin() || isAdmin();
     }
   }
 }

@@ -1,10 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
 import { Package, ShoppingCart, DollarSign, Truck } from "lucide-react";
-import { useAuth } from "@/context/AuthContext";
-import RevenueAreaChart from "@/components/charts/RevenueAreaChart";
 import { useCurrency } from "@/context/CurrencyContext";
 import GenericDashboard, { KpiConfig, ActionConfig } from "./shared/GenericDashboard";
 import { useSupplierDashboardStats } from "@/hooks/useSupplierDashboardStats";

@@ -6,11 +6,8 @@ export const isSuperAdmin = (user: any, userData: any): boolean => {
   return user?.email === "danielkiboko218@gmail.com" || userData?.role === "SUPER_ADMIN";
 };
 
-/**
- * Checks if the user is a Sub Admin.
- * Sub Admin has elevated privileges but might be restricted on certain destructive actions.
- */
-export const isSubAdmin = (userData: any): boolean => {
+
+const isSubAdmin = (userData: any): boolean => {
   return userData?.role === "SUB_ADMIN";
 };
 

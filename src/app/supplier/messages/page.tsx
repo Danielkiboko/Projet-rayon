@@ -11,6 +11,8 @@ type Chat = {
   id: string;
   clientId: string;
   supplierId: string;
+  propertyTitle?: string;
+  productName?: string;
   lastMessage: string;
   updatedAt: any;
 };
@@ -128,7 +130,9 @@ export default function SupplierMessagesPage() {
                       <User size={18} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-white truncate">Client: {chat.clientId.substring(0,6)}...</p>
+                      <p className="text-sm font-medium text-white truncate">
+                        {chat.propertyTitle ? `Bien: ${chat.propertyTitle}` : chat.productName ? `Produit: ${chat.productName}` : `Client: ${chat.clientId.substring(0,6)}...`}
+                      </p>
                       <p className="text-xs text-gray-400 truncate mt-0.5">{chat.lastMessage || "Nouveau message"}</p>
                     </div>
                   </button>

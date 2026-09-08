@@ -107,7 +107,10 @@ export default function DriversPage() {
       setEmail("");
       setPhoneNumber("");
       setIsModalOpen(false);
-      setSuccessMessage(`Le compte livreur a été créé. ${notificationMethod === 'email' ? 'Un e-mail a été envoyé à ' + email + ' pour qu\\'il configure son mot de passe.' : 'Un SMS a été envoyé au ' + phoneNumber + ' avec le mot de passe.'}`);
+      const methodMsg = notificationMethod === 'email' 
+        ? `Un e-mail a été envoyé à ${email} pour qu'il configure son mot de passe.` 
+        : `Un SMS a été envoyé au ${phoneNumber} avec le mot de passe.`;
+      setSuccessMessage(`Le compte livreur a été créé. ${methodMsg}`);
       
       // Refresh list
       fetchDrivers();

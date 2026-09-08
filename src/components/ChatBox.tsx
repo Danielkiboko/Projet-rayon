@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Send, Loader2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -69,6 +69,13 @@ export function ChatBox({ chatId, otherUserName = "Utilisateur" }: ChatBoxProps)
         text: messageText,
         senderId: user.uid,
         createdAt: serverTimestamp(),
+      });
+      await updateDoc(doc(db, "chats", chatId), {
+        lastMessage: messageText,
+        lastMessageTime: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        unreadClient: true,
+        notified: false
       });
       scrollToBottom();
     } catch (error) {

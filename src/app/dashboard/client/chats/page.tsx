@@ -81,7 +81,7 @@ export default function ClientChatsPage() {
                         }`}
                       >
                         <div className="font-medium text-gray-900">
-                          {chat.propertyTitle || "Agent Immobilier"}
+                          {chat.propertyTitle || chat.productName || "Agent / Vendeur"}
                         </div>
                         <div className="text-xs text-gray-500 mt-1 truncate">
                           Cliquez pour voir les messages
@@ -99,7 +99,7 @@ export default function ClientChatsPage() {
             {activeChatId ? (
               <ChatBox 
                 chatId={activeChatId} 
-                otherUserName={chats.find(c => c.id === activeChatId)?.propertyTitle || "Agent"} 
+                otherUserName={chats.find(c => c.id === activeChatId)?.propertyTitle || chats.find(c => c.id === activeChatId)?.productName || "Agent / Vendeur"} 
               />
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center text-gray-400">

@@ -90,11 +90,6 @@ export default function ProductDetails({ params }: { params: { id: string } }) {
   };
 
   const handleOpenChat = () => {
-    if (!user) {
-      alert("Veuillez vous connecter pour contacter le vendeur.");
-      router.push("/login");
-      return;
-    }
     setIsChatOpen(true);
   };
 

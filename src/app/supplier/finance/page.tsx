@@ -124,10 +124,13 @@ export default function SupplierFinancePage() {
             const order = doc.data();
             const status = (order.status || "").toUpperCase();
             if (status === "COMPLETED" || status === "LIVRÉE" || status === "DELIVERED") {
+              const myItems = order.items?.filter((item: any) => item.supplierId === activeSupplierId) || [];
+              const myTotal = myItems.reduce((acc: number, item: any) => acc + (item.price * (item.quantity || 1)), 0);
+              
               data.push({
                 id: `order_${doc.id}`,
                 type: "INCOME",
-                amount: order.itemsTotal || 0,
+                amount: myTotal,
                 currency: "USD",
                 description: `Vente en ligne (Cmd #${doc.id.substring(0,6).toUpperCase()})`,
                 referenceId: doc.id,

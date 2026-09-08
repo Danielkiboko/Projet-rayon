@@ -20,7 +20,8 @@ const groupPaymentsByDate = (payments: any[]) => {
 };
 
 export function useSupplierDashboardStats(productsCollectionName = "products") {
-  const { user } = useAuth();
+  const { user, userData } = useAuth();
+  const activeSupplierId = userData?.parentSupplierId || user?.uid;
   
   const [stats, setStats] = useState({
     totalProducts: 0,
@@ -34,17 +35,17 @@ export function useSupplierDashboardStats(productsCollectionName = "products") {
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !activeSupplierId) return;
 
     // We allow fetching from different product collections (e.g., 'properties' for Immo)
-    const qProps = query(collection(db, productsCollectionName), where("supplierId", "==", user.uid));
+    const qProps = query(collection(db, productsCollectionName), where("supplierId", "==", activeSupplierId));
     const unsubProducts = onSnapshot(qProps, (snapshot) => {
       setStats(prev => ({ ...prev, totalProducts: snapshot.size }));
     });
 
     const qOrders = query(
       collection(db, "orders"),
-      where("supplierIds", "array-contains", user.uid),
+      where("supplierIds", "array-contains", activeSupplierId),
       orderBy("createdAt", "desc"),
       limit(50)
     );
@@ -58,11 +59,16 @@ export function useSupplierDashboardStats(productsCollectionName = "products") {
 
       snapshot.docs.forEach(doc => {
         const data = doc.data();
-        ordersData.push({ id: doc.id, ...data });
+        
+        // Calculate supplier specific portion
+        const myItems = data.items?.filter((item: any) => item.supplierId === activeSupplierId) || [];
+        const myTotal = myItems.reduce((acc: number, item: any) => acc + (item.price * (item.quantity || 1)), 0);
 
-        if (data.status === "COMPLETED") {
-          revenue += (data.itemsTotal || 0);
-          paymentsForChart.push({ createdAt: data.createdAt, amount: data.itemsTotal || 0 });
+        ordersData.push({ id: doc.id, myTotal, ...data });
+
+        if (data.status === "COMPLETED" || data.status === "LIVRÉE" || data.status === "DELIVERED") {
+          revenue += myTotal;
+          paymentsForChart.push({ createdAt: data.createdAt, amount: myTotal });
         } else {
           active++;
           if (data.status === "PENDING" || data.status === "CONFIRMED_AWAITING_DRIVER") {
@@ -81,7 +87,7 @@ export function useSupplierDashboardStats(productsCollectionName = "products") {
       unsubProducts();
       unsubOrders();
     };
-  }, [user, productsCollectionName]);
+  }, [user, activeSupplierId, productsCollectionName]);
 
   return { stats, loading, revenueData, recentOrders };
 }

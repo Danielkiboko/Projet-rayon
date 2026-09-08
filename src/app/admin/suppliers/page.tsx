@@ -270,7 +270,10 @@ export default function SuppliersPage() {
       setRayon("");
       setRole("supplier");
       setIsModalOpen(false);
-      setSuccessMessage(`Le compte fournisseur a été créé. ${notificationMethod === 'email' ? 'Un e-mail a été envoyé à ' + email + ' pour qu\\'il configure son mot de passe.' : 'Un SMS a été envoyé au ' + phoneNumber + ' avec le mot de passe.'}`);
+      const methodMsg = notificationMethod === 'email' 
+        ? `Un e-mail a été envoyé à ${email} pour qu'il configure son mot de passe.` 
+        : `Un SMS a été envoyé au ${phoneNumber} avec le mot de passe.`;
+      setSuccessMessage(`Le compte fournisseur a été créé. ${methodMsg}`);
       
       // Refresh list
       fetchSuppliers();

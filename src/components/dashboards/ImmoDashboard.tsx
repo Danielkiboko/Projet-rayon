@@ -205,13 +205,15 @@ export default function ImmoDashboard() {
       return;
     }
     try {
-      const q = query(collection(db, "chats"), where("clientId", "==", visit.clientId), where("supplierId", "==", user?.uid));
+      const q = query(collection(db, "chats"), where("clientId", "==", visit.clientId), where("supplierId", "==", user?.uid), where("propertyId", "==", visit.propertyId));
       const snap = await getDocs(q);
       if (snap.empty) {
-        await import("firebase/firestore").then(async ({ addDoc, serverTimestamp }) => {
-          await addDoc(collection(db, "chats"), {
+        await import("firebase/firestore").then(async ({ setDoc, doc, serverTimestamp }) => {
+          const chatId = `${visit.clientId}_${user?.uid}_${visit.propertyId}`;
+          await setDoc(doc(db, "chats", chatId), {
             clientId: visit.clientId,
             supplierId: user?.uid,
+            propertyId: visit.propertyId,
             propertyTitle: visit.propertyTitle,
             lastMessage: "",
             updatedAt: serverTimestamp(),

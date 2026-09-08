@@ -72,13 +72,14 @@ export function ImmoContactModal({ isOpen, onClose, property }: ImmoContactModal
       });
 
       if (user?.uid && property.supplierId) {
-        const chatId = `${user.uid}_${property.supplierId}`;
+        const chatId = `${user.uid}_${property.supplierId}_${property.id}`;
         const msgText = `Demande de visite pour le bien: ${propertyTitle}. Nom: ${name}. Téléphone: ${phone}. Date souhaitée: ${date || "Non spécifiée"}. GPS: ${visitorCoords ? 'Oui' : 'Non'}`;
 
         await setDoc(doc(db, "chats", chatId), {
           clientId: user.uid,
           supplierId: property.supplierId,
-          lastProductId: property.id,
+          propertyId: property.id,
+          propertyTitle: propertyTitle,
           lastMessage: msgText,
           lastMessageTime: serverTimestamp(),
           updatedAt: serverTimestamp(),

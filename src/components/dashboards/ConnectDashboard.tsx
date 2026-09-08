@@ -52,7 +52,7 @@ export default function ConnectDashboard() {
           <td className="p-4 font-semibold text-white">#{order.id.slice(0, 6).toUpperCase()}</td>
           <td className="p-4">{order.createdAt ? new Date(order.createdAt.seconds * 1000).toLocaleDateString() : "-"}</td>
           <td className="p-4">{order.clientName || order.clientPhone}</td>
-          <td className="p-4 font-bold text-emerald-400">{formatPrice(order.itemsTotal)}</td>
+          <td className="p-4 font-bold text-emerald-400">{formatPrice(order.myTotal || order.itemsTotal)}</td>
           <td className="p-4">
             <span className={`inline-flex px-2 py-1 rounded text-xs font-semibold uppercase tracking-wider ${
               order.status === 'COMPLETED' ? 'bg-green-500/10 text-green-400' : 

@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Home as HomeIcon, Wifi, Building2, Globe, MapPin, Maximize, BedDouble, Bath, ChevronRight, Shirt, User } from "lucide-react";
-import { ImmoContactModal } from "@/components/ImmoContactModal";
+import { Home as HomeIcon, Wifi, Building2, Globe, MapPin, Maximize, BedDouble, Bath, ChevronRight, Shirt, User, MessageSquare } from "lucide-react";
+import { ClientChatBox } from "@/components/ClientChatBox";
 import { RayonNavbar } from "@/components/rayon/RayonNavbar";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -202,10 +202,10 @@ export default function ImmoPage() {
                   <div className="mt-auto">
                     <button 
                       onClick={() => setSelectedProperty(property)}
-                      className="w-full py-3 bg-green-600 hover:bg-green-700 text-white text-sm font-bold rounded-xl transition-colors flex items-center justify-center space-x-2 shadow-sm"
+                      className="w-full py-3 bg-gray-900 hover:bg-gray-800 text-white text-sm font-bold rounded-xl transition-colors flex items-center justify-center space-x-2 shadow-sm"
                     >
-                      <span>{t.appointment}</span>
-                      <ChevronRight size={16} />
+                      <MessageSquare size={16} />
+                      <span>Contacter le vendeur</span>
                     </button>
                   </div>
                 </div>
@@ -216,11 +216,14 @@ export default function ImmoPage() {
 
       </main>
 
-      <ImmoContactModal 
-        isOpen={!!selectedProperty} 
-        onClose={() => setSelectedProperty(null)} 
-        property={selectedProperty}
-      />
+      {selectedProperty && (
+        <ClientChatBox 
+          supplierId={selectedProperty.supplierId}
+          productId={selectedProperty.id}
+          productName={selectedProperty.title}
+          onClose={() => setSelectedProperty(null)}
+        />
+      )}
     </div>
   );
 }

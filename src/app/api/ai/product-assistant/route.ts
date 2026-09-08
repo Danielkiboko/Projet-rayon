@@ -54,7 +54,7 @@ Ton rôle est d'aider les fournisseurs à créer de bonnes descriptions pour leu
 
     // Call the model
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.6-flash',
       contents: [
         ...formattedHistory,
         {

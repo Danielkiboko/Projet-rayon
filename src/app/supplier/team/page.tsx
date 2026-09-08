@@ -15,6 +15,8 @@ export default function SupplierTeamPage() {
     name: "",
     email: "",
     password: "",
+    notificationMethod: "email" as "email" | "sms",
+    phoneNumber: "",
   });
 
   const [permissions, setPermissions] = useState<string[]>([]);
@@ -64,14 +66,22 @@ export default function SupplierTeamPage() {
             permissions,
             serviceAttached: service, // inherit service
           },
+          notificationMethod: formData.notificationMethod,
+          phoneNumber: formData.notificationMethod === 'sms' ? formData.phoneNumber : undefined
         }),
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Erreur lors de la création");
 
-      toast.success("Collaborateur créé avec succès");
-      setFormData({ name: "", email: "", password: "" });
+      if (formData.notificationMethod === 'email') {
+        const { getAuth, sendPasswordResetEmail } = await import("firebase/auth");
+        const auth = getAuth();
+        await sendPasswordResetEmail(auth, formData.email).catch(console.error);
+      }
+
+      toast.success(`Collaborateur créé avec succès. ${formData.notificationMethod === 'email' ? "Un e-mail d'activation a été envoyé." : "Un SMS avec le mot de passe a été envoyé."}`);
+      setFormData({ name: "", email: "", password: "", notificationMethod: "email", phoneNumber: "" });
       setPermissions([]);
     } catch (error: any) {
       console.error(error);
@@ -137,6 +147,49 @@ export default function SupplierTeamPage() {
                 minLength={6}
               />
             </div>
+          </div>
+
+          <div className="space-y-4 pt-4 border-t border-gray-800">
+            <h3 className="text-md font-semibold text-white">Notification au collaborateur</h3>
+            <div className="flex gap-4">
+              <label className="flex items-center space-x-2 text-white cursor-pointer">
+                <input 
+                  type="radio" 
+                  name="notificationMethod" 
+                  value="email" 
+                  checked={formData.notificationMethod === 'email'} 
+                  onChange={(e) => setFormData({ ...formData, notificationMethod: 'email' })}
+                  className="text-blue-500 focus:ring-blue-500 bg-black border-gray-800"
+                />
+                <span>Email</span>
+              </label>
+              <label className="flex items-center space-x-2 text-white cursor-pointer">
+                <input 
+                  type="radio" 
+                  name="notificationMethod" 
+                  value="sms" 
+                  checked={formData.notificationMethod === 'sms'} 
+                  onChange={(e) => setFormData({ ...formData, notificationMethod: 'sms' })}
+                  className="text-blue-500 focus:ring-blue-500 bg-black border-gray-800"
+                />
+                <span>SMS</span>
+              </label>
+            </div>
+
+            {formData.notificationMethod === 'sms' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-400 mb-1">Numéro de téléphone</label>
+                <input
+                  type="tel"
+                  name="phoneNumber"
+                  value={formData.phoneNumber}
+                  onChange={handleChange}
+                  required
+                  placeholder="+243..."
+                  className="w-full md:w-1/2 bg-black border border-gray-800 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+            )}
           </div>
 
           <div>

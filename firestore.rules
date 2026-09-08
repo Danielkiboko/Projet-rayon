@@ -68,6 +68,7 @@ service cloud.firestore {
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
       allow read, write: if isSuperAdmin() || isAdmin();
+      allow read, update: if ownsSupplierData(resource.data.parentSupplierId);
     }
 
     // Chats collection
@@ -139,6 +140,20 @@ service cloud.firestore {
       allow create: if ownsSupplierData(request.resource.data.supplierId);
       allow read, update, delete: if ownsSupplierData(resource.data.supplierId);
       allow read, write: if isSuperAdmin() || isAdmin();
+    }
+
+    match /notifications/{notifId} {
+      allow create: if isSuperAdmin() || isAdmin();
+      allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+
+    match /inapp_notifications/{notifId} {
+      allow create: if request.auth != null;
+      allow read, update, delete: if isSuperAdmin() || isAdmin() || (
+        ownsSupplierData(resource.data.supplierId)
+      ) || (
+        request.auth != null && resource.data.userId == request.auth.uid
+      );
     }
   }
 }

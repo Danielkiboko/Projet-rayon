@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { adminAuth, adminDb, adminInitError } from '@/lib/firebase-admin';
+import { sendMobiShastraSMS } from '@/lib/sms';
 
 export async function POST(req: Request) {
   try {
@@ -36,7 +37,7 @@ export async function POST(req: Request) {
 
     // 2. Parse request body
     const body = await req.json();
-    const { email, password, displayName, roleToCreate, extraData = {} } = body;
+    const { email, password, displayName, roleToCreate, extraData = {}, notificationMethod, phoneNumber } = body;
 
     if (!email || !password || !roleToCreate) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -118,6 +119,27 @@ export async function POST(req: Request) {
         createdAt: new Date(),
         status: 'active'
       });
+    }
+
+    // 8. Send SMS if requested
+    if (notificationMethod === 'sms' && phoneNumber) {
+      try {
+        let customSenderId = undefined;
+        const callerDoc = await adminDb.collection('users').doc(callerUid).get();
+        if (callerDoc.exists) {
+          const callerData = callerDoc.data();
+          if (callerData?.displayName && callerData.displayName.toLowerCase().includes('laurent sumaili')) {
+            customSenderId = 'MUTAMULIS';
+          }
+        }
+
+        const message = `Bonjour ${displayName || ''}, votre compte Rayons a été créé. \nEmail: ${email}\nMot de passe: ${password}\nLien: https://rayons.net`;
+        await sendMobiShastraSMS({ mobileNo: phoneNumber, message, customSenderId });
+        console.log(`SMS sent successfully to ${phoneNumber} with senderId ${customSenderId || 'default'}`);
+      } catch (smsError) {
+        console.error('Failed to send SMS:', smsError);
+        // We still return success but maybe with a warning, or we can just ignore
+      }
     }
 
     return NextResponse.json({ 

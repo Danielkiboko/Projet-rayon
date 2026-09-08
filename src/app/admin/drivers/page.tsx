@@ -25,6 +25,8 @@ export default function DriversPage() {
   // Form states
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [notificationMethod, setNotificationMethod] = useState<'email' | 'sms'>("email");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -83,7 +85,9 @@ export default function DriversPage() {
           email,
           password: randomPassword,
           displayName: name,
-          roleToCreate: "driver"
+          roleToCreate: "driver",
+          notificationMethod,
+          phoneNumber: notificationMethod === 'sms' ? phoneNumber : undefined
         }),
       });
 
@@ -93,14 +97,17 @@ export default function DriversPage() {
         throw new Error(data.error || "Erreur lors de la création du livreur.");
       }
 
-      // 2. Send the password reset email so they can choose their own password
-      await sendPasswordResetEmail(auth, email);
+      if (notificationMethod === 'email') {
+        // 2. Send the password reset email so they can choose their own password
+        await sendPasswordResetEmail(auth, email);
+      }
 
       // Reset form and close modal
       setName("");
       setEmail("");
+      setPhoneNumber("");
       setIsModalOpen(false);
-      setSuccessMessage(`Le compte livreur a été créé. Un e-mail a été envoyé à ${email} pour qu'il configure son mot de passe.`);
+      setSuccessMessage(`Le compte livreur a été créé. ${notificationMethod === 'email' ? 'Un e-mail a été envoyé à ' + email + ' pour qu\\'il configure son mot de passe.' : 'Un SMS a été envoyé au ' + phoneNumber + ' avec le mot de passe.'}`);
       
       // Refresh list
       fetchDrivers();
@@ -250,9 +257,50 @@ export default function DriversPage() {
                 )}
                 
                 <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-blue-300 text-sm mb-2">
-                  Un e-mail de configuration de mot de passe sera automatiquement envoyé à l'adresse indiquée une fois le compte créé. 
-                  Ce livreur pourra recevoir des missions de tous les fournisseurs.
+                  Choisissez comment notifier le livreur. Ce livreur pourra recevoir des missions de tous les fournisseurs.
                 </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-300">Méthode de notification</label>
+                  <div className="flex space-x-4">
+                    <label className="flex items-center space-x-2 text-white cursor-pointer">
+                      <input 
+                        type="radio" 
+                        name="notificationMethod" 
+                        value="email" 
+                        checked={notificationMethod === 'email'} 
+                        onChange={() => setNotificationMethod('email')}
+                        className="text-primary focus:ring-primary bg-black/20 border-white/10"
+                      />
+                      <span>Email</span>
+                    </label>
+                    <label className="flex items-center space-x-2 text-white cursor-pointer">
+                      <input 
+                        type="radio" 
+                        name="notificationMethod" 
+                        value="sms" 
+                        checked={notificationMethod === 'sms'} 
+                        onChange={() => setNotificationMethod('sms')}
+                        className="text-primary focus:ring-primary bg-black/20 border-white/10"
+                      />
+                      <span>SMS</span>
+                    </label>
+                  </div>
+                </div>
+
+                {notificationMethod === 'sms' && (
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium text-gray-300">Numéro de téléphone</label>
+                    <input
+                      type="tel"
+                      required
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      placeholder="+243..."
+                      className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white"
+                    />
+                  </div>
+                )}
 
                 <div className="space-y-1">
                   <label className="text-sm font-medium text-gray-300">Nom du livreur</label>

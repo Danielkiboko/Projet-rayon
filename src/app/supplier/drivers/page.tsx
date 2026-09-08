@@ -25,6 +25,8 @@ export default function SupplierDriversPage() {
   const [isAddingDriver, setIsAddingDriver] = useState(false);
   const [newDriverName, setNewDriverName] = useState("");
   const [newDriverEmail, setNewDriverEmail] = useState("");
+  const [notificationMethod, setNotificationMethod] = useState<'email' | 'sms'>("email");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [isProcessingDriver, setIsProcessingDriver] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -78,7 +80,9 @@ export default function SupplierDriversPage() {
           email: newDriverEmail,
           password: tempPassword,
           displayName: newDriverName,
-          roleToCreate: "driver"
+          roleToCreate: "driver",
+          notificationMethod,
+          phoneNumber: notificationMethod === 'sms' ? phoneNumber : undefined
         }),
       });
 
@@ -88,12 +92,15 @@ export default function SupplierDriversPage() {
         throw new Error(data.error || "Erreur lors de la création.");
       }
 
-      // Send password reset email
-      await sendPasswordResetEmail(auth, newDriverEmail);
+      if (notificationMethod === 'email') {
+        // Send password reset email
+        await sendPasswordResetEmail(auth, newDriverEmail);
+      }
 
-      setSuccess(`Livreur ajouté. Un email a été envoyé à ${newDriverEmail} pour configurer son mot de passe.`);
+      setSuccess(`Livreur ajouté. ${notificationMethod === 'email' ? 'Un email a été envoyé à ' + newDriverEmail + ' pour configurer son mot de passe.' : 'Un SMS a été envoyé au ' + phoneNumber + ' avec le mot de passe.'}`);
       setNewDriverName("");
       setNewDriverEmail("");
+      setPhoneNumber("");
       setIsAddingDriver(false);
       fetchDrivers();
     } catch (err: any) {
@@ -244,8 +251,50 @@ export default function SupplierDriversPage() {
                 )}
                 
                 <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-blue-300 text-sm mb-2">
-                  Un email sera envoyé au livreur pour qu'il puisse configurer son mot de passe.
+                  Choisissez comment notifier le livreur de son nouveau mot de passe.
                 </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-300">Méthode de notification</label>
+                  <div className="flex space-x-4">
+                    <label className="flex items-center space-x-2 text-white cursor-pointer">
+                      <input 
+                        type="radio" 
+                        name="notificationMethod" 
+                        value="email" 
+                        checked={notificationMethod === 'email'} 
+                        onChange={() => setNotificationMethod('email')}
+                        className="text-primary focus:ring-primary bg-black/20 border-white/10"
+                      />
+                      <span>Email</span>
+                    </label>
+                    <label className="flex items-center space-x-2 text-white cursor-pointer">
+                      <input 
+                        type="radio" 
+                        name="notificationMethod" 
+                        value="sms" 
+                        checked={notificationMethod === 'sms'} 
+                        onChange={() => setNotificationMethod('sms')}
+                        className="text-primary focus:ring-primary bg-black/20 border-white/10"
+                      />
+                      <span>SMS</span>
+                    </label>
+                  </div>
+                </div>
+
+                {notificationMethod === 'sms' && (
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium text-gray-300">Numéro de téléphone</label>
+                    <input
+                      type="tel"
+                      required
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      placeholder="+243..."
+                      className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-white"
+                    />
+                  </div>
+                )}
 
                 <div className="space-y-1">
                   <label className="text-sm font-medium text-gray-300">Nom du livreur</label>

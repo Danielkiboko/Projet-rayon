@@ -46,6 +46,8 @@ export default function SuppliersPage() {
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [rayon, setRayon] = useState("");
+  const [notificationMethod, setNotificationMethod] = useState<'email' | 'sms'>("email");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [role, setRole] = useState("supplier");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -243,6 +245,8 @@ export default function SuppliersPage() {
             lastName,
             assignedRayons: rayon ? [rayon] : [] 
           },
+          notificationMethod,
+          phoneNumber: notificationMethod === 'sms' ? phoneNumber : undefined
         }),
       });
 
@@ -252,18 +256,21 @@ export default function SuppliersPage() {
         throw new Error(data.error || "Erreur lors de la création du fournisseur.");
       }
 
-      // 2. Send the password reset email so they can choose their own password
-      await sendPasswordResetEmail(auth, email);
+      if (notificationMethod === 'email') {
+        // 2. Send the password reset email so they can choose their own password
+        await sendPasswordResetEmail(auth, email);
+      }
 
       // Reset form and close modal
       setName("");
       setFirstName("");
       setLastName("");
       setEmail("");
+      setPhoneNumber("");
       setRayon("");
       setRole("supplier");
       setIsModalOpen(false);
-      setSuccessMessage(`Le compte fournisseur a été créé. Un e-mail a été envoyé à ${email} pour qu'il configure son mot de passe.`);
+      setSuccessMessage(`Le compte fournisseur a été créé. ${notificationMethod === 'email' ? 'Un e-mail a été envoyé à ' + email + ' pour qu\\'il configure son mot de passe.' : 'Un SMS a été envoyé au ' + phoneNumber + ' avec le mot de passe.'}`);
       
       // Refresh list
       fetchSuppliers();
@@ -580,6 +587,48 @@ export default function SuppliersPage() {
                     className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white"
                   />
                 </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-300">Méthode de notification</label>
+                  <div className="flex space-x-4">
+                    <label className="flex items-center space-x-2 text-white cursor-pointer">
+                      <input 
+                        type="radio" 
+                        name="notificationMethod" 
+                        value="email" 
+                        checked={notificationMethod === 'email'} 
+                        onChange={() => setNotificationMethod('email')}
+                        className="text-primary focus:ring-primary bg-black/20 border-white/10"
+                      />
+                      <span>Email</span>
+                    </label>
+                    <label className="flex items-center space-x-2 text-white cursor-pointer">
+                      <input 
+                        type="radio" 
+                        name="notificationMethod" 
+                        value="sms" 
+                        checked={notificationMethod === 'sms'} 
+                        onChange={() => setNotificationMethod('sms')}
+                        className="text-primary focus:ring-primary bg-black/20 border-white/10"
+                      />
+                      <span>SMS</span>
+                    </label>
+                  </div>
+                </div>
+
+                {notificationMethod === 'sms' && (
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium text-gray-300">Numéro de téléphone</label>
+                    <input
+                      type="tel"
+                      required
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      placeholder="+243..."
+                      className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white"
+                    />
+                  </div>
+                )}
 
                 <div className="space-y-1">
                   <label className="text-sm font-medium text-gray-300">Type d'accès</label>

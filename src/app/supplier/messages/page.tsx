@@ -22,6 +22,15 @@ type ChatMessage = {
   text: string;
   senderId: string;
   createdAt: any;
+  type?: 'text' | 'proforma';
+  proforma?: {
+    productId?: string;
+    productName?: string;
+    quantity: number;
+    price: number;
+    deliveryFee: number;
+    status: 'pending' | 'paid' | 'delivered';
+  };
 };
 
 export default function SupplierMessagesPage() {
@@ -31,6 +40,10 @@ export default function SupplierMessagesPage() {
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [newChatMessage, setNewChatMessage] = useState("");
+  
+  const [showProformaForm, setShowProformaForm] = useState(false);
+  const [proformaQuantity, setProformaQuantity] = useState(1);
+  const [proformaPrice, setProformaPrice] = useState(0);
 
   // Fetch chats list
   useEffect(() => {
@@ -90,6 +103,41 @@ export default function SupplierMessagesPage() {
       setNewChatMessage("");
     } catch (err) {
       console.error("Error sending message", err);
+    }
+  };
+
+  const handleSendProforma = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !activeChatId) return;
+
+    const activeChat = chats.find(c => c.id === activeChatId);
+    
+    try {
+      await addDoc(collection(db, "chats", activeChatId, "messages"), {
+        text: "Facture Proforma (Offre)",
+        senderId: activeSupplierId,
+        createdAt: serverTimestamp(),
+        type: 'proforma',
+        proforma: {
+          productId: activeChat?.propertyTitle ? null : (activeChat?.productName || "Produit"),
+          productName: activeChat?.propertyTitle || activeChat?.productName || "Produit",
+          quantity: proformaQuantity,
+          price: proformaPrice,
+          deliveryFee: 3, // $3 fixe pour la livraison selon les règles
+          status: 'pending'
+        }
+      });
+      
+      await updateDoc(doc(db, "chats", activeChatId), {
+        lastMessage: "📄 Nouveau Proforma envoyé",
+        updatedAt: serverTimestamp()
+      });
+      
+      setShowProformaForm(false);
+      setProformaQuantity(1);
+      setProformaPrice(0);
+    } catch (err) {
+      console.error("Error sending proforma", err);
     }
   };
 
@@ -190,11 +238,38 @@ export default function SupplierMessagesPage() {
                         <div 
                           className={`max-w-[75%] p-3 text-sm shadow-sm ${
                             isMe 
-                              ? 'bg-primary text-white rounded-2xl rounded-tr-sm' 
+                              ? (msg.type === 'proforma' ? 'bg-primary/90 text-white rounded-2xl rounded-tr-sm border border-primary-light' : 'bg-primary text-white rounded-2xl rounded-tr-sm')
                               : 'bg-white/10 text-gray-100 rounded-2xl rounded-tl-sm border border-white/5'
                           }`}
                         >
-                          {msg.text}
+                          {msg.type === 'proforma' && msg.proforma ? (
+                            <div className="flex flex-col space-y-2 min-w-[200px]">
+                              <div className="font-bold border-b border-white/20 pb-1 mb-1 flex items-center justify-between">
+                                <span>📄 Proforma</span>
+                                {msg.proforma.status === 'paid' && <span className="bg-green-500 text-white text-xs px-2 py-0.5 rounded">Payé</span>}
+                                {msg.proforma.status === 'pending' && <span className="bg-orange-500 text-white text-xs px-2 py-0.5 rounded">En attente</span>}
+                              </div>
+                              <p className="font-semibold">{msg.proforma.productName}</p>
+                              <div className="flex justify-between text-xs opacity-90">
+                                <span>Quantité:</span>
+                                <span>{msg.proforma.quantity}</span>
+                              </div>
+                              <div className="flex justify-between text-xs opacity-90">
+                                <span>Prix total prod.:</span>
+                                <span>{msg.proforma.price} $</span>
+                              </div>
+                              <div className="flex justify-between text-xs opacity-90">
+                                <span>Frais Livraison:</span>
+                                <span>{msg.proforma.deliveryFee} $</span>
+                              </div>
+                              <div className="flex justify-between font-bold border-t border-white/20 pt-1 mt-1">
+                                <span>À Payer Maintenant (Livraison):</span>
+                                <span>{msg.proforma.deliveryFee} $</span>
+                              </div>
+                            </div>
+                          ) : (
+                            msg.text
+                          )}
                         </div>
                       </div>
                     );
@@ -203,23 +278,66 @@ export default function SupplierMessagesPage() {
               </div>
 
               {/* Input Area */}
-              <div className="p-4 border-t border-white/10 bg-black/20">
-                <form onSubmit={handleSendMessage} className="flex space-x-2">
-                  <input
-                    type="text"
-                    value={newChatMessage}
-                    onChange={(e) => setNewChatMessage(e.target.value)}
-                    placeholder="Écrivez votre message..."
-                    className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary placeholder-gray-500 transition-all"
-                  />
+              <div className="p-4 border-t border-white/10 bg-black/20 flex flex-col space-y-3">
+                {showProformaForm && (
+                  <form onSubmit={handleSendProforma} className="bg-white/5 p-4 rounded-xl border border-primary/30 flex gap-4 items-end animate-fade-in">
+                    <div className="flex-1">
+                      <label className="block text-xs text-gray-400 mb-1">Quantité</label>
+                      <input 
+                        type="number" 
+                        min="1" 
+                        value={proformaQuantity} 
+                        onChange={e => setProformaQuantity(parseInt(e.target.value) || 1)} 
+                        className="w-full bg-black/20 border border-white/10 rounded px-3 py-2 text-white" 
+                        required 
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-xs text-gray-400 mb-1">Prix Négocié ($)</label>
+                      <input 
+                        type="number" 
+                        min="0" 
+                        value={proformaPrice} 
+                        onChange={e => setProformaPrice(parseInt(e.target.value) || 0)} 
+                        className="w-full bg-black/20 border border-white/10 rounded px-3 py-2 text-white" 
+                        required 
+                      />
+                    </div>
+                    <button type="submit" className="bg-primary hover:bg-primary-light text-white px-4 py-2 rounded font-medium h-[42px]">
+                      Envoyer Proforma
+                    </button>
+                    <button type="button" onClick={() => setShowProformaForm(false)} className="text-gray-400 hover:text-white px-2 h-[42px]">
+                      Annuler
+                    </button>
+                  </form>
+                )}
+                
+                <div className="flex space-x-2">
                   <button
-                    type="submit"
-                    disabled={!newChatMessage.trim()}
-                    className="bg-primary hover:bg-primary-light text-white p-3 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                    type="button"
+                    onClick={() => setShowProformaForm(!showProformaForm)}
+                    className="bg-white/10 hover:bg-white/20 text-white p-3 rounded-xl transition-colors border border-white/10 flex items-center justify-center"
+                    title="Générer Proforma"
                   >
-                    <Send size={20} />
+                    📄
                   </button>
-                </form>
+                  <form onSubmit={handleSendMessage} className="flex flex-1 space-x-2">
+                    <input
+                      type="text"
+                      value={newChatMessage}
+                      onChange={(e) => setNewChatMessage(e.target.value)}
+                      placeholder="Écrivez votre message..."
+                      className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary placeholder-gray-500 transition-all"
+                    />
+                    <button
+                      type="submit"
+                      disabled={!newChatMessage.trim()}
+                      className="bg-primary hover:bg-primary-light text-white p-3 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                    >
+                      <Send size={20} />
+                    </button>
+                  </form>
+                </div>
               </div>
             </>
           )}

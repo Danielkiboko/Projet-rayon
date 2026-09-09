@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { X, Send, Loader2, MessageCircle, ChevronLeft, Building2, Shirt, Wifi } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { auth, db } from "@/lib/firebase";
-import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, getDocs, where, setDoc, doc } from "firebase/firestore";
+import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, getDocs, where, setDoc, doc, updateDoc } from "firebase/firestore";
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
 import { useChat } from "@/context/ChatContext";
 
@@ -33,23 +33,82 @@ export function GlobalChatbot() {
   // 3. If logged in & selectedChatId is set -> ChatDetail for selectedChatId
   // 4. Otherwise -> ChatList
 
-  // 1. Fetch user chats if logged in
+  // Fetch user chats if logged in
   useEffect(() => {
     if (!user) {
       setUserChats([]);
       return;
     }
+
     const q = query(
       collection(db, "chats"),
-      where("clientId", "==", user.uid),
-      orderBy("updatedAt", "desc")
+      where("clientId", "==", user.uid)
     );
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const chats = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setUserChats(chats);
+      const fetchedChats = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      fetchedChats.sort((a, b) => (b.updatedAt?.toMillis() || 0) - (a.updatedAt?.toMillis() || 0));
+      setUserChats(fetchedChats);
     });
     return () => unsubscribe();
   }, [user]);
+
+  const handlePayDelivery = async (msg: any) => {
+    if (!user) return;
+    
+    // Pour l'instant, on simule un paiement réussi instantané
+    // Plus tard: Intégrer l'API Makuta
+    alert("Redirection vers le paiement Makuta pour la livraison (3$)...");
+    
+    try {
+      const orderId = `ord_${Date.now()}`;
+      
+      // 1. Mettre à jour le statut du message proforma dans Firebase
+      // => On doit trouver le document du message
+      // En réalité, msg.id existe car on l'a fetch
+      const currentChatRef = selectedChatId || (activeProduct ? userChats.find(c => c.productId === activeProduct.id)?.id : null);
+      if (currentChatRef) {
+        await updateDoc(doc(db, "chats", currentChatRef, "messages", msg.id), {
+          "proforma.status": "paid",
+          "proforma.orderId": orderId
+        });
+      }
+      
+      // 2. Créer une nouvelle commande "pending_driver"
+      await setDoc(doc(db, "orders", orderId), {
+        id: orderId,
+        clientId: user.uid,
+        supplierId: msg.senderId, // le fournisseur qui a envoyé le proforma
+        chatId: currentChatRef,
+        items: [{
+          productId: msg.proforma.productId,
+          productName: msg.proforma.productName,
+          quantity: msg.proforma.quantity,
+          price: msg.proforma.price,
+        }],
+        totalAmount: msg.proforma.price, // à payer à la livraison
+        deliveryFee: msg.proforma.deliveryFee, // payé maintenant
+        paymentStatus: 'delivery_paid', // livraison payée, produit à payer
+        status: 'pending_driver', // En attente d'un livreur
+        createdAt: serverTimestamp(),
+        // Mock de position client pour l'instant (à remplacer par une vraie demande de localisation)
+        clientLocation: {
+          lat: -4.322447, // Kinshasa
+          lng: 15.307045
+        }
+      });
+      
+      alert("Paiement réussi ! La commande est envoyée aux livreurs.");
+      // Rediriger vers le suivi de commande
+      window.location.href = `/order/${orderId}/tracking`;
+      
+    } catch (error) {
+      console.error("Erreur de paiement", error);
+      alert("Erreur lors du paiement.");
+    }
+  };
 
   // 2. Resolve Active Chat (either from activeProduct or selectedChatId)
   const currentChatId = activeProduct 
@@ -383,8 +442,58 @@ export function GlobalChatbot() {
                 const isMe = msg.senderId === user?.uid;
                 return (
                   <div key={msg.id} className={`flex flex-col max-w-[85%] ${isMe ? 'self-end' : 'self-start'}`}>
-                    <div className={`p-3 rounded-2xl text-sm ${isMe ? 'bg-gray-900 text-white rounded-br-sm' : 'bg-white border border-gray-200 text-gray-900 rounded-bl-sm'}`}>
-                      {msg.text}
+                    <div className={`p-3 rounded-2xl text-sm ${isMe ? 'bg-gray-900 text-white rounded-br-sm' : (msg.type === 'proforma' ? 'bg-white border-2 border-gray-900 text-gray-900 rounded-bl-sm' : 'bg-white border border-gray-200 text-gray-900 rounded-bl-sm')}`}>
+                      {msg.type === 'proforma' && msg.proforma ? (
+                        <div className="flex flex-col space-y-2 min-w-[200px]">
+                          <div className="font-bold border-b border-gray-200 pb-2 mb-1 flex items-center justify-between">
+                            <span>📄 Offre Proforma</span>
+                            {msg.proforma.status === 'paid' && <span className="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded font-bold">Payé</span>}
+                            {msg.proforma.status === 'pending' && <span className="bg-orange-100 text-orange-800 text-xs px-2 py-0.5 rounded font-bold">En attente</span>}
+                          </div>
+                          <p className="font-semibold text-base">{msg.proforma.productName}</p>
+                          <div className="flex justify-between text-xs text-gray-600">
+                            <span>Quantité:</span>
+                            <span className="font-medium text-gray-900">{msg.proforma.quantity}</span>
+                          </div>
+                          <div className="flex justify-between text-xs text-gray-600">
+                            <span>Prix Total Prod.:</span>
+                            <span className="font-medium text-gray-900">{msg.proforma.price} $</span>
+                          </div>
+                          <div className="flex justify-between text-xs text-gray-600">
+                            <span>Frais Livraison:</span>
+                            <span className="font-medium text-gray-900">{msg.proforma.deliveryFee} $</span>
+                          </div>
+                          
+                          <div className="mt-3 pt-3 border-t border-gray-200">
+                            <div className="flex justify-between font-bold mb-3">
+                              <span>À Payer Maintenant (Livraison):</span>
+                              <span>{msg.proforma.deliveryFee} $</span>
+                            </div>
+                            
+                            {msg.proforma.status === 'pending' && (
+                              <button 
+                                onClick={() => handlePayDelivery(msg)}
+                                className="w-full bg-gray-900 text-white py-2 rounded-lg font-medium hover:bg-gray-800 transition-colors flex items-center justify-center shadow-sm"
+                              >
+                                Payer la Livraison
+                              </button>
+                            )}
+                            
+                            {msg.proforma.status === 'paid' && (
+                              <div className="flex flex-col space-y-2 text-center mt-2">
+                                <p className="text-xs text-green-600 font-medium">Livraison payée. Le livreur est en route ! Le produit sera payé à la livraison.</p>
+                                {msg.proforma.orderId && (
+                                  <a href={`/order/${msg.proforma.orderId}/tracking`} className="w-full bg-gray-100 text-gray-900 py-2 rounded-lg font-medium text-sm hover:bg-gray-200 transition-colors">
+                                    Suivre la livraison
+                                  </a>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        msg.text
+                      )}
                     </div>
                   </div>
                 );

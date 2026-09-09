@@ -23,10 +23,22 @@ export default function ActiveDeliveryScreen({ orderId, onBack, userId }: { orde
     return () => unsub();
   }, [orderId]);
 
+  React.useEffect(() => {
+    if (location && orderId) {
+      updateDoc(doc(db, 'orders', orderId), {
+        driverLocation: {
+          lat: location.coords.latitude,
+          lng: location.coords.longitude
+        },
+        status: 'in_transit'
+      }).catch(console.error);
+    }
+  }, [location, orderId]);
+
   const handleCompleteDelivery = async () => {
     try {
       await updateDoc(doc(db, 'orders', orderId), {
-        status: 'DELIVERED',
+        status: 'delivered',
         deliveredAt: new Date()
       });
       alert('Course terminée !');

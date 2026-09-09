@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { X, Send, Loader2, MessageCircle, ChevronLeft, Building2, Shirt, Wifi } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { auth, db } from "@/lib/firebase";
-import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, getDocs, where, setDoc, doc, updateDoc } from "firebase/firestore";
+import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, getDocs, where, setDoc, doc, updateDoc, increment } from "firebase/firestore";
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
 import { useChat } from "@/context/ChatContext";
 
@@ -99,6 +99,19 @@ export function GlobalChatbot() {
           lng: 15.307045
         }
       });
+      
+      // 3. Déduire le stock du produit via l'API (contourne les règles de sécurité client)
+      if (msg.proforma.productId) {
+        await fetch('/api/orders/update-stock', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            productId: msg.proforma.productId,
+            quantity: msg.proforma.quantity,
+            action: 'decrement'
+          })
+        });
+      }
       
       alert("Paiement réussi ! La commande est envoyée aux livreurs.");
       // Rediriger vers le suivi de commande

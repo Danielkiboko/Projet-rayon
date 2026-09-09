@@ -49,6 +49,38 @@ export default function ActiveDeliveryScreen({ orderId, onBack, userId }: { orde
     }
   };
 
+  const handleCancelDelivery = async () => {
+    try {
+      await updateDoc(doc(db, 'orders', orderId), {
+        status: 'cancelled',
+        cancelledAt: new Date()
+      });
+
+      // Refund stock via API
+      if (order?.items && order.items.length > 0) {
+        const item = order.items[0];
+        if (item.productId) {
+          const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'https://projet-rayon.vercel.app';
+          await fetch(`${apiUrl}/api/orders/update-stock`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              productId: item.productId,
+              quantity: item.quantity,
+              action: 'increment'
+            })
+          }).catch(console.error);
+        }
+      }
+
+      alert('Course annulée !');
+      onBack();
+    } catch (e) {
+      console.error(e);
+      alert("Erreur lors de l'annulation de la course");
+    }
+  };
+
   const openMap = () => {
     if (!order) return;
     const address = order.clientAddress || 'Kinshasa'; // fallback
@@ -100,9 +132,14 @@ export default function ActiveDeliveryScreen({ orderId, onBack, userId }: { orde
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity style={styles.completeBtn} onPress={handleCompleteDelivery}>
-        <Text style={styles.completeBtnText}>Marquer comme Livré</Text>
-      </TouchableOpacity>
+      <View style={styles.actionButtonsContainer}>
+        <TouchableOpacity style={styles.cancelBtn} onPress={handleCancelDelivery}>
+          <Text style={styles.cancelBtnText}>Annuler</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.completeBtn} onPress={handleCompleteDelivery}>
+          <Text style={styles.completeBtnText}>Marquer Livré</Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }
@@ -220,11 +257,32 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
   },
+  actionButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    marginBottom: 32,
+  },
+  cancelBtn: {
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    flex: 1,
+    marginRight: 8,
+    padding: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+  },
+  cancelBtnText: {
+    color: '#ef4444',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
   completeBtn: {
     backgroundColor: '#22c55e',
-    margin: 16,
-    marginBottom: 32,
-    padding: 18,
+    flex: 2,
+    marginLeft: 8,
+    padding: 16,
     borderRadius: 16,
     alignItems: 'center',
     shadowColor: '#22c55e',

@@ -29,7 +29,7 @@ export default function SupplierLayout({
       if (userData.role === 'SUB_SUPPLIER') {
         const allowed = pathname === '/supplier' || 
                         pathname === '/supplier/settings' || 
-                        pathname === '/supplier/billing' || 
+                        pathname === '/supplier/finance' || 
                         (Array.isArray(userData.permissions) && userData.permissions.some((p: string) => pathname.startsWith(p)));
         if (!allowed) {
           router.push('/supplier');
@@ -37,16 +37,16 @@ export default function SupplierLayout({
         }
       }
 
-      // Don't redirect if they are already on the billing page
-      if (pathname === "/supplier/billing") return;
+      // Don't redirect if they are already on the finance page
+      if (pathname === "/supplier/finance") return;
 
       if (userData.subscriptionStatus === "TRIAL" && userData.subscriptionEndDate) {
         const endDate = userData.subscriptionEndDate.toDate ? userData.subscriptionEndDate.toDate() : new Date(userData.subscriptionEndDate);
         if (new Date() > endDate) {
-          router.push("/supplier/billing");
+          router.push("/supplier/finance");
         }
       } else if (userData.subscriptionStatus === "EXPIRED") {
-        router.push("/supplier/billing");
+        router.push("/supplier/finance");
       }
     }
   }, [user, userData, loading, pathname, router]);
@@ -167,7 +167,7 @@ export default function SupplierLayout({
             </div>
           </div>
           <button
-            onClick={() => router.push('/supplier/billing')}
+            onClick={() => router.push('/supplier/finance')}
             className="shrink-0 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition-colors whitespace-nowrap"
           >
             Renouveler

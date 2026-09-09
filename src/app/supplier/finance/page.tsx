@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 interface Transaction {
   id: string;
   type: "INCOME" | "EXPENSE" | "PAYOUT";
+  category?: string;
   amount: number;
   currency: string;
   description: string;
@@ -33,6 +34,7 @@ export default function SupplierFinancePage() {
 
   // Form states
   const [txType, setTxType] = useState<"INCOME" | "EXPENSE" | "PAYOUT">("INCOME");
+  const [expenseCategory, setExpenseCategory] = useState("Autre");
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [referenceId, setReferenceId] = useState("");
@@ -126,18 +128,22 @@ export default function SupplierFinancePage() {
             if (status === "COMPLETED" || status === "LIVRÉE" || status === "DELIVERED") {
               const myItems = order.items?.filter((item: any) => item.supplierId === activeSupplierId) || [];
               const myTotal = myItems.reduce((acc: number, item: any) => acc + (item.price * (item.quantity || 1)), 0);
+              const productNames = myItems.map((item: any) => item.productName || "Produit").join(", ");
               
-              data.push({
-                id: `order_${doc.id}`,
-                type: "INCOME",
-                amount: myTotal,
-                currency: "USD",
-                description: `Vente en ligne (Cmd #${doc.id.substring(0,6).toUpperCase()})`,
-                referenceId: doc.id,
-                status: "COMPLETED",
-                createdAt: order.createdAt,
-                supplierId: activeSupplierId
-              });
+              if (myTotal > 0) {
+                data.push({
+                  id: `order_${doc.id}`,
+                  type: "INCOME",
+                  category: "Vente",
+                  amount: myTotal,
+                  currency: "USD",
+                  description: `Vente complétée - Commande #${doc.id.substring(0,6).toUpperCase()} - ${productNames}`,
+                  referenceId: doc.id,
+                  status: "COMPLETED",
+                  createdAt: order.deliveredAt || order.createdAt,
+                  supplierId: activeSupplierId
+                });
+              }
             }
           });
           automaticTx = data;
@@ -161,6 +167,7 @@ export default function SupplierFinancePage() {
       await addDoc(collection(db, "supplier_transactions"), {
         supplierId: activeSupplierId,
         type: txType,
+        category: txType === "EXPENSE" ? expenseCategory : null,
         amount: Number(amount),
         currency: "USD",
         description,
@@ -174,6 +181,7 @@ export default function SupplierFinancePage() {
       setDescription("");
       setReferenceId("");
       setTxType("INCOME");
+      setExpenseCategory("Autre");
     } catch (error) {
       console.error("Error adding transaction:", error);
       alert("Erreur lors de l'ajout de la transaction");
@@ -342,9 +350,9 @@ export default function SupplierFinancePage() {
                       {t.createdAt?.toDate ? t.createdAt.toDate().toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
                     </td>
                     <td className="px-6 py-4">
-                      {t.type === "INCOME" && <span className="inline-flex items-center text-green-400 bg-green-400/10 px-2 py-1 rounded text-xs"><ArrowDownRight size={12} className="mr-1"/> Vente</span>}
-                      {t.type === "PAYOUT" && <span className="inline-flex items-center text-blue-400 bg-blue-400/10 px-2 py-1 rounded text-xs"><ArrowUpRight size={12} className="mr-1"/> Livreur</span>}
-                      {t.type === "EXPENSE" && <span className="inline-flex items-center text-red-400 bg-red-400/10 px-2 py-1 rounded text-xs"><ArrowUpRight size={12} className="mr-1"/> Dépense</span>}
+                      {t.type === "INCOME" && <span className="inline-flex items-center text-green-400 bg-green-400/10 px-2 py-1 rounded text-xs"><ArrowDownRight size={12} className="mr-1"/> Entrée</span>}
+                      {t.type === "PAYOUT" && <span className="inline-flex items-center text-blue-400 bg-blue-400/10 px-2 py-1 rounded text-xs"><ArrowUpRight size={12} className="mr-1"/> Retrait</span>}
+                      {t.type === "EXPENSE" && <span className="inline-flex items-center text-red-400 bg-red-400/10 px-2 py-1 rounded text-xs"><ArrowUpRight size={12} className="mr-1"/> Sortie {t.category ? `(${t.category})` : ''}</span>}
                     </td>
                     <td className="px-6 py-4 text-white font-medium">{t.description}</td>
                     <td className="px-6 py-4 text-gray-400">{t.referenceId || "-"}</td>
@@ -389,6 +397,24 @@ export default function SupplierFinancePage() {
                     <option value="EXPENSE">Autre Dépense (Abonnement, Stock...)</option>
                   </select>
                 </div>
+
+                {txType === "EXPENSE" && (
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium text-gray-300">Catégorie de la dépense</label>
+                    <select 
+                      value={expenseCategory}
+                      onChange={(e) => setExpenseCategory(e.target.value)}
+                      className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
+                    >
+                      <option value="Loyer">Loyer / Factures</option>
+                      <option value="Salaires">Salaires</option>
+                      <option value="Logistique">Logistique / Transport</option>
+                      <option value="Achats">Achats Marchandises</option>
+                      <option value="Marketing">Publicité / Marketing</option>
+                      <option value="Autre">Autre</option>
+                    </select>
+                  </div>
+                )}
 
                 <div className="space-y-1">
                   <label className="text-sm font-medium text-gray-300">Montant (USD)</label>

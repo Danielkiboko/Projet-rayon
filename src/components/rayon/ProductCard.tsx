@@ -8,10 +8,10 @@ interface ProductCardProps {
   t: any;
   category: "mode" | "connect";
   index: number;
-  handleAddToCart: (product: any) => void;
+  handleChat: (product: any) => void;
 }
 
-export function ProductCard({ product, lang, t, category, index, handleAddToCart }: ProductCardProps) {
+export function ProductCard({ product, lang, t, category, index, handleChat }: ProductCardProps) {
   const isMode = category === "mode";
   
   const bgClass = isMode ? "bg-purple-600 hover:bg-purple-700" : "bg-blue-600 hover:bg-blue-700";
@@ -62,10 +62,10 @@ export function ProductCard({ product, lang, t, category, index, handleAddToCart
         {/* Actions */}
         <div className="grid grid-cols-2 gap-3 mt-auto">
           <button 
-            onClick={() => handleAddToCart(product)}
-            className={`py-2 ${bgClass} text-white text-sm font-semibold rounded-lg transition-colors text-center`}
+            onClick={() => handleChat(product)}
+            className={`py-2 ${bgClass} text-white text-sm font-semibold rounded-lg transition-colors text-center flex items-center justify-center space-x-1`}
           >
-            {t.add}
+            <span>Contacter</span>
           </button>
           <Link 
             href={`/product/${product.id}`}

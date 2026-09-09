@@ -1,24 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { Home as HomeIcon, Wifi, Building2, Globe, Shirt, User, ShoppingCart } from "lucide-react";
+import { Home as HomeIcon, Wifi, Building2, Globe, Shirt, User } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { useCart } from "@/context/CartContext";
 
 interface RayonNavbarProps {
   category: "immo" | "mode" | "connect";
   lang: "fr" | "en";
   setLang: (lang: "fr" | "en") => void;
   t: any;
-  hideCart?: boolean;
 }
 
-export function RayonNavbar({ category, lang, setLang, t, hideCart = false }: RayonNavbarProps) {
+export function RayonNavbar({ category, lang, setLang, t }: RayonNavbarProps) {
   const { user, signOut } = useAuth();
-  
-  const cartContext = hideCart ? null : useCart();
-  const setIsCartOpen = cartContext?.setIsCartOpen;
-  const cartTotalCount = cartContext?.cartTotalCount || 0;
 
   const themeConfig = {
     immo: {
@@ -85,20 +79,6 @@ export function RayonNavbar({ category, lang, setLang, t, hideCart = false }: Ra
               <Globe size={14} className="mr-1" /> {lang.toUpperCase()}
             </button>
           </div>
-
-          {!hideCart && setIsCartOpen && (
-            <button 
-              onClick={() => setIsCartOpen(true)}
-              className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <ShoppingCart size={20} />
-              {cartTotalCount > 0 && (
-                <span className={`absolute top-0 right-0 inline-flex items-center justify-center w-4 h-4 text-[10px] font-bold text-white ${theme.bgClass} rounded-full transform translate-x-1 -translate-y-1`}>
-                  {cartTotalCount}
-                </span>
-              )}
-            </button>
-          )}
 
           {user ? (
             <div className="hidden sm:flex items-center gap-2">

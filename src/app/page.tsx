@@ -3,11 +3,10 @@
 import { useState, useEffect } from "react";
 import { OptimizedImage } from "@/components/OptimizedImage";
 import Link from "next/link";
-import { Search, ShoppingCart, User, Menu, MapPin, ChevronRight, Star, Heart, TrendingUp, Home as HomeIcon, Wifi, Building, Globe, ArrowRight, Infinity, Shirt } from "lucide-react";
+import { Search, User, Menu, MapPin, ChevronRight, Star, Heart, TrendingUp, Home as HomeIcon, Wifi, Building, Globe, ArrowRight, Infinity, Shirt, MessageCircle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { CartDrawer } from "@/components/CartDrawer";
 import { Footer } from "@/components/Footer";
-import { useCart } from "@/context/CartContext";
+import { useChat } from "@/context/ChatContext";
 import { useCurrency, CurrencyCode } from "@/context/CurrencyContext";
 import { db } from "@/lib/firebase";
 import { collection, query, getDocs, limit, where } from "firebase/firestore";
@@ -16,7 +15,7 @@ import { CurrencySelector } from "@/components/CurrencySelector";
 
 export default function Home() {
   const { user, userData, signOut } = useAuth();
-  const { cartTotalCount, addToCart } = useCart();
+  const { toggleChat, openChatForProduct } = useChat();
   const { currency, setCurrency, formatPrice } = useCurrency();
 
   const [activeCategory, setActiveCategory] = useState("Tout");
@@ -116,14 +115,9 @@ export default function Home() {
                 <span className="hidden sm:block">Se connecter</span>
               </Link>
             )}
-            <Link href="/checkout" className="relative p-2.5 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors group">
-              <ShoppingCart size={22} className="group-hover:scale-110 transition-transform" />
-              {cartTotalCount > 0 && (
-                <span className="absolute top-0 right-0 w-5 h-5 bg-gray-900 text-white text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-white shadow-sm">
-                  {cartTotalCount}
-                </span>
-              )}
-            </Link>
+            <button onClick={toggleChat} className="relative p-2.5 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors group">
+              <MessageCircle size={22} className="group-hover:scale-110 transition-transform" />
+            </button>
           </div>
         </div>
       </header>
@@ -270,15 +264,14 @@ export default function Home() {
                           <div className="mt-auto flex items-center justify-between pt-3 border-t border-gray-50">
                             <span className="font-bold text-base sm:text-lg text-gray-900">{formatPrice(product.price)}</span>
                             <button 
-                              onClick={() => addToCart({
+                              onClick={() => openChatForProduct({
                                 id: product.id,
-                                title: product.name,
-                                price: product.price.toString(),
-                                image: product.image
+                                supplierId: product.supplierId || "admin",
+                                name: product.name
                               })}
                               className="w-8 h-8 rounded-full bg-gray-100 text-gray-900 flex items-center justify-center hover:bg-gray-900 hover:text-white transition-colors active:scale-90 shadow-sm"
                             >
-                              <ShoppingCart size={16} />
+                              <MessageCircle size={16} />
                             </button>
                           </div>
                         </div>

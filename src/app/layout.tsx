@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Montserrat } from "next/font/google";
 import "./globals.css";
-import { CartProvider } from "@/context/CartContext";
-import { CartDrawer } from "@/components/CartDrawer";
+import { ChatProvider } from "@/context/ChatContext";
+import { GlobalChatbot } from "@/components/GlobalChatbot";
 
 const montserrat = Montserrat({
   variable: "--font-montserrat",
@@ -31,10 +31,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <AuthProvider>
             <CurrencyProvider>
-              <CartProvider>
+              <ChatProvider>
                 {children}
-                <CartDrawer />
-              </CartProvider>
+                <GlobalChatbot />
+              </ChatProvider>
             </CurrencyProvider>
           </AuthProvider>
         </ThemeProvider>

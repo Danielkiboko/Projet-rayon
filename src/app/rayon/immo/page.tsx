@@ -4,12 +4,12 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Home as HomeIcon, Wifi, Building2, Globe, MapPin, Maximize, BedDouble, Bath, ChevronRight, Shirt, User, MessageSquare } from "lucide-react";
-import { ClientChatBox } from "@/components/ClientChatBox";
 import { RayonNavbar } from "@/components/rayon/RayonNavbar";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { ProductSkeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/context/AuthContext";
+import { useChat } from "@/context/ChatContext";
 
 const DICT = {
   fr: {
@@ -46,7 +46,7 @@ export default function ImmoPage() {
   const [lang, setLang] = useState<"fr" | "en">("fr");
   const t = DICT[lang];
   const { user, loading, signOut } = useAuth();
-  const [selectedProperty, setSelectedProperty] = useState<any | null>(null);
+  const { openChatForProduct } = useChat();
   const [products, setProducts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -85,7 +85,6 @@ export default function ImmoPage() {
         lang={lang}
         setLang={setLang}
         t={t}
-        hideCart={true}
       />
 
       {/* Main Content */}
@@ -201,7 +200,13 @@ export default function ImmoPage() {
                   {/* Actions */}
                   <div className="mt-auto">
                     <button 
-                      onClick={() => setSelectedProperty(property)}
+                      onClick={() => {
+                        openChatForProduct({
+                          id: property.id,
+                          supplierId: property.supplierId || "admin",
+                          name: property.title?.[lang] || property.title?.fr || property.title
+                        });
+                      }}
                       className="w-full py-3 bg-gray-900 hover:bg-gray-800 text-white text-sm font-bold rounded-xl transition-colors flex items-center justify-center space-x-2 shadow-sm"
                     >
                       <MessageSquare size={16} />
@@ -215,15 +220,6 @@ export default function ImmoPage() {
         </div>
 
       </main>
-
-      {selectedProperty && (
-        <ClientChatBox 
-          supplierId={selectedProperty.supplierId}
-          productId={selectedProperty.id}
-          productName={selectedProperty.title}
-          onClose={() => setSelectedProperty(null)}
-        />
-      )}
     </div>
   );
 }

@@ -4,23 +4,20 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { OptimizedImage } from "@/components/OptimizedImage";
 import { ChevronLeft, ShoppingCart, ShieldCheck, Check, Truck, PackageOpen, Minus, Plus, MessageSquare } from "lucide-react";
-import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { ClientChatBox } from "@/components/ClientChatBox";
+import { useChat } from "@/context/ChatContext";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 export default function ProductDetails({ params }: { params: { id: string } }) {
   const [lang, setLang] = useState<"fr" | "en">("fr");
-  const [quantity, setQuantity] = useState(1);
-  const { addToCart, setIsCartOpen, cartTotalCount } = useCart();
+  const { openChatForProduct } = useChat();
   const { user } = useAuth();
   const router = useRouter();
   
   const [productData, setProductData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isChatOpen, setIsChatOpen] = useState(false);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -59,38 +56,18 @@ export default function ProductDetails({ params }: { params: { id: string } }) {
     );
   }
 
-  // Calculate current price based on quantity (Bulk Pricing logic)
+  // Minimum unit price for display
   let currentUnitPrice = productData.price;
-  for (const tier of productData.bulkPricing) {
-    const qtyRange = tier.qty.split("-");
-    if (qtyRange.length === 2) {
-      if (quantity >= parseInt(qtyRange[0]) && quantity <= parseInt(qtyRange[1])) {
-        currentUnitPrice = tier.price;
-      }
-    } else if (tier.qty.endsWith("+")) {
-      if (quantity >= parseInt(tier.qty)) {
-        currentUnitPrice = tier.price;
-      }
-    }
+  if (productData.bulkPricing && productData.bulkPricing.length > 0) {
+    currentUnitPrice = productData.bulkPricing[productData.bulkPricing.length - 1].price; // usually the lowest price is the last tier
   }
 
-  const handleAddToCart = () => {
-    // Add item N times or add one item with quantity N
-    // Our cart context uses updateQuantity for multiples, but addToCart handles 1 at a time by default.
-    // For simplicity, we can loop, or modify addToCart. Let's just loop for now, 
-    // or better, since addToCart just adds 1 if it exists, let's call it N times.
-    for (let i = 0; i < quantity; i++) {
-      addToCart({
-        id: params.id,
-        title: productData.title[lang],
-        price: `$ ${currentUnitPrice.toFixed(2).replace(".", ",")}`,
-        image: productData.image,
-      });
-    }
-  };
-
   const handleOpenChat = () => {
-    setIsChatOpen(true);
+    openChatForProduct({
+      id: productData.id,
+      supplierId: productData.supplierId || "admin",
+      name: productData.title[lang]
+    });
   };
 
   return (
@@ -109,17 +86,6 @@ export default function ProductDetails({ params }: { params: { id: string } }) {
               className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-md text-xs font-medium text-gray-300 hover:text-white transition-colors"
             >
               {lang.toUpperCase()}
-            </button>
-            <button 
-              onClick={() => setIsCartOpen(true)}
-              className="relative p-2 text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-            >
-              <ShoppingCart size={20} />
-              {cartTotalCount > 0 && (
-                <span className="absolute top-0 right-0 inline-flex items-center justify-center w-4 h-4 text-[10px] font-bold text-white bg-primary rounded-full transform translate-x-1 -translate-y-1">
-                  {cartTotalCount}
-                </span>
-              )}
             </button>
           </div>
         </div>
@@ -224,69 +190,22 @@ export default function ProductDetails({ params }: { params: { id: string } }) {
               </div>
             </div>
 
-            {/* Add to Cart Section */}
+            {/* Main CTA */}
             <div className="bg-white/5 border border-white/10 rounded-2xl p-6 mt-auto">
-              <div className="flex flex-col sm:flex-row items-center gap-6">
-                
-                {/* Quantity selector */}
-                <div className="flex items-center space-x-4 bg-black/40 rounded-xl p-2 border border-white/5 w-full sm:w-auto justify-between sm:justify-start">
-                  <button 
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="p-3 hover:text-primary-light text-gray-400 transition-colors bg-white/5 rounded-lg"
-                  >
-                    <Minus size={18} />
-                  </button>
-                  <span className="text-xl font-bold text-white w-8 text-center">
-                    {quantity}
-                  </span>
-                  <button 
-                    onClick={() => setQuantity(quantity + 1)}
-                    className="p-3 hover:text-primary-light text-gray-400 transition-colors bg-white/5 rounded-lg"
-                  >
-                    <Plus size={18} />
-                  </button>
-                </div>
-
-                {/* Add to cart button */}
-                <button 
-                  onClick={handleAddToCart}
-                  className="flex-1 w-full py-4 bg-primary hover:bg-primary-light text-white font-bold rounded-xl transition-all shadow-lg shadow-primary/20 flex items-center justify-center space-x-2"
-                >
-                  <ShoppingCart size={20} />
-                  <span>
-                    {lang === "fr" ? "Ajouter au panier" : "Add to cart"} 
-                    <span className="ml-2 font-normal opacity-80">
-                      ($ {(currentUnitPrice * quantity).toFixed(2).replace(".", ",")})
-                    </span>
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            {/* Contact Supplier */}
-            <div className="mt-4 text-center">
               <button 
                 onClick={handleOpenChat}
-                className="text-sm font-bold text-gray-400 hover:text-white transition-colors flex items-center justify-center mx-auto"
+                className="w-full py-4 bg-primary hover:bg-primary-light text-white font-bold rounded-xl transition-all shadow-lg shadow-primary/20 flex items-center justify-center space-x-2"
               >
-                <MessageSquare size={16} className="mr-2" />
-                {lang === "fr" ? "Contacter le fournisseur" : "Contact Supplier"}
+                <MessageSquare size={20} />
+                <span>
+                  {lang === "fr" ? "Contacter le fournisseur" : "Contact Supplier"} 
+                </span>
               </button>
             </div>
 
           </div>
         </div>
       </main>
-
-      {/* Render ChatBox */}
-      {isChatOpen && (
-        <ClientChatBox 
-          supplierId={productData.supplierId || "admin"} // Fallback
-          productId={productData.id}
-          productName={productData.title[lang]}
-          onClose={() => setIsChatOpen(false)}
-        />
-      )}
     </div>
   );
 }

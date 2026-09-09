@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
-import { useCart } from "@/context/CartContext";
-import { TrendingUp, ShoppingCart, User } from "lucide-react";
+import { useChat } from "@/context/ChatContext";
+import { TrendingUp, MessageCircle, User } from "lucide-react";
 
 export function Footer() {
   const { user } = useAuth();
-  const { cartTotalCount } = useCart();
+  const { toggleChat } = useChat();
 
   return (
     <>
@@ -57,15 +57,10 @@ export function Footer() {
             <div className="p-1"><TrendingUp size={24} /></div>
             <span className="text-[10px] font-bold">Explorer</span>
           </Link>
-          <Link href="/checkout" className="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-900 transition-colors relative">
-            <div className="p-1"><ShoppingCart size={24} /></div>
-            <span className="text-[10px] font-bold">Panier</span>
-            {cartTotalCount > 0 && (
-              <span className="absolute top-0 right-3 w-4 h-4 bg-gray-900 text-white text-[9px] font-bold flex items-center justify-center rounded-full">
-                {cartTotalCount}
-              </span>
-            )}
-          </Link>
+          <button onClick={toggleChat} className="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-900 transition-colors relative">
+            <div className="p-1"><MessageCircle size={24} /></div>
+            <span className="text-[10px] font-bold">Chat</span>
+          </button>
           <Link href="/login" className="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-900 transition-colors">
             <div className="p-1"><User size={24} /></div>
             <span className="text-[10px] font-bold">Menu</span>

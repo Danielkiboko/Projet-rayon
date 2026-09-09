@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { ProductSkeleton } from "@/components/ui/Skeleton";
-import { useCart } from "@/context/CartContext";
+import { useChat } from "@/context/ChatContext";
 import { RayonNavbar } from "./RayonNavbar";
 import { ProductCard } from "./ProductCard";
 
@@ -19,7 +19,7 @@ interface StoreTemplateProps {
 export function StoreTemplate({ category, heroImage, dummyProducts, dict }: StoreTemplateProps) {
   const [lang, setLang] = useState<"fr" | "en">("fr");
   const t = dict[lang];
-  const { addToCart } = useCart();
+  const { openChatForProduct } = useChat();
   const [products, setProducts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -48,12 +48,11 @@ export function StoreTemplate({ category, heroImage, dummyProducts, dict }: Stor
     fetchProducts();
   }, [category, dummyProducts]);
 
-  const handleAddToCart = (product: any) => {
-    addToCart({
+  const handleChat = (product: any) => {
+    openChatForProduct({
       id: product.id,
-      title: product.title[lang] || product.title?.fr || product.title,
-      price: `$ ${Number(product.price).toFixed(2).replace(".", ",")}`,
-      image: product.image,
+      supplierId: product.supplierId || "admin",
+      name: product.title[lang] || product.title?.fr || product.title
     });
   };
 
@@ -126,7 +125,7 @@ export function StoreTemplate({ category, heroImage, dummyProducts, dict }: Stor
                 category={category}
                 lang={lang}
                 t={t}
-                handleAddToCart={handleAddToCart}
+                handleChat={handleChat}
               />
             ))
           )}

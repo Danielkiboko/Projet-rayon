@@ -82,6 +82,21 @@ export default function SupplierRegisterPage() {
         console.error("Failed to send SMS, API returned:", await smsResponse.text());
       }
 
+      // Envoi de l'email d'onboarding avec les identifiants
+      const emailResponse = await fetch("/api/emails/onboarding", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email,
+          name: name,
+          password: tempPassword,
+        }),
+      });
+
+      if (!emailResponse.ok) {
+        console.error("Failed to send onboarding email:", await emailResponse.text());
+      }
+
       // 6. Show success screen
       setIsSuccess(true);
       

@@ -19,6 +19,9 @@ export async function sendMobiShastraSMS({ mobileNo, message, isUnicode = false,
     throw new Error("SMS service not configured");
   }
 
+  // Nettoyage strict du numéro (enlever les +, les espaces et tout ce qui n'est pas un chiffre)
+  const cleanMobileNo = mobileNo.replace(/\D/g, '');
+
   // Format the URL as required by the Single SMS API
   // https://mshastra.com/sendurl.aspx?user=xxxxxxxx&pwd=xxxxxx&senderid=SMSAlert&mobileno=mobileno&msgtext=Hello&priority=High&CountryCode=ALL
   
@@ -27,7 +30,7 @@ export async function sendMobiShastraSMS({ mobileNo, message, isUnicode = false,
     user: user,
     pwd: pwd,
     senderid: senderId,
-    mobileno: mobileNo,
+    mobileno: cleanMobileNo,
     msgtext: message,
     priority: "High",
     CountryCode: "ALL",

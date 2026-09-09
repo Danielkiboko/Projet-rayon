@@ -212,19 +212,9 @@ export function GlobalChatbot() {
     setNewMessage("");
 
     try {
-      // Add message
-      await addDoc(collection(db, `chats/${currentChatId}/messages`), {
-        text: msg,
-        senderId: user.uid,
-        createdAt: serverTimestamp()
-      });
-
-      // Update chat doc
+      // Update chat doc first to satisfy Firestore security rules (which check chat doc clientId)
       const chatDocRef = doc(db, "chats", currentChatId);
       
-      // We need to know supplierId and productName to save in chat document
-      // If we are coming from activeProduct, we use that.
-      // If we are in an existing chat (selectedChatId), the doc already has it, but we can just merge.
       const updateData: any = {
         lastMessage: msg,
         lastMessageTime: serverTimestamp(),
@@ -238,11 +228,16 @@ export function GlobalChatbot() {
         updateData.supplierId = activeProduct.supplierId;
         updateData.propertyId = activeProduct.id; // generic ID
         updateData.productName = activeProduct.name;
-        // determine category from current path? Or just generic.
-        // We can just rely on the existing schema.
       }
 
       await setDoc(chatDocRef, updateData, { merge: true });
+
+      // Now add the message
+      await addDoc(collection(db, `chats/${currentChatId}/messages`), {
+        text: msg,
+        senderId: user.uid,
+        createdAt: serverTimestamp()
+      });
 
     } catch (error) {
       console.error("Erreur d'envoi du message:", error);

@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
+import { useEffect, useState } from "react";
 import ImmoDashboard from "@/components/dashboards/ImmoDashboard";
 import ModeDashboard from "@/components/dashboards/ModeDashboard";
 import ConnectDashboard from "@/components/dashboards/ConnectDashboard";
@@ -22,21 +23,34 @@ export default function SupplierDashboardRouter() {
     );
   }
 
-  // Déterminer le rayon principal du fournisseur
-  // Si le fournisseur a plusieurs rayons dans userData.rayons (tableau), on prendra le premier par défaut, ou on affichera un sélecteur
-  // Pour l'instant on utilise le serviceAttached principal
-  
-  let currentService = userData?.serviceAttached || "default";
-  
-  const isImmoSupplier = 
-    userData?.role === "SUPPLIER_IMMO" || 
-    userData?.businessType === "IMMOBILIER" || 
-    userData?.rayon?.type === "REAL_ESTATE" || 
-    userData?.rayon === "immo";
+  const [currentService, setCurrentService] = useState<string>("default");
 
-  if (isImmoSupplier) {
-    currentService = "immo";
-  }
+  useEffect(() => {
+    if (userData) {
+      const saved = localStorage.getItem("activeSupplierRayon");
+      const available = userData.assignedRayons || [];
+      
+      let service = userData?.serviceAttached || "default";
+      
+      const isImmoSupplier = 
+        userData?.role === "SUPPLIER_IMMO" || 
+        userData?.businessType === "IMMOBILIER" || 
+        userData?.rayon?.type === "REAL_ESTATE" || 
+        userData?.rayon === "immo";
+
+      if (isImmoSupplier) {
+        service = "immo";
+      }
+
+      if (saved && available.includes(saved)) {
+        setCurrentService(saved);
+      } else if (available.length > 0) {
+        setCurrentService(available[0]);
+      } else {
+        setCurrentService(service);
+      }
+    }
+  }, [userData]);
 
   // Afficher le composant correspondant au rayon
   switch (currentService) {

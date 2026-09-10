@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { ShieldAlert, LayoutDashboard, Package, ShoppingCart, Truck, Wallet, CreditCard, Users } from "lucide-react";
+import { ShieldAlert, LayoutDashboard, Package, ShoppingCart, Truck, Wallet, CreditCard, Users, Layers } from "lucide-react";
 import { themeConfig } from "@/lib/themeConfig";
 import ProfileUpdateModal from "@/components/ProfileUpdateModal";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
@@ -21,6 +21,23 @@ export default function SupplierLayout({
 
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [activeRayon, setActiveRayon] = useState<string>("");
+
+  useEffect(() => {
+    if (userData) {
+      const saved = localStorage.getItem("activeSupplierRayon");
+      const available = userData.assignedRayons || [];
+      if (saved && available.includes(saved)) {
+        setActiveRayon(saved);
+      } else if (available.length > 0) {
+        setActiveRayon(available[0]);
+        localStorage.setItem("activeSupplierRayon", available[0]);
+      } else {
+        const defaultType = getSupplierType(userData);
+        setActiveRayon(defaultType);
+      }
+    }
+  }, [userData]);
 
   // Redirect to billing if trial expired, or redirect sub-suppliers lacking permissions
   useEffect(() => {
@@ -119,8 +136,8 @@ export default function SupplierLayout({
     return new Date() > endDate;
   })();
 
-  const service = getSupplierType(userData);
-  const theme = themeConfig[service] || themeConfig["default"];
+  const service = activeRayon || getSupplierType(userData) || "default";
+  const theme = themeConfig[service as keyof typeof themeConfig] || themeConfig["default"];
   let navItems = [...theme.menu];
 
   // Le fournisseur principal peut voir le menu Équipe
@@ -134,6 +151,23 @@ export default function SupplierLayout({
       item.href === '/supplier' || userData.permissions.includes(item.href)
     );
   }
+
+  const availableRayons = userData?.assignedRayons || [];
+
+  const getRayonLabel = (r: string) => {
+    switch (r) {
+      case 'immo': return 'Immobilier';
+      case 'mode': return 'Mode & Vêtements';
+      case 'connect': return 'Connect (Matériel)';
+      default: return r;
+    }
+  };
+
+  const handleSwitchRayon = (r: string) => {
+    localStorage.setItem("activeSupplierRayon", r);
+    window.location.reload();
+  };
+
   return (
     <DashboardLayout
       menuItems={navItems}
@@ -153,6 +187,29 @@ export default function SupplierLayout({
         />
       }
     >
+      {/* ── Rayon Switcher ── */}
+      {availableRayons.length > 1 && (
+        <div className="flex items-center space-x-2 bg-white/5 border border-white/10 p-2 rounded-xl overflow-x-auto mb-6 w-max">
+          <div className="flex items-center space-x-2 px-3 text-gray-400 shrink-0">
+            <Layers size={18} />
+            <span className="text-sm font-medium">Changer de module :</span>
+          </div>
+          {availableRayons.map((r: string) => (
+            <button
+              key={r}
+              onClick={() => handleSwitchRayon(r)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all shrink-0 ${
+                activeRayon === r
+                  ? `bg-opacity-20 text-[${theme.colors.accentText}] ${theme.colors.activeMenuBg} border border-[${theme.colors.accentText}]/30`
+                  : "text-gray-400 hover:text-white hover:bg-white/10 border border-transparent"
+              }`}
+            >
+              {getRayonLabel(r)}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* ── Subscription Expired Banner ── */}
       {isSubscriptionExpired && (
         <div className="bg-amber-500/10 border border-amber-500/30 p-4 rounded-xl flex items-center justify-between gap-4 mb-6">

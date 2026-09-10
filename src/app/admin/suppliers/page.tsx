@@ -19,6 +19,8 @@ interface Supplier {
   pendingProfile?: any;
   subscriptionStatus?: string;
   subscriptionEndDate?: any;
+  role?: string;
+  createdBy?: string;
 }
 
 export default function SuppliersPage() {
@@ -91,6 +93,8 @@ export default function SuppliersPage() {
           pendingProfile: data.pendingProfile,
           subscriptionStatus: data.subscriptionStatus,
           subscriptionEndDate: data.subscriptionEndDate,
+          role: data.role,
+          createdBy: data.createdBy,
         });
       });
       setSuppliers(fetchedSuppliers);
@@ -366,32 +370,51 @@ export default function SuppliersPage() {
               ) : (
                 filteredSuppliers.map((supplier) => (
                   <tr key={supplier.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                    <td className="px-6 py-4 font-medium text-white flex items-center space-x-3">
-                      <div className="w-8 h-8 rounded bg-primary/20 flex items-center justify-center text-primary-light">
-                        <Store size={16} />
+                    <td className="px-6 py-4 font-medium text-white flex flex-col justify-center min-h-[4rem]">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 rounded bg-primary/20 flex items-center justify-center text-primary-light">
+                          <Store size={16} />
+                        </div>
+                        <div className="flex flex-col">
+                          <div className="flex items-center space-x-2">
+                            <span>{supplier.name}</span>
+                            {supplier.role === 'SUB_ADMIN' && <span className="text-[10px] bg-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">Sous-Admin</span>}
+                            {supplier.role === 'SUB_SUPPLIER' && <span className="text-[10px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">Sous-Fournisseur</span>}
+                          </div>
+                          {(supplier.role === 'SUB_ADMIN' || supplier.role === 'SUB_SUPPLIER') && supplier.createdBy && (
+                            <span className="text-[11px] text-gray-500 mt-1">
+                              Créé par : {suppliers.find(s => s.id === supplier.createdBy)?.name || 'Parent inconnu'}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <span>{supplier.name}</span>
                     </td>
                     <td className="px-6 py-4">{supplier.email}</td>
                     <td className="px-6 py-4">
-                      <div className="flex flex-wrap gap-1 mb-1">
-                        {supplier.assignedRayons && supplier.assignedRayons.length > 0 ? (
-                          supplier.assignedRayons.map(r => (
-                            <span key={r} className="px-2 py-1 bg-white/10 rounded-full text-xs font-medium capitalize">
-                              {r}
-                            </span>
-                          ))
-                        ) : (
-                          <span className="text-xs text-gray-500">Aucun accès</span>
-                        )}
-                      </div>
-                      <button 
-                        onClick={() => openAccessModal(supplier)}
-                        className="text-xs text-primary-light hover:underline flex items-center mt-1"
-                      >
-                        <Shield size={12} className="mr-1" />
-                        Gérer les accès
-                      </button>
+                      {supplier.role === 'SUB_SUPPLIER' ? (
+                        <div className="text-xs text-gray-500 italic">Hérité du compte parent</div>
+                      ) : (
+                        <>
+                          <div className="flex flex-wrap gap-1 mb-1">
+                            {supplier.assignedRayons && supplier.assignedRayons.length > 0 ? (
+                              supplier.assignedRayons.map(r => (
+                                <span key={r} className="px-2 py-1 bg-white/10 rounded-full text-xs font-medium capitalize">
+                                  {r}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="text-xs text-gray-500">Aucun accès</span>
+                            )}
+                          </div>
+                          <button 
+                            onClick={() => openAccessModal(supplier)}
+                            className="text-xs text-primary-light hover:underline flex items-center mt-1"
+                          >
+                            <Shield size={12} className="mr-1" />
+                            Gérer les accès
+                          </button>
+                        </>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col">

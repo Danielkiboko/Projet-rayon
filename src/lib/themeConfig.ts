@@ -8,7 +8,9 @@ import {
   Wifi,
   Settings,
   Wallet,
-  CreditCard
+  CreditCard,
+  Truck,
+  MessageSquare
 } from "lucide-react";
 
 export type ServiceType = "mode" | "immo" | "connect" | "default";
@@ -47,7 +49,7 @@ export const themeConfig: Record<ServiceType, ServiceTheme> = {
     },
     menu: [
       { title: "Dashboard", href: "/supplier", icon: LayoutDashboard },
-      { title: "Finances", href: "/supplier/finance", icon: Wallet },
+      { title: "Livre de caisse", href: "/supplier/finance", icon: Wallet },
       { title: "Paramètres", href: "/supplier/settings", icon: Settings },
     ]
   },
@@ -66,7 +68,10 @@ export const themeConfig: Record<ServiceType, ServiceTheme> = {
       { title: "Dashboard", href: "/supplier", icon: LayoutDashboard },
       { title: "Mes Produits", href: "/supplier/products", icon: Package },
       { title: "Commandes", href: "/supplier/orders", icon: ShoppingCart },
-      { title: "Finances", href: "/supplier/finance", icon: Wallet },
+      { title: "Messages", href: "/supplier/messages", icon: MessageSquare },
+      { title: "Proformas & Factures", href: "/supplier/invoices", icon: FileText },
+      { title: "Livre de caisse", href: "/supplier/finance", icon: Wallet },
+      { title: "Livreurs", href: "/supplier/drivers", icon: Truck },
       { title: "Paramètres", href: "/supplier/settings", icon: Settings },
     ]
   },
@@ -85,7 +90,9 @@ export const themeConfig: Record<ServiceType, ServiceTheme> = {
       { title: "Dashboard", href: "/supplier", icon: LayoutDashboard },
       { title: "Mes Biens", href: "/supplier/properties", icon: Building },
       { title: "Locataires", href: "/supplier/tenants", icon: Users },
-      { title: "Finances", href: "/supplier/finance", icon: Wallet },
+      { title: "Messages", href: "/supplier/messages", icon: MessageSquare },
+      { title: "Proformas & Factures", href: "/supplier/invoices", icon: FileText },
+      { title: "Livre de caisse", href: "/supplier/finance", icon: Wallet },
       { title: "Paramètres", href: "/supplier/settings", icon: Settings },
     ]
   },
@@ -102,9 +109,12 @@ export const themeConfig: Record<ServiceType, ServiceTheme> = {
     },
     menu: [
       { title: "Dashboard", href: "/supplier", icon: LayoutDashboard },
-      { title: "Services Réseau", href: "/supplier/services", icon: Wifi },
-      { title: "Abonnements", href: "/supplier/subscriptions", icon: Users },
-      { title: "Finances", href: "/supplier/finance", icon: Wallet },
+      { title: "Mes Produits", href: "/supplier/products", icon: Package },
+      { title: "Commandes", href: "/supplier/orders", icon: ShoppingCart },
+      { title: "Messages", href: "/supplier/messages", icon: MessageSquare },
+      { title: "Proformas & Factures", href: "/supplier/invoices", icon: FileText },
+      { title: "Livre de caisse", href: "/supplier/finance", icon: Wallet },
+      { title: "Livreurs", href: "/supplier/drivers", icon: Truck },
       { title: "Paramètres", href: "/supplier/settings", icon: Settings },
     ]
   }

@@ -22,6 +22,8 @@ export default function SupplierLayout({
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [activeRayon, setActiveRayon] = useState<string>("");
+  
+  const activeSupplierId = userData?.parentSupplierId || user?.uid;
 
   useEffect(() => {
     if (userData) {
@@ -75,16 +77,17 @@ export default function SupplierLayout({
     
     const setupNotifications = async () => {
       try {
-        const { collection, query, where, onSnapshot } = await import("firebase/firestore");
+        const { collection, query, where, onSnapshot, orderBy } = await import("firebase/firestore");
         const { db } = await import("@/lib/firebase");
 
-        const qNotifs = query(
+        const q = query(
           collection(db, "inapp_notifications"),
-          where("supplierId", "==", user.uid),
-          where("read", "==", false)
+          where("supplierId", "==", activeSupplierId),
+          where("read", "==", false),
+          orderBy("createdAt", "desc")
         );
 
-        unsubNotifs = onSnapshot(qNotifs, (snapshot) => {
+        unsubNotifs = onSnapshot(q, (snapshot) => {
           const items: any[] = [];
           snapshot.forEach(doc => {
             const d = doc.data();

@@ -11,6 +11,7 @@ import AiAssistantChat from "@/components/shared/AiAssistantChat";
 import ImageUploadArea from "@/components/shared/ImageUploadArea";
 import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
+import { getSupplierType } from "@/lib/permissions";
 import { 
   collection, query, where, getDocs, addDoc, updateDoc, 
   deleteDoc, doc, serverTimestamp, orderBy, onSnapshot 
@@ -124,6 +125,13 @@ export default function ProductManager({ isAdmin }: ProductManagerProps) {
 
   const openAddModal = () => {
     resetForm();
+    const activeRayon = localStorage.getItem("activeSupplierRayon");
+    if (activeRayon) {
+      setProductCategory(activeRayon);
+    } else if (userData) {
+      const defaultType = getSupplierType(userData);
+      setProductCategory(defaultType);
+    }
     setIsModalOpen(true);
   };
 

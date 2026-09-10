@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, updateDoc } from "firebase/firestore";
+import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Send, Loader2 } from "lucide-react";
+import { Send, Loader2, FileText } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -18,6 +18,16 @@ interface Message {
   text: string;
   senderId: string;
   createdAt: any;
+  type?: 'text' | 'proforma';
+  proforma?: {
+    productId?: string;
+    productName?: string;
+    quantity: number;
+    price: number;
+    deliveryFee: number;
+    status: 'pending' | 'paid' | 'delivered';
+    orderId?: string;
+  };
 }
 
 export function ChatBox({ chatId, otherUserName = "Utilisateur" }: ChatBoxProps) {
@@ -85,6 +95,68 @@ export function ChatBox({ chatId, otherUserName = "Utilisateur" }: ChatBoxProps)
     }
   };
 
+  const handlePayDelivery = async (msg: Message) => {
+    if (!user || !msg.proforma) return;
+    
+    // Simule paiement
+    alert("Redirection vers le paiement Makuta pour la livraison...");
+    
+    try {
+      const orderId = `ord_${Date.now()}`;
+      
+      // 1. Mettre à jour le statut
+      if (chatId) {
+        await updateDoc(doc(db, "chats", chatId, "messages", msg.id), {
+          "proforma.status": "paid",
+          "proforma.orderId": orderId
+        });
+      }
+      
+      // 2. Créer la commande
+      await setDoc(doc(db, "orders", orderId), {
+        id: orderId,
+        clientId: user.uid,
+        supplierId: msg.senderId,
+        chatId: chatId,
+        items: [{
+          productId: msg.proforma.productId,
+          productName: msg.proforma.productName,
+          quantity: msg.proforma.quantity,
+          price: msg.proforma.price,
+        }],
+        totalAmount: msg.proforma.price,
+        deliveryFee: msg.proforma.deliveryFee,
+        paymentStatus: 'delivery_paid',
+        status: 'pending_driver',
+        createdAt: serverTimestamp(),
+        clientLocation: {
+          lat: -4.322447, // Kinshasa mock
+          lng: 15.307045
+        }
+      });
+      
+      // 3. Déduire le stock
+      if (msg.proforma.productId) {
+        await fetch('/api/orders/update-stock', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            productId: msg.proforma.productId,
+            quantity: msg.proforma.quantity,
+            action: 'decrement'
+          })
+        });
+      }
+      
+      alert("Paiement réussi ! La commande est envoyée aux livreurs.");
+      window.location.href = `/order/${orderId}/tracking`;
+      
+    } catch (error) {
+      console.error("Erreur de paiement", error);
+      alert("Erreur lors du paiement.");
+    }
+  };
+
   const formatMessageTime = (timestamp: any) => {
     if (!timestamp) return "";
     const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
@@ -122,13 +194,63 @@ export function ChatBox({ chatId, otherUserName = "Utilisateur" }: ChatBoxProps)
                 className={`flex flex-col max-w-[80%] ${isMe ? 'self-end items-end ml-auto' : 'self-start items-start'}`}
               >
                 <div
-                  className={`px-4 py-2 rounded-2xl ${
+                  className={`px-4 py-3 rounded-2xl ${
                     isMe 
-                      ? 'bg-blue-600 text-white rounded-tr-sm' 
-                      : 'bg-white border border-gray-200 text-gray-800 rounded-tl-sm'
+                      ? (msg.type === 'proforma' ? 'bg-blue-600 text-white rounded-tr-sm border border-blue-500' : 'bg-blue-600 text-white rounded-tr-sm')
+                      : (msg.type === 'proforma' ? 'bg-white border-2 border-gray-900 text-gray-900 rounded-tl-sm shadow-md' : 'bg-white border border-gray-200 text-gray-800 rounded-tl-sm')
                   }`}
                 >
-                  <p className="text-sm">{msg.text}</p>
+                  {msg.type === 'proforma' && msg.proforma ? (
+                    <div className="flex flex-col space-y-3 min-w-[220px]">
+                      <div className={`font-bold border-b ${isMe ? 'border-blue-400' : 'border-gray-200'} pb-2 mb-1 flex items-center justify-between`}>
+                        <span className="flex items-center gap-2"><FileText size={16} /> Offre Proforma</span>
+                        {msg.proforma.status === 'paid' && <span className="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded font-bold">Payé</span>}
+                        {msg.proforma.status === 'pending' && <span className="bg-orange-100 text-orange-800 text-xs px-2 py-0.5 rounded font-bold">En attente</span>}
+                      </div>
+                      <p className="font-semibold text-base">{msg.proforma.productName}</p>
+                      <div className={`flex justify-between text-xs ${isMe ? 'text-blue-100' : 'text-gray-600'}`}>
+                        <span>Quantité:</span>
+                        <span className={`font-medium ${isMe ? 'text-white' : 'text-gray-900'}`}>{msg.proforma.quantity}</span>
+                      </div>
+                      <div className={`flex justify-between text-xs ${isMe ? 'text-blue-100' : 'text-gray-600'}`}>
+                        <span>Prix Total Prod.:</span>
+                        <span className={`font-medium ${isMe ? 'text-white' : 'text-gray-900'}`}>{msg.proforma.price} $</span>
+                      </div>
+                      <div className={`flex justify-between text-xs ${isMe ? 'text-blue-100' : 'text-gray-600'}`}>
+                        <span>Frais Livraison:</span>
+                        <span className={`font-medium ${isMe ? 'text-white' : 'text-gray-900'}`}>{msg.proforma.deliveryFee} $</span>
+                      </div>
+                      
+                      <div className={`mt-3 pt-3 border-t ${isMe ? 'border-blue-400' : 'border-gray-200'}`}>
+                        <div className="flex justify-between font-bold mb-3">
+                          <span>À Payer (Livraison):</span>
+                          <span>{msg.proforma.deliveryFee} $</span>
+                        </div>
+                        
+                        {!isMe && msg.proforma.status === 'pending' && (
+                          <button 
+                            onClick={() => handlePayDelivery(msg)}
+                            className="w-full bg-gray-900 text-white py-2.5 rounded-lg font-medium hover:bg-gray-800 transition-colors flex items-center justify-center shadow-sm"
+                          >
+                            Payer la Livraison
+                          </button>
+                        )}
+                        
+                        {msg.proforma.status === 'paid' && (
+                          <div className="flex flex-col space-y-2 text-center mt-2">
+                            <p className="text-xs text-green-600 font-medium bg-green-50 p-2 rounded-lg">Livraison payée. Le produit sera payé à la livraison.</p>
+                            {msg.proforma.orderId && (
+                              <a href={`/order/${msg.proforma.orderId}/tracking`} className="w-full bg-blue-50 text-blue-700 py-2 rounded-lg font-medium text-sm hover:bg-blue-100 transition-colors block text-center mt-2">
+                                Suivre la livraison
+                              </a>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm">{msg.text}</p>
+                  )}
                 </div>
                 <span className="text-[10px] text-gray-400 mt-1 mx-1">
                   {formatMessageTime(msg.createdAt)}

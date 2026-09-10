@@ -31,6 +31,7 @@ const groupPaymentsByDate = (payments: any[]) => {
 
 export default function ImmoDashboard() {
   const { user, userData } = useAuth();
+  const activeSupplierId = userData?.parentSupplierId || user?.uid;
   
   const [stats, setStats] = useState({
     totalProperties: 0,
@@ -59,7 +60,7 @@ export default function ImmoDashboard() {
     // Fetch payments
     const qPayments = query(
       collection(db, "payments"),
-      where("supplierId", "==", user.uid),
+      where("supplierId", "==", activeSupplierId),
       orderBy("createdAt", "desc"),
       limit(50)
     );
@@ -79,7 +80,7 @@ export default function ImmoDashboard() {
     });
 
     // 1. Fetch Properties
-    const qProps = query(collection(db, "properties"), where("supplierId", "==", user.uid));
+    const qProps = query(collection(db, "properties"), where("supplierId", "==", activeSupplierId));
     const unsubProps = onSnapshot(qProps, (snapshot) => {
       let totalUnits = 0;
       let propertiesCount = snapshot.size;
@@ -102,7 +103,7 @@ export default function ImmoDashboard() {
       setStats(prev => ({ ...prev, totalProperties: propertiesCount, totalUnits }));
     });
 
-    const qTenants = query(collection(db, "tenants"), where("supplierId", "==", user.uid));
+    const qTenants = query(collection(db, "tenants"), where("supplierId", "==", activeSupplierId));
     const unsubTenants = onSnapshot(qTenants, (snapshot) => {
       let activeTenants = 0;
       let totalRent = 0;
@@ -155,7 +156,7 @@ export default function ImmoDashboard() {
     });
 
     // 3. Fetch Visits
-    const qVisits = query(collection(db, "visits"), where("supplierId", "==", user.uid), orderBy("createdAt", "desc"));
+    const qVisits = query(collection(db, "visits"), where("supplierId", "==", activeSupplierId), orderBy("createdAt", "desc"));
     const unsubVisits = onSnapshot(qVisits, (snapshot) => {
       const visitsData: any[] = [];
       snapshot.forEach(doc => {
@@ -205,14 +206,14 @@ export default function ImmoDashboard() {
       return;
     }
     try {
-      const q = query(collection(db, "chats"), where("clientId", "==", visit.clientId), where("supplierId", "==", user?.uid), where("propertyId", "==", visit.propertyId));
+      const q = query(collection(db, "chats"), where("clientId", "==", visit.clientId), where("supplierId", "==", activeSupplierId), where("propertyId", "==", visit.propertyId));
       const snap = await getDocs(q);
       if (snap.empty) {
         await import("firebase/firestore").then(async ({ setDoc, doc, serverTimestamp }) => {
-          const chatId = `${visit.clientId}_${user?.uid}_${visit.propertyId}`;
+          const chatId = `${visit.clientId}_${activeSupplierId}_${visit.propertyId}`;
           await setDoc(doc(db, "chats", chatId), {
             clientId: visit.clientId,
-            supplierId: user?.uid,
+            supplierId: activeSupplierId,
             propertyId: visit.propertyId,
             propertyTitle: visit.propertyTitle,
             lastMessage: "",

@@ -55,6 +55,11 @@ service cloud.firestore {
       allow read, update, delete: if (
         isSuperAdmin() || isAdmin() || (
           ownsSupplierData(resource.data.supplierId)
+        ) || (
+          resource.data.keys().hasAll(['supplierIds']) && (
+            (isSupplier() && request.auth.uid in resource.data.supplierIds) || 
+            (isSubSupplier() && request.auth.token.parentSupplierId in resource.data.supplierIds)
+          )
         )
       );
 

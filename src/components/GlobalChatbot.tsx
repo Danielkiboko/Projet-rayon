@@ -45,11 +45,11 @@ export function GlobalChatbot() {
       where("clientId", "==", user.uid)
     );
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const fetchedChats = snapshot.docs.map(doc => ({
+      const fetchedChats: any[] = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
-      fetchedChats.sort((a, b) => (b.updatedAt?.toMillis() || 0) - (a.updatedAt?.toMillis() || 0));
+      fetchedChats.sort((a, b) => (b.updatedAt?.toMillis?.() || 0) - (a.updatedAt?.toMillis?.() || 0));
       setUserChats(fetchedChats);
     });
     return () => unsubscribe();

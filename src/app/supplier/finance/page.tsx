@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Wallet, ArrowDownRight, ArrowUpRight, Plus, Download, X, Search } from "lucide-react";
 import { db } from "@/lib/firebase";
-import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, where } from "firebase/firestore";
+import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, where, doc, updateDoc } from "firebase/firestore";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 
@@ -33,12 +33,14 @@ export default function SupplierFinancePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Form states
-  const [txType, setTxType] = useState<"INCOME" | "EXPENSE" | "PAYOUT">("INCOME");
+  const [txType, setTxType] = useState<"INCOME" | "EXPENSE" | "PAYOUT" | "RENT_INCOME">("INCOME");
   const [expenseCategory, setExpenseCategory] = useState("Autre");
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [referenceId, setReferenceId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [tenants, setTenants] = useState<any[]>([]);
+  const [selectedTenantId, setSelectedTenantId] = useState("");
   
   const role = (userData?.role || "").toUpperCase();
   const isImmo = role === "SUPPLIER_IMMO" || role === "SUB_SUPPLIER"; // Basic check
@@ -81,11 +83,24 @@ export default function SupplierFinancePage() {
       }, (error) => {
         console.error("Error fetching transactions:", error);
         setIsLoading(false);
+        setIsLoading(false);
       });
 
       let unsubAutomatic: any = () => {};
+      let unsubTenants: any = () => {};
 
       if (isImmo) {
+        // Fetch tenants for rent payment dropdown
+        const qTenants = query(
+          collection(db, "tenants"),
+          where("supplierId", "==", activeSupplierId)
+        );
+        unsubTenants = onSnapshot(qTenants, (snapshot) => {
+          const t: any[] = [];
+          snapshot.forEach(doc => t.push({ id: doc.id, ...doc.data() }));
+          setTenants(t);
+        });
+
         // Fetch rent payments for Immo
         const qPayments = query(
           collection(db, "payments"),
@@ -154,6 +169,7 @@ export default function SupplierFinancePage() {
       return () => {
         unsubTx();
         unsubAutomatic();
+        unsubTenants();
       };
     }
   }, [user, userData, loading, router, activeSupplierId]);
@@ -164,22 +180,64 @@ export default function SupplierFinancePage() {
     
     setIsSubmitting(true);
     try {
-      await addDoc(collection(db, "supplier_transactions"), {
-        supplierId: activeSupplierId,
-        type: txType,
-        category: txType === "EXPENSE" ? expenseCategory : null,
-        amount: Number(amount),
-        currency: "USD",
-        description,
-        referenceId: referenceId || null,
-        status: "COMPLETED",
-        createdAt: serverTimestamp(),
-        createdBy: activeSupplierId
-      });
+      if (txType === "RENT_INCOME") {
+        if (!selectedTenantId) {
+          alert("Veuillez sélectionner un locataire");
+          setIsSubmitting(false);
+          return;
+        }
+        const tenant = tenants.find(t => t.id === selectedTenantId);
+        
+        // 1. Ajouter le paiement
+        await addDoc(collection(db, "payments"), {
+          supplierId: activeSupplierId,
+          tenantId: tenant.id,
+          clientName: `${tenant.firstName} ${tenant.lastName}`,
+          propertyId: tenant.propertyId,
+          propertyTitle: tenant.propertyTitle,
+          unitId: tenant.unitId || null,
+          unitTitle: tenant.unitTitle || null,
+          amount: Number(amount),
+          currency: "USD",
+          status: "COMPLETED",
+          createdAt: serverTimestamp(),
+          createdBy: activeSupplierId,
+          reference: referenceId || `Loyer ${new Date().toLocaleString('fr-FR', { month: 'long', year: 'numeric' })}`
+        });
+
+        // 2. Mettre à jour nextPayment du locataire (+1 mois par défaut ou selon périodicité)
+        if (tenant.nextPayment) {
+          const currentDate = new Date(tenant.nextPayment);
+          if (tenant.periodicity === "Trimestriel") currentDate.setMonth(currentDate.getMonth() + 3);
+          else if (tenant.periodicity === "Annuel") currentDate.setFullYear(currentDate.getFullYear() + 1);
+          else if (tenant.periodicity === "Hebdomadaire") currentDate.setDate(currentDate.getDate() + 7);
+          else currentDate.setMonth(currentDate.getMonth() + 1); // Mensuel par défaut
+
+          await updateDoc(doc(db, "tenants", tenant.id), {
+            nextPayment: currentDate.toISOString().split("T")[0],
+            status: "À jour"
+          });
+        }
+      } else {
+        await addDoc(collection(db, "supplier_transactions"), {
+          supplierId: activeSupplierId,
+          type: txType,
+          category: txType === "EXPENSE" ? expenseCategory : null,
+          amount: Number(amount),
+          currency: "USD",
+          description,
+          referenceId: referenceId || null,
+          status: "COMPLETED",
+          createdAt: serverTimestamp(),
+          createdBy: activeSupplierId
+        });
+      }
+
       setIsModalOpen(false);
       setAmount("");
       setDescription("");
       setReferenceId("");
+      setSelectedTenantId("");
       setTxType("INCOME");
       setExpenseCategory("Autre");
     } catch (error) {
@@ -392,11 +450,34 @@ export default function SupplierFinancePage() {
                     onChange={(e: any) => setTxType(e.target.value)}
                     className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
                   >
-                    <option value="INCOME">Entrée (Vente produit/service)</option>
-                    <option value="PAYOUT">Paiement d'un Livreur</option>
-                    <option value="EXPENSE">Autre Dépense (Abonnement, Stock...)</option>
+                    {!isImmo && <option value="INCOME">Entrée (Vente produit/service)</option>}
+                    {isImmo && <option value="INCOME">Entrée (Gains génériques)</option>}
+                    {isImmo && <option value="RENT_INCOME">Paiement Loyer</option>}
+                    {!isImmo && <option value="PAYOUT">Paiement d'un Livreur</option>}
+                    <option value="EXPENSE">Autre Dépense (Abonnement, Stock, Entretien...)</option>
                   </select>
                 </div>
+
+                {txType === "RENT_INCOME" && (
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium text-gray-300">Locataire</label>
+                    <select 
+                      required
+                      value={selectedTenantId}
+                      onChange={(e) => {
+                        setSelectedTenantId(e.target.value);
+                        const t = tenants.find(x => x.id === e.target.value);
+                        if (t) setAmount(t.rentAmount || "");
+                      }}
+                      className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
+                    >
+                      <option value="">Sélectionnez un locataire...</option>
+                      {tenants.map(t => (
+                        <option key={t.id} value={t.id}>{t.firstName} {t.lastName} - {t.propertyTitle}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
                 {txType === "EXPENSE" && (
                   <div className="space-y-1">
@@ -406,12 +487,24 @@ export default function SupplierFinancePage() {
                       onChange={(e) => setExpenseCategory(e.target.value)}
                       className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
                     >
-                      <option value="Loyer">Loyer / Factures</option>
-                      <option value="Salaires">Salaires</option>
-                      <option value="Logistique">Logistique / Transport</option>
-                      <option value="Achats">Achats Marchandises</option>
-                      <option value="Marketing">Publicité / Marketing</option>
-                      <option value="Autre">Autre</option>
+                      {isImmo ? (
+                        <>
+                          <option value="Réparation">Réparation</option>
+                          <option value="Entretien">Entretien</option>
+                          <option value="Taxes">Taxes / Impôts</option>
+                          <option value="Commissions">Commissions Agence</option>
+                          <option value="Autre (Immo)">Autre (Immo)</option>
+                        </>
+                      ) : (
+                        <>
+                          <option value="Loyer">Loyer / Factures</option>
+                          <option value="Salaires">Salaires</option>
+                          <option value="Logistique">Logistique / Transport</option>
+                          <option value="Achats">Achats Marchandises</option>
+                          <option value="Marketing">Publicité / Marketing</option>
+                          <option value="Autre">Autre</option>
+                        </>
+                      )}
                     </select>
                   </div>
                 )}
@@ -429,17 +522,19 @@ export default function SupplierFinancePage() {
                   />
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-sm font-medium text-gray-300">Description</label>
-                  <input
-                    type="text"
-                    required
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
-                    placeholder="ex: Vente de 3 robes"
-                  />
-                </div>
+                {txType !== "RENT_INCOME" && (
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium text-gray-300">Description</label>
+                    <input
+                      type="text"
+                      required
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
+                      placeholder="ex: Vente de 3 robes"
+                    />
+                  </div>
+                )}
                 
                 <div className="space-y-1">
                   <label className="text-sm font-medium text-gray-300">Référence (Optionnel)</label>
@@ -448,7 +543,7 @@ export default function SupplierFinancePage() {
                     value={referenceId}
                     onChange={(e) => setReferenceId(e.target.value)}
                     className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
-                    placeholder="N° Commande"
+                    placeholder={txType === "RENT_INCOME" ? "Mois payé (ex: Loyer Mars 2024)" : "N° Commande"}
                   />
                 </div>
 

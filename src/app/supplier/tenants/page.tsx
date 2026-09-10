@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Users, Search, Plus, Bell, Home, X } from "lucide-react";
+import { Users, Search, Plus, Bell, Home, X, DollarSign } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { auth, db } from "@/lib/firebase";
-import { collection, getDocs, query, where, addDoc, updateDoc, doc, getDoc } from "firebase/firestore";
+import { collection, getDocs, query, where, addDoc, updateDoc, doc, getDoc, serverTimestamp } from "firebase/firestore";
 import { useAuth } from "@/context/AuthContext";
 
 interface Tenant {
@@ -60,6 +60,12 @@ export default function SupplierTenantsPage() {
   const [tenantToDepart, setTenantToDepart] = useState<Tenant | null>(null);
   const [departureDate, setDepartureDate] = useState("");
   const [debtAmount, setDebtAmount] = useState<number | "">(0);
+
+  // Payment Modal State
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [tenantToPay, setTenantToPay] = useState<Tenant | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState<number | "">("");
+  const [paymentReference, setPaymentReference] = useState("");
 
   const fetchData = async () => {
     if (!user) return;
@@ -282,6 +288,59 @@ export default function SupplierTenantsPage() {
     }
   };
 
+  const handleDeclarePayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tenantToPay || !paymentAmount) return;
+    setIsSubmitting(true);
+    
+    try {
+      // 1. Ajouter le paiement
+      await addDoc(collection(db, "payments"), {
+        supplierId: activeSupplierId,
+        tenantId: tenantToPay.id,
+        clientName: tenantToPay.name,
+        propertyId: tenantToPay.propertyId,
+        propertyTitle: tenantToPay.propertyName,
+        unitId: tenantToPay.unitId || null,
+        unitTitle: tenantToPay.unitName || null,
+        amount: Number(paymentAmount),
+        currency: "USD",
+        status: "COMPLETED",
+        createdAt: serverTimestamp(),
+        createdBy: activeSupplierId,
+        reference: paymentReference || `Loyer ${new Date().toLocaleString('fr-FR', { month: 'long', year: 'numeric' })}`
+      });
+
+      // 2. Update tenant's nextPayment
+      if (tenantToPay.nextPayment) {
+        const currentDate = new Date(tenantToPay.nextPayment);
+        if (tenantToPay.periodicity === "Trimestriel") currentDate.setMonth(currentDate.getMonth() + 3);
+        else if (tenantToPay.periodicity === "Annuel") currentDate.setFullYear(currentDate.getFullYear() + 1);
+        else if (tenantToPay.periodicity === "Hebdomadaire") currentDate.setDate(currentDate.getDate() + 7);
+        else currentDate.setMonth(currentDate.getMonth() + 1); // Mensuel par défaut
+
+        const tenantRef = doc(db, "tenants", tenantToPay.id);
+        await updateDoc(tenantRef, {
+          nextPayment: currentDate.toISOString().split("T")[0],
+          status: "À jour"
+        });
+      }
+
+      alert("Paiement enregistré avec succès !");
+      setIsPaymentModalOpen(false);
+      setTenantToPay(null);
+      setPaymentAmount("");
+      setPaymentReference("");
+      fetchData();
+      
+    } catch (err) {
+      console.error(err);
+      alert("Erreur lors de l'enregistrement du paiement.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const filteredTenants = tenants.filter(
     (t) => (t.name || "").toLowerCase().includes(search.toLowerCase()) || (t.propertyName || "").toLowerCase().includes(search.toLowerCase())
   );
@@ -404,6 +463,17 @@ export default function SupplierTenantsPage() {
                           <>
                             <button className="text-primary-light hover:text-white transition-colors flex items-center space-x-1" title="Rappeler">
                               <Bell size={16} />
+                            </button>
+                            <button 
+                              onClick={() => {
+                                setTenantToPay(tenant);
+                                setPaymentAmount(tenant.rentAmount);
+                                setIsPaymentModalOpen(true);
+                              }}
+                              className="text-green-400 hover:text-green-300 transition-colors flex items-center space-x-1 text-xs bg-green-400/10 px-2 py-1 rounded"
+                            >
+                              <DollarSign size={14} className="mr-1" />
+                              <span>Paiement</span>
                             </button>
                             <button 
                               onClick={() => {
@@ -569,6 +639,52 @@ export default function SupplierTenantsPage() {
                   </button>
                   <button type="submit" disabled={isSubmitting} className="px-6 py-2 bg-red-500 hover:bg-red-400 text-white font-semibold rounded-lg transition-colors flex items-center disabled:opacity-50">
                     {isSubmitting ? "Traitement..." : "Confirmer le départ"}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* DECLARE PAYMENT MODAL */}
+      <AnimatePresence>
+        {isPaymentModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-sm bg-[#140b2e] border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+            >
+              <div className="flex items-center justify-between p-6 border-b border-white/10 bg-[#140b2e]">
+                <h2 className="text-lg font-semibold text-white">Enregistrer un paiement</h2>
+                <button onClick={() => setIsPaymentModalOpen(false)} className="text-gray-400 hover:text-white">
+                  <X size={20} />
+                </button>
+              </div>
+
+              <form onSubmit={handleDeclarePayment} className="p-6 space-y-4">
+                <p className="text-sm text-gray-400 mb-4">
+                  Paiement de <strong className="text-white">{tenantToPay?.name}</strong> pour la propriété <strong className="text-white">{tenantToPay?.propertyName}</strong>.
+                </p>
+
+                <div className="space-y-1">
+                  <label className="text-sm font-medium text-gray-300">Montant (USD)</label>
+                  <input type="number" required min="0" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value === "" ? "" : Number(e.target.value))} className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 text-white" />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-sm font-medium text-gray-300">Référence (Optionnel)</label>
+                  <input type="text" value={paymentReference} onChange={(e) => setPaymentReference(e.target.value)} className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 text-white" placeholder="Mois payé (ex: Mars 2024)" />
+                </div>
+
+                <div className="pt-4 flex justify-end space-x-3 border-t border-white/10">
+                  <button type="button" onClick={() => setIsPaymentModalOpen(false)} disabled={isSubmitting} className="px-4 py-2 text-gray-400 hover:text-white transition-colors disabled:opacity-50">
+                    Annuler
+                  </button>
+                  <button type="submit" disabled={isSubmitting} className="px-6 py-2 bg-green-500 hover:bg-green-400 text-white font-semibold rounded-lg transition-colors flex items-center disabled:opacity-50">
+                    {isSubmitting ? "Traitement..." : "Enregistrer"}
                   </button>
                 </div>
               </form>

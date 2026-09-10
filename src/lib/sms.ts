@@ -20,7 +20,14 @@ export async function sendMobiShastraSMS({ mobileNo, message, isUnicode = false,
   }
 
   // Nettoyage strict du numéro (enlever les +, les espaces et tout ce qui n'est pas un chiffre)
-  const cleanMobileNo = mobileNo.replace(/\D/g, '');
+  let cleanMobileNo = mobileNo.replace(/\D/g, '');
+  
+  // RDC format validation: ensure country code is present (243)
+  if (cleanMobileNo.startsWith('0') && cleanMobileNo.length === 10) {
+    cleanMobileNo = '243' + cleanMobileNo.substring(1);
+  } else if (cleanMobileNo.length === 9) {
+    cleanMobileNo = '243' + cleanMobileNo;
+  }
 
   // Format the URL as required by the Single SMS API
   // https://mshastra.com/sendurl.aspx?user=xxxxxxxx&pwd=xxxxxx&senderid=SMSAlert&mobileno=mobileno&msgtext=Hello&priority=High&CountryCode=ALL

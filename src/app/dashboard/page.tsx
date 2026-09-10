@@ -30,6 +30,8 @@ export default function DashboardRedirect() {
         break
       case "SUPPLIER":
       case "FOURNISSEUR":
+      case "SUB_SUPPLIER":
+      case "SUPPLIER_IMMO":
         router.replace("/supplier")
         break
       case "SUB_ADMIN":

@@ -31,7 +31,17 @@ export async function POST(req: Request) {
       callerRole = 'superAdmin';
     }
 
-    if (!['superAdmin', 'admin', 'supplier'].includes(callerRole)) {
+    // Fallback to Firestore if token has no role claim
+    if (!callerRole) {
+      const userDoc = await adminDb.collection('users').doc(callerUid).get();
+      if (userDoc.exists) {
+        callerRole = userDoc.data()?.role;
+      }
+    }
+
+    const isSupplierCaller = ['supplier', 'SUPPLIER', 'SUPPLIER_IMMO'].includes(callerRole);
+    
+    if (!['superAdmin', 'admin'].includes(callerRole) && !isSupplierCaller) {
       return NextResponse.json({ error: 'Forbidden: Insufficient privileges to create users' }, { status: 403 });
     }
 
@@ -44,7 +54,7 @@ export async function POST(req: Request) {
     }
 
     // 3. Enforce Creation Rules
-    if (callerRole === 'supplier' && !['driver', 'SUB_SUPPLIER'].includes(roleToCreate)) {
+    if (isSupplierCaller && !['driver', 'SUB_SUPPLIER'].includes(roleToCreate)) {
       return NextResponse.json({ error: 'Forbidden: Suppliers can only create drivers and sub-suppliers' }, { status: 403 });
     }
     if (callerRole === 'admin' && roleToCreate === 'superAdmin') {
@@ -61,7 +71,7 @@ export async function POST(req: Request) {
     // 5. Set Custom Claims (Role & Creation lineage)
     const claims: any = {
       role: roleToCreate,
-      createdBy: callerRole === 'supplier' ? callerUid : callerRole,
+      createdBy: isSupplierCaller ? callerUid : callerRole,
     };
     if (extraData?.parentSupplierId) {
       claims.parentSupplierId = extraData.parentSupplierId;
@@ -104,7 +114,7 @@ export async function POST(req: Request) {
     });
 
     // 7. Route to specific collections (drivers, suppliers) if needed
-    if (roleToCreate === 'supplier') {
+    if (roleToCreate === 'supplier' || roleToCreate === 'SUPPLIER' || roleToCreate === 'SUPPLIER_IMMO') {
       await adminDb.collection('suppliers').doc(userRecord.uid).set({
         email,
         displayName,
@@ -113,7 +123,7 @@ export async function POST(req: Request) {
       });
     } else if (roleToCreate === 'driver') {
       await adminDb.collection('drivers').doc(userRecord.uid).set({
-        supplierId: callerRole === 'supplier' ? callerUid : 'admin',
+        supplierId: isSupplierCaller ? callerUid : 'admin',
         email,
         displayName,
         createdAt: new Date(),

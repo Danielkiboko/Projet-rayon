@@ -20,6 +20,8 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import AdSense from "@/components/shared/AdSense";
 
+import { Toaster } from "react-hot-toast";
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
@@ -40,6 +42,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </ThemeProvider>
         <SpeedInsights />
         <AdSense />
+        <Toaster position="top-center" />
       </body>
     </html>
   );

@@ -29,7 +29,6 @@ export default function SupplierLayout({
       if (userData.role === 'SUB_SUPPLIER') {
         const allowed = pathname === '/supplier' || 
                         pathname === '/supplier/settings' || 
-                        pathname === '/supplier/finance' || 
                         (Array.isArray(userData.permissions) && userData.permissions.some((p: string) => pathname.startsWith(p)));
         if (!allowed) {
           router.push('/supplier');

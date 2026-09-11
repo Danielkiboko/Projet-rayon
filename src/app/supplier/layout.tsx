@@ -69,25 +69,28 @@ export default function SupplierLayout({
     }
   }, [user, userData, loading, pathname, router]);
 
+  const [unreadChatCount, setUnreadChatCount] = useState(0);
+
   // Listen to in-app notifications
   useEffect(() => {
     if (!user) return;
     
     let unsubNotifs: any;
+    let unsubChats: any;
     
     const setupNotifications = async () => {
       try {
         const { collection, query, where, onSnapshot, orderBy } = await import("firebase/firestore");
         const { db } = await import("@/lib/firebase");
 
-        const q = query(
+        const qNotifs = query(
           collection(db, "inapp_notifications"),
           where("supplierId", "==", activeSupplierId),
           where("read", "==", false),
           orderBy("createdAt", "desc")
         );
 
-        unsubNotifs = onSnapshot(q, (snapshot) => {
+        unsubNotifs = onSnapshot(qNotifs, (snapshot) => {
           const items: any[] = [];
           snapshot.forEach(doc => {
             const d = doc.data();
@@ -100,11 +103,22 @@ export default function SupplierLayout({
               link: d.link || "#"
             });
           });
-          // Sort by newest first
           items.sort((a, b) => b.time - a.time);
           setNotifications(items);
           setUnreadCount(items.length);
         });
+
+        // Setup chat listener
+        const qChats = query(
+          collection(db, "chats"),
+          where("supplierId", "==", activeSupplierId),
+          where("unreadSupplier", "==", true)
+        );
+
+        unsubChats = onSnapshot(qChats, (snapshot) => {
+          setUnreadChatCount(snapshot.docs.length);
+        });
+
       } catch (err) {
         console.error("Error setting up supplier notifications:", err);
       }
@@ -114,8 +128,9 @@ export default function SupplierLayout({
 
     return () => {
       if (unsubNotifs) unsubNotifs();
+      if (unsubChats) unsubChats();
     };
-  }, [user]);
+  }, [user, activeSupplierId]);
 
   if (loading) {
     return <div className="h-screen w-full flex items-center justify-center bg-[#0b061c] text-white">Chargement...</div>;
@@ -141,7 +156,15 @@ export default function SupplierLayout({
 
   const service = activeRayon || getSupplierType(userData) || "default";
   const theme = themeConfig[service as keyof typeof themeConfig] || themeConfig["default"];
-  let navItems = [...theme.menu];
+  
+  // Clone menu items to safely modify them
+  let navItems = theme.menu.map(item => ({...item}));
+
+  // Add badge to Messages menu if unread count > 0
+  const messagesIndex = navItems.findIndex(item => item.href === '/supplier/messages');
+  if (messagesIndex !== -1 && unreadChatCount > 0) {
+    navItems[messagesIndex].badge = unreadChatCount;
+  }
 
   // Le fournisseur principal peut voir le menu Équipe
   if (userData?.role !== 'SUB_SUPPLIER') {

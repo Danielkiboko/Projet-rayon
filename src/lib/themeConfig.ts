@@ -15,10 +15,11 @@ import {
 
 export type ServiceType = "mode" | "immo" | "connect" | "default";
 
-interface MenuItem {
+export interface MenuItem {
   title: string;
   href: string;
   icon: React.ElementType;
+  badge?: number;
 }
 
 export interface ServiceTheme {

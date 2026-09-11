@@ -4,7 +4,8 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Plus, X, Search, Home, Image as ImageIcon, AlertCircle, 
-  MapPin, CheckCircle, XCircle, Trash2, Building, Eye
+  MapPin, CheckCircle, XCircle, Trash2, Building, Eye,
+  Star, Coffee, Car, Plane, Zap, Wifi, Waves, Shield, Clock, Sparkles, Bed
 } from "lucide-react";
 import { useProductAiAssistant, handleImageUploadShared } from "@/hooks/useProductAiAssistant";
 import AiAssistantChat from "@/components/shared/AiAssistantChat";
@@ -66,7 +67,7 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
 
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Structure Dynamique (Niveaux, Appartements, Bureaux, Chaises)
+  // Structure Dynamique (Niveaux, Appartements, Bureaux, Chaises, Chambres)
   const [levels, setLevels] = useState<{
     id: string;
     name: string;
@@ -77,6 +78,20 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
       capacity: number;
     }[]
   }[]>([]);
+
+  // Configuration Spécifique Hôtellerie & Résidences
+  const [hotelStars, setHotelStars] = useState<string>("4");
+  const [hotelAmenities, setHotelAmenities] = useState<string[]>([
+    "generator", "wifi", "ac", "security", "parking"
+  ]);
+  const [checkInTime, setCheckInTime] = useState<string>("14:00");
+  const [checkOutTime, setCheckOutTime] = useState<string>("12:00");
+
+  const toggleAmenity = (key: string) => {
+    setHotelAmenities(prev => 
+      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+    );
+  };
 
   // Fetch properties
   useEffect(() => {
@@ -122,6 +137,10 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
     setLevels([]);
     setImagePreview(null);
     setImageFile(null);
+    setHotelStars("4");
+    setHotelAmenities(["generator", "wifi", "ac", "security", "parking"]);
+    setCheckInTime("14:00");
+    setCheckOutTime("12:00");
     resetChat();
   };
 
@@ -222,7 +241,13 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
         beds: 0,
         baths: 0,
         levels: levels
-      }
+      },
+      hotelDetails: propertyType === "hotel" ? {
+        stars: hotelStars,
+        amenities: hotelAmenities,
+        checkInTime: checkInTime || "14:00",
+        checkOutTime: checkOutTime || "12:00"
+      } : null
     };
 
     try {
@@ -569,8 +594,20 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
                   </div>
                   <div className="space-y-1">
                     <label className="text-sm font-medium text-gray-300">Type de bien</label>
-                    <select required value={propertyType} onChange={(e) => setPropertyType(e.target.value)} className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white">
+                    <select 
+                      required 
+                      value={propertyType} 
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setPropertyType(val);
+                        if (val === "hotel" && (!typeTransaction || typeTransaction === "À Vendre")) {
+                          setTypeTransaction("Réservation / Nuitée");
+                        }
+                      }} 
+                      className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white"
+                    >
                       <option value="">Sélectionner</option>
+                      <option value="hotel">🏨 Hôtel & Résidence Hôtelière</option>
                       <option value="appartement">Appartement</option>
                       <option value="maison">Maison / Villa</option>
                       <option value="studio">Studio</option>
@@ -585,28 +622,31 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
                       required
                       value={typeTransaction}
                       onChange={(e) => setTypeTransaction(e.target.value)}
-                      placeholder="Ex: À Vendre, À Louer, Colocation, etc."
+                      placeholder="Ex: Réservation / Nuitée, À Louer..."
                       list="transaction-types"
                       className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white"
                     />
                     <datalist id="transaction-types">
-                      <option value="À Vendre" />
-                      <option value="À Louer" />
-                      <option value="Colocation" />
+                      <option value="Réservation / Nuitée" />
                       <option value="Location Journalière" />
+                      <option value="À Louer" />
+                      <option value="À Vendre" />
+                      <option value="Colocation" />
                     </datalist>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <label className="text-sm font-medium text-gray-300">Loyer / Prix ({currency})</label>
+                    <label className="text-sm font-medium text-gray-300">
+                      {propertyType === "hotel" ? `Tarif de base par nuitée (${currency})` : `Loyer / Prix (${currency})`}
+                    </label>
                     <input
                       type="text"
                       required
                       value={propertyPrice}
                       onChange={(e) => setPropertyPrice(e.target.value)}
-                      placeholder="Ex: 500"
+                      placeholder={propertyType === "hotel" ? "Ex: 120 (par nuit)" : "Ex: 500"}
                       className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white"
                     />
                   </div>
@@ -627,6 +667,101 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
                     </div>
                   </div>
                 </div>
+
+                {/* ── Spécifications Hôtelières (Hospitality) ── */}
+                {propertyType === "hotel" && (
+                  <div className="p-4 bg-gradient-to-br from-amber-500/10 via-purple-500/5 to-transparent border border-amber-500/20 rounded-xl space-y-4">
+                    <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                      <div className="flex items-center space-x-2 text-amber-400">
+                        <Sparkles size={18} />
+                        <span className="font-semibold text-sm">Paramètres Hôteliers & Standing</span>
+                      </div>
+                      <span className="text-xs px-2.5 py-1 bg-amber-500/20 text-amber-300 rounded-full font-medium">
+                        Hospitality Pro
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium text-gray-300">Classement / Standing</label>
+                        <select 
+                          value={hotelStars} 
+                          onChange={(e) => setHotelStars(e.target.value)}
+                          className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-amber-500 [&>option]:bg-[#140b2e]"
+                        >
+                          <option value="5">⭐⭐⭐⭐⭐ 5 Étoiles (Luxe)</option>
+                          <option value="4">⭐⭐⭐⭐ 4 Étoiles (Standing)</option>
+                          <option value="3">⭐⭐⭐ 3 Étoiles (Confort)</option>
+                          <option value="2">⭐⭐ 2 Étoiles</option>
+                          <option value="1">⭐ 1 Étoile</option>
+                          <option value="boutique">✨ Hôtel Boutique</option>
+                          <option value="guest_house">🏡 Guest House / Maison d'hôtes</option>
+                          <option value="residence">🏢 Résidence Hôtelière</option>
+                        </select>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium text-gray-300 flex items-center gap-1">
+                          <Clock size={12} className="text-amber-400" /> Heure Check-in (Arrivée)
+                        </label>
+                        <input
+                          type="time"
+                          value={checkInTime}
+                          onChange={(e) => setCheckInTime(e.target.value)}
+                          className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium text-gray-300 flex items-center gap-1">
+                          <Clock size={12} className="text-amber-400" /> Heure Check-out (Départ)
+                        </label>
+                        <input
+                          type="time"
+                          value={checkOutTime}
+                          onChange={(e) => setCheckOutTime(e.target.value)}
+                          className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Commodités & Prestations Hôtelières */}
+                    <div className="space-y-2 pt-2">
+                      <label className="text-xs font-medium text-gray-300">Commodités & Services Disponibles</label>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+                        {[
+                          { id: "generator", label: "Groupe électrogène 24/7", icon: Zap },
+                          { id: "wifi", label: "Wifi Fibre gratuit", icon: Wifi },
+                          { id: "ac", label: "Climatisation", icon: Sparkles },
+                          { id: "pool", label: "Piscine", icon: Waves },
+                          { id: "restaurant", label: "Restaurant & Bar", icon: Coffee },
+                          { id: "parking", label: "Parking sécurisé", icon: Car },
+                          { id: "security", label: "Gardiennage 24h", icon: Shield },
+                          { id: "breakfast", label: "Petit-déjeuner inclus", icon: Coffee },
+                          { id: "shuttle", label: "Navette aéroport", icon: Plane },
+                        ].map(item => {
+                          const IconComp = item.icon;
+                          const isChecked = hotelAmenities.includes(item.id);
+                          return (
+                            <button
+                              key={item.id}
+                              type="button"
+                              onClick={() => toggleAmenity(item.id)}
+                              className={`flex items-center gap-2 p-2 rounded-lg border text-left transition-all ${
+                                isChecked
+                                  ? "bg-amber-500/20 border-amber-500/50 text-amber-200"
+                                  : "bg-white/5 border-white/10 text-gray-400 hover:bg-white/10"
+                              }`}
+                            >
+                              <IconComp size={14} className={isChecked ? "text-amber-400" : "text-gray-500"} />
+                              <span className="truncate">{item.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
                 
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-300">Coordonnées GPS de la propriété (Requis pour l'itinéraire visiteur)</label>
@@ -705,9 +840,12 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
                                 <select 
                                   value={unit.type} 
                                   onChange={(e) => handleUpdateUnit(lIndex, uIndex, 'type', e.target.value)}
-                                  className="w-full sm:w-32 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white focus:outline-none [&>option]:bg-[#140b2e]"
+                                  className="w-full sm:w-36 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white focus:outline-none [&>option]:bg-[#140b2e]"
                                 >
                                   <option value="appartement">Appart. / Local</option>
+                                  <option value="chambre">Chambre Hôtel</option>
+                                  <option value="suite">Suite Hôtelière</option>
+                                  <option value="apparthotel">Appart-Hôtel</option>
                                   <option value="bureau">Bureau</option>
                                   <option value="chaise">Poste/Chaise</option>
                                 </select>
@@ -716,7 +854,8 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
                                     type="number" 
                                     value={unit.capacity} 
                                     onChange={(e) => handleUpdateUnit(lIndex, uIndex, 'capacity', parseInt(e.target.value) || 1)}
-                                    title="Nombre de places/chaises"
+                                    title={unit.type === 'chambre' || unit.type === 'suite' ? "Nb personnes / couchages" : "Nombre de places/chaises"}
+                                    placeholder="Capacité"
                                     className="w-full sm:w-20 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white focus:outline-none"
                                   />
                                 )}

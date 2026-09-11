@@ -3,13 +3,18 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Home as HomeIcon, Wifi, Building2, Globe, MapPin, Maximize, BedDouble, Bath, ChevronRight, Shirt, User, MessageSquare } from "lucide-react";
+import { 
+  Home as HomeIcon, Wifi, Building2, Globe, MapPin, Maximize, 
+  BedDouble, Bath, ChevronRight, Shirt, User, MessageSquare,
+  Hotel, Star, Sparkles, Zap, Waves, CalendarCheck
+} from "lucide-react";
 import { RayonNavbar } from "@/components/rayon/RayonNavbar";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { ProductSkeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/context/AuthContext";
 import { useChat } from "@/context/ChatContext";
+import { ImmoContactModal } from "@/components/ImmoContactModal";
 
 const DICT = {
   fr: {
@@ -18,11 +23,12 @@ const DICT = {
     immo: "Rayons Immo",
     login: "Se connecter",
     title: "Trouvez le bien de vos rêves",
-    subtitle: "Découvrez notre sélection de biens immobiliers exclusifs, maisons d'architecte et appartements de standing.",
-    tag: "Immobilier Premium",
-    all: "Tout",
+    subtitle: "Découvrez notre sélection exclusive : villas de standing, appartements d'architecte et hôtels de prestige.",
+    tag: "Immobilier & Hôtellerie Premium",
+    all: "Tous les biens",
     sale: "À Vendre",
     rent: "À Louer",
+    hotels: "🏨 Hôtels & Nuitées",
     appointment: "Prendre RDV",
   },
   en: {
@@ -31,16 +37,15 @@ const DICT = {
     immo: "Immo Store",
     login: "Login",
     title: "Find your dream home",
-    subtitle: "Discover our selection of exclusive real estate properties, architect-designed houses and luxury apartments.",
-    tag: "Premium Real Estate",
-    all: "All",
+    subtitle: "Discover our exclusive selection: luxury villas, designer apartments and prestigious hotels.",
+    tag: "Premium Real Estate & Hospitality",
+    all: "All properties",
     sale: "For Sale",
     rent: "For Rent",
+    hotels: "🏨 Hotels & Stays",
     appointment: "Book Appointment",
   }
 };
-
-
 
 export default function ImmoPage() {
   const [lang, setLang] = useState<"fr" | "en">("fr");
@@ -49,6 +54,9 @@ export default function ImmoPage() {
   const { openChatForProduct } = useChat();
   const [products, setProducts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState<"all" | "sale" | "rent" | "hotel">("all");
+  const [contactProperty, setContactProperty] = useState<any | null>(null);
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -63,11 +71,7 @@ export default function ImmoPage() {
           ...doc.data()
         }));
         
-        if (productsList.length === 0) {
-          setProducts([]);
-        } else {
-          setProducts(productsList);
-        }
+        setProducts(productsList);
       } catch (error) {
         console.error("Error fetching properties:", error);
         setProducts([]);
@@ -77,6 +81,14 @@ export default function ImmoPage() {
     };
     fetchProducts();
   }, []);
+
+  const filteredProducts = products.filter(property => {
+    if (selectedCategory === "all") return true;
+    if (selectedCategory === "sale") return property.typeTransaction === "À Vendre";
+    if (selectedCategory === "rent") return property.typeTransaction === "À Louer" || property.typeTransaction === "Colocation";
+    if (selectedCategory === "hotel") return property.type === "hotel" || property.typeTransaction === "Réservation / Nuitée" || property.typeTransaction === "Location Journalière";
+    return true;
+  });
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
@@ -121,11 +133,41 @@ export default function ImmoPage() {
           </div>
         </div>
 
-        {/* Filters (Simplified) */}
-        <div className="flex space-x-4 mb-8 overflow-x-auto pb-2">
-          <button className="px-6 py-2 bg-gray-900 text-white font-semibold rounded-full text-sm">{t.all}</button>
-          <button className="px-6 py-2 bg-white border border-gray-200 text-gray-600 font-semibold rounded-full text-sm hover:bg-gray-50 transition-colors">{t.sale}</button>
-          <button className="px-6 py-2 bg-white border border-gray-200 text-gray-600 font-semibold rounded-full text-sm hover:bg-gray-50 transition-colors">{t.rent}</button>
+        {/* Filters */}
+        <div className="flex space-x-3 mb-8 overflow-x-auto pb-2">
+          <button 
+            onClick={() => setSelectedCategory("all")}
+            className={`px-5 py-2 font-semibold rounded-full text-sm transition-all whitespace-nowrap ${
+              selectedCategory === "all" ? "bg-gray-900 text-white shadow-md" : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
+            }`}
+          >
+            {t.all}
+          </button>
+          <button 
+            onClick={() => setSelectedCategory("hotel")}
+            className={`px-5 py-2 font-semibold rounded-full text-sm transition-all whitespace-nowrap flex items-center gap-1.5 ${
+              selectedCategory === "hotel" ? "bg-amber-600 text-white shadow-md" : "bg-white border border-amber-200 text-amber-700 hover:bg-amber-50"
+            }`}
+          >
+            <Hotel size={16} />
+            <span>{t.hotels}</span>
+          </button>
+          <button 
+            onClick={() => setSelectedCategory("sale")}
+            className={`px-5 py-2 font-semibold rounded-full text-sm transition-all whitespace-nowrap ${
+              selectedCategory === "sale" ? "bg-green-700 text-white shadow-md" : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
+            }`}
+          >
+            {t.sale}
+          </button>
+          <button 
+            onClick={() => setSelectedCategory("rent")}
+            className={`px-5 py-2 font-semibold rounded-full text-sm transition-all whitespace-nowrap ${
+              selectedCategory === "rent" ? "bg-blue-700 text-white shadow-md" : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
+            }`}
+          >
+            {t.rent}
+          </button>
         </div>
 
         {/* Properties Grid */}
@@ -136,90 +178,182 @@ export default function ImmoPage() {
               <ProductSkeleton />
               <ProductSkeleton />
             </>
+          ) : filteredProducts.length === 0 ? (
+            <div className="col-span-full py-16 text-center text-gray-500 bg-white rounded-2xl border border-gray-100">
+              <Hotel size={48} className="mx-auto text-gray-300 mb-3" />
+              <p className="font-semibold">Aucun bien disponible dans cette catégorie pour le moment.</p>
+              <button onClick={() => setSelectedCategory("all")} className="mt-3 text-sm text-green-700 hover:underline">
+                Voir tous les biens
+              </button>
+            </div>
           ) : (
-            products.map((property, idx) => (
-              <motion.div
-                key={property.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.1, duration: 0.5 }}
-                className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-lg transition-all group flex flex-col"
-              >
-                {/* Image */}
-                <div className="relative h-64 overflow-hidden">
-                  <img 
-                    src={property.image} 
-                    alt={property.title?.[lang]}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <div className="absolute top-4 left-4">
-                    <span className={`px-3 py-1 text-xs font-bold tracking-wider rounded border uppercase ${
-                      property.typeTransaction === "Vente" ? "bg-white/90 text-green-700 border-green-200" : "bg-white/90 text-blue-700 border-blue-200"
-                    } backdrop-blur-md shadow-sm`}>
-                      {property.typeTransaction || "Vente"}
-                    </span>
-                  </div>
-                  <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
-                    <div className="text-2xl font-bold text-white drop-shadow-md">
-                      $ {property.price?.toLocaleString()}
+            filteredProducts.map((property, idx) => {
+              const isHotel = property.type === "hotel";
+              return (
+                <motion.div
+                  key={property.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.1, duration: 0.5 }}
+                  className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-lg transition-all group flex flex-col"
+                >
+                  {/* Image */}
+                  <div className="relative h-64 overflow-hidden">
+                    <img 
+                      src={property.image} 
+                      alt={property.title?.[lang] || property.title?.fr || property.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                    <div className="absolute top-4 left-4">
+                      {isHotel ? (
+                        <span className="px-3 py-1 text-xs font-bold tracking-wider rounded-lg uppercase bg-amber-500 text-white border border-amber-400 backdrop-blur-md shadow-md flex items-center gap-1">
+                          <Hotel size={14} />
+                          {property.hotelDetails?.stars && !isNaN(parseInt(property.hotelDetails.stars)) 
+                            ? `${property.hotelDetails.stars}★ Hôtel`
+                            : (property.hotelDetails?.stars === "boutique" ? "Hôtel Boutique" : "Résidence Hôtelière")}
+                        </span>
+                      ) : (
+                        <span className={`px-3 py-1 text-xs font-bold tracking-wider rounded border uppercase ${
+                          property.typeTransaction === "Vente" ? "bg-white/90 text-green-700 border-green-200" : "bg-white/90 text-blue-700 border-blue-200"
+                        } backdrop-blur-md shadow-sm`}>
+                          {property.typeTransaction || "Vente"}
+                        </span>
+                      )}
+                    </div>
+                    <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
+                      <div className="text-2xl font-bold text-white drop-shadow-md flex items-baseline gap-1">
+                        $ {property.price?.toLocaleString()}
+                        {isHotel && <span className="text-sm font-normal text-amber-200">/ nuit</span>}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Info */}
-                <div className="p-6 flex-1 flex flex-col">
-                  <h3 className="text-xl font-bold text-gray-900 mb-2 leading-tight">
-                    {property.title?.[lang]}
-                  </h3>
-                  
-                  <div className="flex items-center text-gray-500 text-sm mb-6">
-                    <MapPin size={16} className="mr-1 text-green-600" />
-                    {property.location}
-                  </div>
-                  
-                  {/* Features */}
-                  <div className="flex items-center justify-between border-t border-b border-gray-100 py-4 mb-6">
-                    <div className="flex items-center space-x-2 text-sm text-gray-600">
-                      <Maximize size={18} className="text-gray-400" />
-                      <span>{property.immoDetails?.area} m²</span>
+                  {/* Info */}
+                  <div className="p-6 flex-1 flex flex-col">
+                    <h3 className="text-xl font-bold text-gray-900 mb-2 leading-tight">
+                      {property.title?.[lang] || property.title?.fr || property.title}
+                    </h3>
+                    
+                    <div className="flex items-center text-gray-500 text-sm mb-4">
+                      <MapPin size={16} className="mr-1 text-green-600 shrink-0" />
+                      <span className="truncate">{property.location}</span>
                     </div>
-                    {property.immoDetails?.beds > 0 && (
-                      <div className="flex items-center space-x-2 text-sm text-gray-600">
-                        <BedDouble size={18} className="text-gray-400" />
-                        <span>{property.immoDetails?.beds}</span>
+                    
+                    {/* Features & Prestations */}
+                    {isHotel ? (
+                      <div className="border-t border-b border-gray-100 py-3 mb-6 space-y-2">
+                        <div className="flex items-center justify-between text-xs text-gray-600">
+                          <span className="font-medium text-gray-700">
+                            Check-in: {property.hotelDetails?.checkInTime || "14h"}
+                          </span>
+                          <span className="font-medium text-gray-700">
+                            Check-out: {property.hotelDetails?.checkOutTime || "12h"}
+                          </span>
+                        </div>
+                        {property.hotelDetails?.amenities && property.hotelDetails.amenities.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 pt-1">
+                            {property.hotelDetails.amenities.includes("generator") && (
+                              <span className="px-2 py-0.5 bg-amber-50 text-amber-800 rounded text-[11px] font-medium border border-amber-200">
+                                ⚡ Groupe 24/7
+                              </span>
+                            )}
+                            {property.hotelDetails.amenities.includes("wifi") && (
+                              <span className="px-2 py-0.5 bg-blue-50 text-blue-800 rounded text-[11px] font-medium border border-blue-200">
+                                📶 Wifi Fibre
+                              </span>
+                            )}
+                            {property.hotelDetails.amenities.includes("pool") && (
+                              <span className="px-2 py-0.5 bg-cyan-50 text-cyan-800 rounded text-[11px] font-medium border border-cyan-200">
+                                🏊 Piscine
+                              </span>
+                            )}
+                            {property.hotelDetails.amenities.includes("ac") && (
+                              <span className="px-2 py-0.5 bg-indigo-50 text-indigo-800 rounded text-[11px] font-medium border border-indigo-200">
+                                ❄️ Clim
+                              </span>
+                            )}
+                            {property.hotelDetails.amenities.includes("breakfast") && (
+                              <span className="px-2 py-0.5 bg-orange-50 text-orange-800 rounded text-[11px] font-medium border border-orange-200">
+                                🍳 P. Déjeuner
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between border-t border-b border-gray-100 py-4 mb-6">
+                        <div className="flex items-center space-x-2 text-sm text-gray-600">
+                          <Maximize size={18} className="text-gray-400" />
+                          <span>{property.immoDetails?.area} m²</span>
+                        </div>
+                        {property.immoDetails?.beds > 0 && (
+                          <div className="flex items-center space-x-2 text-sm text-gray-600">
+                            <BedDouble size={18} className="text-gray-400" />
+                            <span>{property.immoDetails?.beds}</span>
+                          </div>
+                        )}
+                        {property.immoDetails?.baths > 0 && (
+                          <div className="flex items-center space-x-2 text-sm text-gray-600">
+                            <Bath size={18} className="text-gray-400" />
+                            <span>{property.immoDetails?.baths}</span>
+                          </div>
+                        )}
                       </div>
                     )}
-                    {property.immoDetails?.baths > 0 && (
-                      <div className="flex items-center space-x-2 text-sm text-gray-600">
-                        <Bath size={18} className="text-gray-400" />
-                        <span>{property.immoDetails?.baths}</span>
-                      </div>
-                    )}
+                    
+                    {/* Actions */}
+                    <div className="mt-auto flex items-center gap-2">
+                      <button 
+                        onClick={() => {
+                          setContactProperty(property);
+                          setIsContactModalOpen(true);
+                        }}
+                        className={`flex-1 py-3 text-white text-sm font-bold rounded-xl transition-all flex items-center justify-center space-x-2 shadow-sm ${
+                          isHotel ? "bg-amber-600 hover:bg-amber-700" : "bg-gray-900 hover:bg-gray-800"
+                        }`}
+                      >
+                        {isHotel ? (
+                          <>
+                            <CalendarCheck size={16} />
+                            <span>Réserver une chambre</span>
+                          </>
+                        ) : (
+                          <>
+                            <CalendarCheck size={16} />
+                            <span>Prendre RDV / Visite</span>
+                          </>
+                        )}
+                      </button>
+
+                      <button 
+                        onClick={() => {
+                          openChatForProduct({
+                            id: property.id,
+                            supplierId: property.supplierId || "admin",
+                            name: property.title?.[lang] || property.title?.fr || property.title
+                          });
+                        }}
+                        title="Discuter directement"
+                        className="p-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl transition-colors shrink-0"
+                      >
+                        <MessageSquare size={16} />
+                      </button>
+                    </div>
                   </div>
-                  
-                  {/* Actions */}
-                  <div className="mt-auto">
-                    <button 
-                      onClick={() => {
-                        openChatForProduct({
-                          id: property.id,
-                          supplierId: property.supplierId || "admin",
-                          name: property.title?.[lang] || property.title?.fr || property.title
-                        });
-                      }}
-                      className="w-full py-3 bg-gray-900 hover:bg-gray-800 text-white text-sm font-bold rounded-xl transition-colors flex items-center justify-center space-x-2 shadow-sm"
-                    >
-                      <MessageSquare size={16} />
-                      <span>Contacter le vendeur</span>
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
-            ))
+                </motion.div>
+              );
+            })
           )}
         </div>
 
       </main>
+
+      {/* Contact / Reservation Modal */}
+      <ImmoContactModal 
+        isOpen={isContactModalOpen} 
+        onClose={() => setIsContactModalOpen(false)} 
+        property={contactProperty} 
+      />
     </div>
   );
 }

@@ -56,24 +56,49 @@ export function ImmoContactModal({ isOpen, onClose, property }: ImmoContactModal
       const name = formData.get("name");
       const phone = formData.get("phone");
       const date = formData.get("date");
+      const checkIn = formData.get("checkIn");
+      const checkOut = formData.get("checkOut");
+      const guests = formData.get("guests");
+      const roomType = formData.get("roomType");
 
-      await addDoc(collection(db, "visits"), {
-        propertyId: property.id,
-        propertyTitle: propertyTitle,
-        supplierId: property.supplierId,
-        clientId: user?.uid || null,
-        visitorName: name,
-        visitorPhone: phone,
-        requestedDate: date,
-        propertyCoords: property.propertyCoords || null,
-        visitorCoords: visitorCoords || null,
-        status: "PENDING",
-        createdAt: serverTimestamp()
-      });
+      const isHotel = property.type === "hotel";
+
+      if (isHotel) {
+        await addDoc(collection(db, "hotel_bookings"), {
+          propertyId: property.id,
+          propertyTitle: propertyTitle,
+          supplierId: property.supplierId,
+          clientId: user?.uid || null,
+          guestName: name,
+          guestPhone: phone,
+          checkInDate: checkIn,
+          checkOutDate: checkOut,
+          guestsCount: guests || 1,
+          roomType: roomType || "Standard",
+          status: "PENDING",
+          createdAt: serverTimestamp()
+        });
+      } else {
+        await addDoc(collection(db, "visits"), {
+          propertyId: property.id,
+          propertyTitle: propertyTitle,
+          supplierId: property.supplierId,
+          clientId: user?.uid || null,
+          visitorName: name,
+          visitorPhone: phone,
+          requestedDate: date,
+          propertyCoords: property.propertyCoords || null,
+          visitorCoords: visitorCoords || null,
+          status: "PENDING",
+          createdAt: serverTimestamp()
+        });
+      }
 
       if (user?.uid && property.supplierId) {
         const chatId = `${user.uid}_${property.supplierId}_${property.id}`;
-        const msgText = `Demande de visite pour le bien: ${propertyTitle}. Nom: ${name}. Téléphone: ${phone}. Date souhaitée: ${date || "Non spécifiée"}. GPS: ${visitorCoords ? 'Oui' : 'Non'}`;
+        const msgText = isHotel
+          ? `🏨 Demande de réservation hôtelière : ${propertyTitle}\n📅 Séjour : du ${checkIn} au ${checkOut}\n🛏️ Chambre : ${roomType || "Standard"}\n👥 Voyageurs : ${guests || 1}\n👤 Contact : ${name} (${phone})`
+          : `Demande de visite pour le bien : ${propertyTitle}. Nom : ${name}. Téléphone : ${phone}. Date souhaitée : ${date || "Non spécifiée"}. GPS : ${visitorCoords ? 'Oui' : 'Non'}`;
 
         await setDoc(doc(db, "chats", chatId), {
           clientId: user.uid,
@@ -97,11 +122,11 @@ export function ImmoContactModal({ isOpen, onClose, property }: ImmoContactModal
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            action: "NEW_VISIT_REQUEST",
+            action: isHotel ? "NEW_HOTEL_BOOKING" : "NEW_VISIT_REQUEST",
             supplierId: property.supplierId,
             propertyTitle: propertyTitle
           })
-        }).catch(err => console.error("Error sending visit notification", err));
+        }).catch(err => console.error("Error sending notification", err));
       }
 
       setIsSubmitted(true);
@@ -110,7 +135,7 @@ export function ImmoContactModal({ isOpen, onClose, property }: ImmoContactModal
         onClose();
       }, 3000);
     } catch (error) {
-      console.error("Erreur d'enregistrement de la visite :", error);
+      console.error("Erreur d'enregistrement :", error);
       alert("Une erreur est survenue.");
     } finally {
       setIsSubmitting(false);
@@ -131,16 +156,25 @@ export function ImmoContactModal({ isOpen, onClose, property }: ImmoContactModal
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
             className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-[#140b2e] border border-white/10 rounded-2xl shadow-2xl z-[101] overflow-hidden"
           >
             {isSubmitted ? (
               <div className="p-8 flex flex-col items-center justify-center text-center">
                 <CheckCircle2 size={64} className="text-green-400 mb-4" />
-                <h3 className="text-2xl font-bold text-white mb-2">Demande envoyée !</h3>
+                <h3 className="text-2xl font-bold text-white mb-2">
+                  {property?.type === "hotel" ? "Demande de réservation envoyée !" : "Demande de visite envoyée !"}
+                </h3>
                 <p className="text-gray-400">
-                  Notre agent immobilier vous contactera dans les plus brefs délais pour organiser la visite de <br/>
-                  <strong className="text-white">{propertyTitle}</strong>.
+                  {property?.type === "hotel" ? (
+                    <>
+                      L'établissement hôtelier <strong className="text-white">{propertyTitle}</strong> a bien reçu votre demande de séjour et vous répondra directement dans le chat.
+                    </>
+                  ) : (
+                    <>
+                      Notre agent immobilier vous contactera dans les plus brefs délais pour organiser la visite de <br/>
+                      <strong className="text-white">{propertyTitle}</strong>.
+                    </>
+                  )}
                 </p>
               </div>
             ) : (
@@ -150,7 +184,9 @@ export function ImmoContactModal({ isOpen, onClose, property }: ImmoContactModal
                     <div className="p-2 bg-primary/20 rounded-lg text-primary-light">
                       <Calendar size={24} />
                     </div>
-                    <h2 className="text-xl font-bold">Demander une visite</h2>
+                    <h2 className="text-xl font-bold">
+                      {property?.type === "hotel" ? "Réserver une chambre" : "Demander une visite"}
+                    </h2>
                   </div>
                   <button
                     onClick={onClose}
@@ -162,7 +198,11 @@ export function ImmoContactModal({ isOpen, onClose, property }: ImmoContactModal
 
                 {!user ? (
                   <div className="p-8 text-center">
-                    <p className="text-gray-300 mb-6">Vous devez être connecté pour demander une visite et discuter avec l'agent immobilier.</p>
+                    <p className="text-gray-300 mb-6">
+                      {property?.type === "hotel" 
+                        ? "Vous devez être connecté pour réserver une chambre et communiquer avec l'hôtel." 
+                        : "Vous devez être connecté pour demander une visite et discuter avec l'agent immobilier."}
+                    </p>
                     <Link href="/login" onClick={onClose} className="inline-block px-6 py-3 bg-primary hover:bg-primary-light text-white font-bold rounded-xl transition-colors">
                       Se connecter / S'inscrire
                     </Link>
@@ -170,49 +210,101 @@ export function ImmoContactModal({ isOpen, onClose, property }: ImmoContactModal
                 ) : (
                   <form onSubmit={handleSubmit} className="p-6 space-y-4">
 
-                  <p className="text-sm text-gray-400 mb-6">
-                    Laissez vos coordonnées pour visiter : <br/>
-                    <span className="font-bold text-white">{propertyTitle}</span>
+                  <p className="text-sm text-gray-400 mb-4">
+                    {property?.type === "hotel" ? "Préparez votre séjour à :" : "Laissez vos coordonnées pour visiter :"} <br/>
+                    <span className="font-bold text-white text-base">{propertyTitle}</span>
                   </p>
 
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium text-gray-400">Nom Complet</label>
-                    <input name="name" type="text" defaultValue={userData?.name || ""} required className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-white" placeholder="Jean Dupont" />
-                  </div>
-                  
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium text-gray-400">Téléphone</label>
-                    <input name="phone" type="tel" required className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-white" placeholder="+243..." />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium text-gray-400">Date souhaitée (Optionnel)</label>
-                    <input name="date" type="date" min={new Date().toISOString().split('T')[0]} className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-white" />
-                  </div>
-
-                  <div className="space-y-2 pt-2">
-                    <label className="text-sm font-medium text-gray-400">Votre position (Pour l'itinéraire GPS)</label>
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={handleGetLocation}
-                        disabled={isFetchingGps}
-                        className="px-4 py-3 bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 border border-blue-500/30 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50 w-full sm:w-auto"
-                      >
-                        <MapPin size={16} />
-                        {isFetchingGps ? "Recherche..." : "📍 Partager ma position"}
-                      </button>
-                      {visitorCoords && (
-                        <span className="text-xs text-green-400 font-medium mt-2 sm:mt-0">
-                          ✓ Position partagée
-                        </span>
-                      )}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium text-gray-400">Nom Complet</label>
+                      <input name="name" type="text" defaultValue={userData?.name || ""} required className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-white text-sm" placeholder="Jean Dupont" />
                     </div>
-                    <p className="text-xs text-gray-500">Obligatoire pour que l'agent puisse vous envoyer l'itinéraire jusqu'au bien.</p>
+                    
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium text-gray-400">Téléphone</label>
+                      <input name="phone" type="tel" required className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-white text-sm" placeholder="+243..." />
+                    </div>
                   </div>
+
+                  {property?.type === "hotel" ? (
+                    <>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <label className="text-xs font-medium text-gray-400">Date d'arrivée (Check-in)</label>
+                          <input 
+                            name="checkIn" 
+                            type="date" 
+                            required 
+                            min={new Date().toISOString().split('T')[0]} 
+                            className="w-full px-3 py-2.5 bg-black/20 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-white text-xs" 
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs font-medium text-gray-400">Date de départ (Check-out)</label>
+                          <input 
+                            name="checkOut" 
+                            type="date" 
+                            required 
+                            min={new Date().toISOString().split('T')[0]} 
+                            className="w-full px-3 py-2.5 bg-black/20 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-white text-xs" 
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <label className="text-xs font-medium text-gray-400">Voyageurs</label>
+                          <select name="guests" className="w-full px-3 py-2.5 bg-black/20 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-white text-xs [&>option]:bg-[#140b2e]">
+                            <option value="1">1 Adulte</option>
+                            <option value="2">2 Adultes</option>
+                            <option value="3">3 Personnes</option>
+                            <option value="4+">Famille (4+ personnes)</option>
+                          </select>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs font-medium text-gray-400">Catégorie souhaitée</label>
+                          <input 
+                            name="roomType" 
+                            type="text" 
+                            placeholder="Ex: Deluxe, Suite, Standard..." 
+                            className="w-full px-3 py-2.5 bg-black/20 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-white text-xs" 
+                          />
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium text-gray-400">Date souhaitée (Optionnel)</label>
+                        <input name="date" type="date" min={new Date().toISOString().split('T')[0]} className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-white" />
+                      </div>
+
+                      <div className="space-y-2 pt-2">
+                        <label className="text-sm font-medium text-gray-400">Votre position (Pour l'itinéraire GPS)</label>
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={handleGetLocation}
+                            disabled={isFetchingGps}
+                            className="px-4 py-3 bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 border border-blue-500/30 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50 w-full sm:w-auto"
+                          >
+                            <MapPin size={16} />
+                            {isFetchingGps ? "Recherche..." : "📍 Partager ma position"}
+                          </button>
+                          {visitorCoords && (
+                            <span className="text-xs text-green-400 font-medium mt-2 sm:mt-0">
+                              ✓ Position partagée
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500">Obligatoire pour que l'agent puisse vous envoyer l'itinéraire jusqu'au bien.</p>
+                      </div>
+                    </>
+                  )}
 
                   <button type="submit" disabled={isSubmitting} className="w-full py-4 mt-4 bg-primary hover:bg-primary-light text-white font-bold rounded-xl transition-colors disabled:opacity-50">
-                    {isSubmitting ? "Envoi en cours..." : "Envoyer la demande"}
+                    {isSubmitting ? "Envoi en cours..." : (property?.type === "hotel" ? "Envoyer ma demande de réservation" : "Envoyer la demande de visite")}
                   </button>
                 </form>
                 )}

@@ -18,45 +18,43 @@ export default function Home() {
   const { toggleChat, openChatForProduct } = useChat();
   const { currency, setCurrency, formatPrice } = useCurrency();
 
-  const [activeCategory, setActiveCategory] = useState("Tout");
   const [dbProducts, setDbProducts] = useState<any[]>([]);
+  const [dbProperties, setDbProperties] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch real products from Firebase
+  // Fetch real products & properties from Firebase
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchData = async () => {
       try {
-        const q = query(
-          collection(db, "products"),
-          limit(50)
-        );
-        const snapshot = await getDocs(q);
+        const [prodSnap, propSnap] = await Promise.all([
+          getDocs(query(collection(db, "products"), limit(50))),
+          getDocs(query(collection(db, "properties"), where("status", "==", "Disponible"), limit(4)))
+        ]);
+
         const prods: any[] = [];
-        snapshot.forEach(doc => {
+        prodSnap.forEach(doc => {
           const data = doc.data();
           if (data.status !== "REJECTED") {
             prods.push({ id: doc.id, ...data });
           }
         });
         setDbProducts(prods);
+
+        const props: any[] = [];
+        propSnap.forEach(doc => {
+          props.push({ id: doc.id, ...doc.data() });
+        });
+        setDbProperties(props);
       } catch (error) {
-        console.error("Error fetching products:", error);
+        console.error("Error fetching homepage data:", error);
       } finally {
         setLoading(false);
       }
     };
-    fetchProducts();
+    fetchData();
   }, []);
 
-  // Use real products
   const allProducts = dbProducts;
-
-  // Filter products by category
-  const filteredProducts = activeCategory === "Tout" 
-    ? allProducts 
-    : allProducts.filter(p => p.category === activeCategory);
-
-  const categories = ["Tout", "Fruits & Légumes", "Boulangerie", "Boissons", "Épicerie", "Mode"];
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20 font-sans selection:bg-gray-200">
@@ -148,8 +146,11 @@ export default function Home() {
               Découvrez notre sélection premium d'équipements technologiques et de biens immobiliers de prestige.
             </p>
             <div>
-              <button className="bg-white text-gray-900 font-bold px-6 py-3 rounded-full flex items-center gap-2 hover:bg-gray-100 transition-colors shadow-lg active:scale-95">
-                Découvrir la collection
+              <button 
+                onClick={() => document.getElementById('rayons')?.scrollIntoView({ behavior: 'smooth' })}
+                className="bg-white text-gray-900 font-bold px-6 py-3 rounded-full flex items-center gap-2 hover:bg-gray-100 transition-colors shadow-lg active:scale-95 cursor-pointer"
+              >
+                Découvrir nos rayons
                 <ArrowRight size={20} />
               </button>
             </div>
@@ -157,7 +158,7 @@ export default function Home() {
         </section>
 
         {/* Nos Rayons - Navigation type Supermarché */}
-        <section className="mt-12">
+        <section id="rayons" className="mt-12 scroll-mt-20">
           <div className="mb-6 px-1">
             <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
               Explorer nos rayons
@@ -202,17 +203,19 @@ export default function Home() {
                 <h3 className="text-lg font-bold text-gray-900 mb-1 flex items-center">
                   Immobilier <ChevronRight size={16} className="ml-1 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
                 </h3>
-                <p className="text-sm text-gray-500 font-medium">Ventes & Locations</p>
+                <p className="text-sm text-gray-500 font-medium">Ventes, Locations & Hôtels</p>
               </div>
             </Link>
           </div>
         </section>
+
         {/* Product Sections by Rayon */}
-        
-        {/* Helper function to render a product grid */}
         {(() => {
           const renderProductGrid = (title: string, subtitle: string, categoryFilter: string, link: string) => {
-            const products = allProducts.filter(p => p.category?.toLowerCase().includes(categoryFilter.toLowerCase())).slice(0, 4);
+            const isImmoSection = categoryFilter.toLowerCase() === "immo";
+            const items = isImmoSection
+              ? dbProperties.slice(0, 4)
+              : allProducts.filter(p => p.category?.toLowerCase().includes(categoryFilter.toLowerCase())).slice(0, 4);
             
             return (
               <section className="mt-12">
@@ -238,47 +241,60 @@ export default function Home() {
                       <div key={i} className="animate-pulse bg-white rounded-2xl h-64 border border-gray-100"></div>
                     ))}
                   </div>
-                ) : products.length === 0 ? (
+                ) : items.length === 0 ? (
                   <div className="text-center py-12 bg-white rounded-2xl border border-gray-100">
-                    <p className="text-gray-500 font-medium">Bientôt de nouveaux produits dans ce rayon.</p>
+                    <p className="text-gray-500 font-medium">Bientôt de nouveaux articles dans ce rayon.</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-                    {products.map((product) => (
-                      <div key={product.id} className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col">
-                        <div className="relative aspect-square overflow-hidden bg-gray-100">
-                          <OptimizedImage
-                            src={product.image || "https://images.unsplash.com/photo-1522071820081-009f0129c71c"}
-                            alt={product.name}
-                            fill
-                            sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
-                            className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
-                          />
-                          <button className="absolute top-3 right-3 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-white shadow-sm transition-all active:scale-90">
-                            <Heart size={16} />
-                          </button>
-                        </div>
-                        <div className="p-4 flex flex-col flex-1">
-                          <p className="text-xs font-bold text-gray-500 mb-1 line-clamp-1">{product.category}</p>
-                          <h3 className="font-bold text-gray-900 text-sm sm:text-base line-clamp-2 leading-tight mb-2 group-hover:text-blue-600 transition-colors">
-                            {product.name}
-                          </h3>
-                          <div className="mt-auto flex items-center justify-between pt-3 border-t border-gray-50">
-                            <span className="font-bold text-base sm:text-lg text-gray-900">{formatPrice(product.price)}</span>
-                            <button 
-                              onClick={() => openChatForProduct({
-                                id: product.id,
-                                supplierId: product.supplierId || "admin",
-                                name: product.name
-                              })}
-                              className="w-8 h-8 rounded-full bg-gray-100 text-gray-900 flex items-center justify-center hover:bg-gray-900 hover:text-white transition-colors active:scale-90 shadow-sm"
-                            >
-                              <MessageCircle size={16} />
+                    {items.map((item) => {
+                      const itemName = item.title?.fr || item.title || item.name || "Article";
+                      const itemImage = item.image || item.images?.[0] || "https://images.unsplash.com/photo-1522071820081-009f0129c71c";
+                      const itemCategory = isImmoSection 
+                        ? (item.immoBranch === "hotel" ? "Hôtel / Nuitée" : item.typeTransaction || "Immobilier")
+                        : (item.category || "Produit");
+
+                      return (
+                        <div key={item.id} className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col">
+                          <div className="relative aspect-square overflow-hidden bg-gray-100">
+                            <OptimizedImage
+                              src={itemImage}
+                              alt={itemName}
+                              fill
+                              sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+                              className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
+                            />
+                            <button className="absolute top-3 right-3 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-white shadow-sm transition-all active:scale-90">
+                              <Heart size={16} />
                             </button>
                           </div>
+                          <div className="p-4 flex flex-col flex-1">
+                            <p className="text-xs font-bold text-gray-500 mb-1 line-clamp-1">{itemCategory}</p>
+                            <h3 className="font-bold text-gray-900 text-sm sm:text-base line-clamp-2 leading-tight mb-2 group-hover:text-blue-600 transition-colors">
+                              {itemName}
+                            </h3>
+                            <div className="mt-auto flex items-center justify-between pt-3 border-t border-gray-50">
+                              <span className="font-bold text-base sm:text-lg text-gray-900">
+                                {formatPrice(item.price)}
+                                {isImmoSection && item.immoBranch === "hotel" && <span className="text-xs text-gray-500 font-normal"> / nuitée</span>}
+                                {isImmoSection && item.typeTransaction?.toLowerCase().includes("locat") && <span className="text-xs text-gray-500 font-normal"> / mois</span>}
+                              </span>
+                              <button 
+                                onClick={() => openChatForProduct({
+                                  id: item.id,
+                                  supplierId: item.supplierId || "admin",
+                                  name: itemName
+                                })}
+                                className="w-8 h-8 rounded-full bg-gray-100 text-gray-900 flex items-center justify-center hover:bg-gray-900 hover:text-white transition-colors active:scale-90 shadow-sm"
+                                title="Poser une question"
+                              >
+                                <MessageCircle size={16} />
+                              </button>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </section>
@@ -289,7 +305,7 @@ export default function Home() {
             <>
               {renderProductGrid("Populaire en Rayon Mode", "Mode & Accessoires", "Mode", "/rayon/mode")}
               {renderProductGrid("Nouveautés Rayon Connect", "Tech & Services", "Connect", "/rayon/connect")}
-              {renderProductGrid("Exclusivités Rayon Immo", "Immobilier", "Immo", "/rayon/immo")}
+              {renderProductGrid("Exclusivités Rayon Immo & Hôtels", "Immobilier & Hôtellerie", "Immo", "/rayon/immo")}
             </>
           );
         })()}

@@ -7,6 +7,7 @@ import { db } from "@/lib/firebase";
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, where, doc, updateDoc } from "firebase/firestore";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
+import { getSupplierType } from "@/lib/permissions";
 
 interface Transaction {
   id: string;
@@ -49,8 +50,7 @@ export default function SupplierFinancePage() {
   const [hotelNights, setHotelNights] = useState(1);
   const [hotelNightlyRate, setHotelNightlyRate] = useState("");
   
-  const role = (userData?.role || "").toUpperCase();
-  const isImmo = role === "SUPPLIER_IMMO" || role === "SUB_SUPPLIER"; // Basic check
+  const isImmo = getSupplierType(userData) === "immo";
 
   useEffect(() => {
     if (!loading && (!user || !userData || (userData.role !== "SUPPLIER" && userData.role !== "supplier" && userData.role !== "SUPPLIER_IMMO" && userData.role !== "supplier_immo" && userData.role !== "SUB_SUPPLIER"))) {

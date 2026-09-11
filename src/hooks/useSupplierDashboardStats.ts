@@ -2,22 +2,7 @@ import { useState, useEffect } from "react";
 import { collection, query, where, onSnapshot, orderBy, limit } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
-
-const groupPaymentsByDate = (payments: any[]) => {
-  const result: Record<string, number> = {};
-  payments.forEach(payment => {
-    if (!payment.createdAt) return;
-    const dateObj = new Date((payment.createdAt.seconds || payment.createdAt._seconds) * 1000);
-    const dateStr = dateObj.toLocaleDateString("fr-FR", { day: '2-digit', month: 'short' });
-    if (!result[dateStr]) result[dateStr] = 0;
-    result[dateStr] += payment.amount || 0;
-  });
-  
-  return Object.keys(result).map(key => ({
-    name: key,
-    total: result[key]
-  })).reverse();
-};
+import { groupPaymentsByDate } from "@/lib/dateUtils";
 
 export function useSupplierDashboardStats(productsCollectionName = "products") {
   const { user, userData } = useAuth();

@@ -1,11 +1,13 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { Package, ShoppingCart, DollarSign, Truck } from "lucide-react";
 import { useCurrency } from "@/context/CurrencyContext";
 import GenericDashboard, { KpiConfig, ActionConfig } from "./shared/GenericDashboard";
 import { useSupplierDashboardStats } from "@/hooks/useSupplierDashboardStats";
 
 export default function ConnectDashboard() {
+  const router = useRouter();
   const { formatPrice } = useCurrency();
   const { stats, loading, revenueData, recentOrders } = useSupplierDashboardStats();
 
@@ -21,14 +23,14 @@ export default function ConnectDashboard() {
       title: "Ajouter du matériel",
       description: "Mettez en vente de nouveaux équipements (Starlink, etc.).",
       buttonText: "Créer un produit",
-      onClick: () => window.location.href = '/supplier/products',
+      onClick: () => router.push('/supplier/products'),
       isPrimary: true
     },
     {
       title: "Voir les expéditions",
       description: "Consultez les commandes en attente d'expédition par un livreur.",
       buttonText: "Gérer les commandes",
-      onClick: () => window.location.href = '/supplier/orders',
+      onClick: () => router.push('/supplier/orders'),
       isPrimary: false
     }
   ];

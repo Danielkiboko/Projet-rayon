@@ -10,24 +10,8 @@ import { collection, query, where, onSnapshot, getDocs, limit, orderBy, updateDo
 import { db } from "@/lib/firebase";
 import KpiGrid from "./shared/KpiGrid";
 import ActionCard from "./shared/ActionCard";
-
 import GenericDashboard, { KpiConfig, ActionConfig } from "./shared/GenericDashboard";
-
-const groupPaymentsByDate = (payments: any[]) => {
-  const result: Record<string, number> = {};
-  payments.forEach(payment => {
-    if (!payment.createdAt) return;
-    const dateObj = new Date((payment.createdAt.seconds || payment.createdAt._seconds) * 1000);
-    const dateStr = dateObj.toLocaleDateString("fr-FR", { day: '2-digit', month: 'short' });
-    if (!result[dateStr]) result[dateStr] = 0;
-    result[dateStr] += payment.amount || 0;
-  });
-  
-  return Object.keys(result).map(key => ({
-    name: key,
-    total: result[key]
-  })).reverse();
-};
+import { groupPaymentsByDate } from "@/lib/dateUtils";
 
 export default function ImmoDashboard() {
   const { user, userData } = useAuth();

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { X, Send, Loader2, MessageCircle, ChevronLeft, Building2, Shirt, Wifi } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { auth, db } from "@/lib/firebase";
@@ -9,6 +10,7 @@ import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "fire
 import { useChat } from "@/context/ChatContext";
 
 export function GlobalChatbot() {
+  const router = useRouter();
   const { isChatOpen, closeChat, toggleChat, activeProduct, closeActiveProductChat } = useChat();
   const { user } = useAuth();
   
@@ -35,8 +37,8 @@ export function GlobalChatbot() {
 
   // Fetch user chats if logged in
   useEffect(() => {
-    if (!user) {
-      setUserChats([]);
+    if (!user || !isChatOpen) {
+      if (!user) setUserChats([]);
       return;
     }
 
@@ -53,7 +55,7 @@ export function GlobalChatbot() {
       setUserChats(fetchedChats);
     });
     return () => unsubscribe();
-  }, [user]);
+  }, [user, isChatOpen]);
 
   const handlePayDelivery = async (msg: any) => {
     if (!user) return;
@@ -131,7 +133,7 @@ export function GlobalChatbot() {
       
       alert("Paiement réussi ! La commande est envoyée aux livreurs.");
       // Rediriger vers le suivi de commande
-      window.location.href = `/order/${orderId}/tracking`;
+      router.push(`/order/${orderId}/tracking`);
       
     } catch (error) {
       console.error("Erreur de paiement", error);
@@ -146,8 +148,8 @@ export function GlobalChatbot() {
 
   // 3. Fetch messages for active chat
   useEffect(() => {
-    if (!user || !currentChatId) {
-      setMessages([]);
+    if (!user || !currentChatId || !isChatOpen) {
+      if (!user || !currentChatId) setMessages([]);
       return;
     }
 
@@ -165,7 +167,7 @@ export function GlobalChatbot() {
     });
 
     return () => unsubscribe();
-  }, [user, currentChatId]);
+  }, [user, currentChatId, isChatOpen]);
 
   // Actions
   const handleGuestAuth = async (e: React.FormEvent) => {

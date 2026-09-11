@@ -29,6 +29,8 @@ export function ProductCard({ product, lang, t, category, index, handleChat }: P
         <img 
           src={product.image} 
           alt={product.title?.[lang] || product.title?.fr || "Produit"}
+          loading="lazy"
+          decoding="async"
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
         <div className="absolute top-3 left-3">

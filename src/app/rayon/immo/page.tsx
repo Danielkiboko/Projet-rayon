@@ -211,6 +211,8 @@ export default function ImmoPage() {
                     <img 
                       src={property.image} 
                       alt={property.title?.[lang] || property.title?.fr || property.title}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                     <div className="absolute top-4 left-4">

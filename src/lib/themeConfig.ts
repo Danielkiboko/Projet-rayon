@@ -5,10 +5,8 @@ import {
   Building, 
   Users, 
   FileText,
-  Wifi,
   Settings,
   Wallet,
-  CreditCard,
   Truck,
   MessageSquare
 } from "lucide-react";
@@ -35,6 +33,17 @@ export interface ServiceTheme {
   };
   menu: MenuItem[];
 }
+
+const standardProductMenu: MenuItem[] = [
+  { title: "Dashboard", href: "/supplier", icon: LayoutDashboard },
+  { title: "Mes Produits", href: "/supplier/products", icon: Package },
+  { title: "Commandes", href: "/supplier/orders", icon: ShoppingCart },
+  { title: "Messages", href: "/supplier/messages", icon: MessageSquare },
+  { title: "Proformas & Factures", href: "/supplier/invoices", icon: FileText },
+  { title: "Livre de caisse", href: "/supplier/finance", icon: Wallet },
+  { title: "Livreurs", href: "/supplier/drivers", icon: Truck },
+  { title: "Paramètres", href: "/supplier/settings", icon: Settings },
+];
 
 export const themeConfig: Record<ServiceType, ServiceTheme> = {
   default: {
@@ -65,16 +74,7 @@ export const themeConfig: Record<ServiceType, ServiceTheme> = {
       activeMenuBg: "bg-purple-600/10",
       activeMenuText: "text-purple-500",
     },
-    menu: [
-      { title: "Dashboard", href: "/supplier", icon: LayoutDashboard },
-      { title: "Mes Produits", href: "/supplier/products", icon: Package },
-      { title: "Commandes", href: "/supplier/orders", icon: ShoppingCart },
-      { title: "Messages", href: "/supplier/messages", icon: MessageSquare },
-      { title: "Proformas & Factures", href: "/supplier/invoices", icon: FileText },
-      { title: "Livre de caisse", href: "/supplier/finance", icon: Wallet },
-      { title: "Livreurs", href: "/supplier/drivers", icon: Truck },
-      { title: "Paramètres", href: "/supplier/settings", icon: Settings },
-    ]
+    menu: standardProductMenu
   },
   immo: {
     name: "Rayon Immo",
@@ -108,15 +108,6 @@ export const themeConfig: Record<ServiceType, ServiceTheme> = {
       activeMenuBg: "bg-blue-600/20",
       activeMenuText: "text-blue-400",
     },
-    menu: [
-      { title: "Dashboard", href: "/supplier", icon: LayoutDashboard },
-      { title: "Mes Produits", href: "/supplier/products", icon: Package },
-      { title: "Commandes", href: "/supplier/orders", icon: ShoppingCart },
-      { title: "Messages", href: "/supplier/messages", icon: MessageSquare },
-      { title: "Proformas & Factures", href: "/supplier/invoices", icon: FileText },
-      { title: "Livre de caisse", href: "/supplier/finance", icon: Wallet },
-      { title: "Livreurs", href: "/supplier/drivers", icon: Truck },
-      { title: "Paramètres", href: "/supplier/settings", icon: Settings },
-    ]
+    menu: standardProductMenu
   }
 };

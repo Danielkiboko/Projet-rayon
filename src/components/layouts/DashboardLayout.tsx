@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { motion } from "framer-motion";
 import { LogOut, Menu, X, Bell, UserCircle, Search, ShieldAlert } from "lucide-react";
+import { RayonsLogo } from "@/components/brand/RayonsLogo";
 
 type MenuItem = {
   title: string;
@@ -43,63 +44,74 @@ interface DashboardLayoutProps {
   children: React.ReactNode;
   menuItems: MenuItem[];
   themeColors?: ThemeColors;
+  topbarTitle?: string;
   roleBadgeTitle?: string;
   roleBadgeValue?: string;
-  topbarTitle?: string;
   userName?: string;
   userRole?: string;
-  notifications?: Notification[];
   unreadCount?: number;
+  notifications?: Notification[];
+  serviceType?: string;
   customProfileModal?: React.ReactNode;
 }
 
-export default function DashboardLayout({
+export function DashboardLayout({
   children,
   menuItems,
   themeColors = {
-    sidebarBg: "bg-[#0A0A0A]",
-    activeMenuBg: "bg-blue-600/10",
-    activeMenuText: "text-blue-500",
-    accentText: "text-blue-500",
+    sidebarBg: "bg-[#0F1D27]",
+    sidebarText: "text-white",
+    primaryBtn: "bg-[#C7D300] text-[#0F1D27] font-bold",
+    accentText: "text-[#C7D300]",
+    activeMenuBg: "bg-[#C7D300]/15",
+    activeMenuText: "text-[#C7D300]"
   },
-  roleBadgeTitle = "Privilèges",
-  roleBadgeValue = "ADMIN",
   topbarTitle = "Tableau de bord",
-  userName = "Utilisateur",
-  userRole = "Admin",
-  notifications = [],
-  unreadCount = 0,
-  customProfileModal,
+  roleBadgeTitle = "Fournisseur",
+  roleBadgeValue,
+  userName: passedUserName,
+  userRole: passedUserRole,
+  unreadCount: passedUnreadCount,
+  notifications: passedNotifications,
+  serviceType = "default",
+  customProfileModal
 }: DashboardLayoutProps) {
   const pathname = usePathname();
-  const { signOut } = useAuth();
+  const { user, signOut } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>(passedNotifications || []);
+
+  const unreadCount = passedUnreadCount !== undefined ? passedUnreadCount : notifications.filter(n => !n.read).length;
+
+  const userName = passedUserName || user?.displayName || user?.email || "Fournisseur";
+  const userRole = passedUserRole || roleBadgeTitle;
 
   return (
-    <div className="flex h-screen bg-[#121212] overflow-hidden font-sans">
+    <div className="flex h-screen bg-[#0B151C] overflow-hidden font-sans">
       {customProfileModal}
       
       {/* Mobile sidebar overlay */}
       {isSidebarOpen && (
         <div 
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          className="fixed inset-0 z-40 bg-black/60 lg:hidden backdrop-blur-sm"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
 
       {/* Sidebar */}
       <motion.aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 ${themeColors.sidebarBg} border-r border-white/5 flex flex-col transition-transform duration-300 lg:translate-x-0 lg:static ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 ${themeColors.sidebarBg} border-r border-white/10 flex flex-col transition-transform duration-300 lg:translate-x-0 lg:static ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="h-16 flex items-center justify-between px-6 border-b border-white/5">
-          <Link href="/" className="flex items-center space-x-2">
-            <span className="text-xl font-bold text-white tracking-tight">
-              Rayons<span className={themeColors.accentText}>.</span>
-            </span>
-          </Link>
+        <div className="h-16 flex items-center justify-between px-6 border-b border-white/10">
+          <RayonsLogo 
+            variant="dark" 
+            size="sm" 
+            rayon={serviceType !== "default" ? (serviceType as any) : undefined} 
+            href="/" 
+          />
           <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden text-gray-400 hover:text-white">
             <X size={24} />
           </button>
@@ -156,7 +168,7 @@ export default function DashboardLayout({
       {/* Main content wrapper */}
       <main className="flex-1 flex flex-col h-screen overflow-hidden relative">
         {/* Topbar */}
-        <header className="h-16 flex items-center justify-between px-6 border-b border-white/5 bg-[#121212]/80 backdrop-blur-md z-30 relative">
+        <header className="h-16 flex items-center justify-between px-6 border-b border-white/10 bg-[#0F1D27]/90 backdrop-blur-md z-30 relative">
           <div className="flex items-center">
             <button onClick={() => setIsSidebarOpen(true)} className="mr-4 text-gray-400 hover:text-white lg:hidden">
               <Menu size={24} />
@@ -257,3 +269,5 @@ export default function DashboardLayout({
     </div>
   );
 }
+
+export default DashboardLayout;

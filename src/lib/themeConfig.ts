@@ -47,15 +47,15 @@ const standardProductMenu: MenuItem[] = [
 
 export const themeConfig: Record<ServiceType, ServiceTheme> = {
   default: {
-    name: "Rayons.NET",
+    name: "Rayons.net",
     colors: {
-      sidebarBg: "bg-[#0A0A0A]",
+      sidebarBg: "bg-[#0F1D27]",
       sidebarText: "text-white",
-      primaryBtn: "bg-blue-600",
-      primaryBtnHover: "hover:bg-blue-700",
-      accentText: "text-blue-500",
-      activeMenuBg: "bg-blue-600/10",
-      activeMenuText: "text-blue-500",
+      primaryBtn: "bg-[#C7D300] text-[#0F1D27] hover:bg-[#b5c000] font-bold",
+      primaryBtnHover: "hover:bg-[#b5c000]",
+      accentText: "text-[#C7D300]",
+      activeMenuBg: "bg-[#C7D300]/15",
+      activeMenuText: "text-[#C7D300]",
     },
     menu: [
       { title: "Dashboard", href: "/supplier", icon: LayoutDashboard },
@@ -66,26 +66,26 @@ export const themeConfig: Record<ServiceType, ServiceTheme> = {
   mode: {
     name: "Rayon Mode",
     colors: {
-      sidebarBg: "bg-[#0A0A0A]",
+      sidebarBg: "bg-[#0F1D27]",
       sidebarText: "text-white",
-      primaryBtn: "bg-purple-600",
-      primaryBtnHover: "hover:bg-purple-700",
-      accentText: "text-purple-500",
-      activeMenuBg: "bg-purple-600/10",
-      activeMenuText: "text-purple-500",
+      primaryBtn: "bg-[#D4B08C] text-[#0F1D27] hover:bg-[#c49f7b] font-bold",
+      primaryBtnHover: "hover:bg-[#c49f7b]",
+      accentText: "text-[#D4B08C]",
+      activeMenuBg: "bg-[#D4B08C]/15",
+      activeMenuText: "text-[#D4B08C]",
     },
     menu: standardProductMenu
   },
   immo: {
     name: "Rayon Immo",
     colors: {
-      sidebarBg: "bg-[#0f172a]", // Dark slate
-      sidebarText: "text-slate-100",
-      primaryBtn: "bg-amber-600",
-      primaryBtnHover: "hover:bg-amber-700",
-      accentText: "text-amber-500",
-      activeMenuBg: "bg-amber-600/10",
-      activeMenuText: "text-amber-500",
+      sidebarBg: "bg-[#0F1D27]",
+      sidebarText: "text-white",
+      primaryBtn: "bg-[#4C6EF5] text-white hover:bg-[#3b5bdb] font-bold",
+      primaryBtnHover: "hover:bg-[#3b5bdb]",
+      accentText: "text-[#4C6EF5]",
+      activeMenuBg: "bg-[#4C6EF5]/15",
+      activeMenuText: "text-[#4C6EF5]",
     },
     menu: [
       { title: "Dashboard", href: "/supplier", icon: LayoutDashboard },
@@ -100,13 +100,13 @@ export const themeConfig: Record<ServiceType, ServiceTheme> = {
   connect: {
     name: "Rayon Connect",
     colors: {
-      sidebarBg: "bg-[#0A0A0A]", 
-      sidebarText: "text-blue-100",
-      primaryBtn: "bg-blue-600",
-      primaryBtnHover: "hover:bg-blue-700",
-      accentText: "text-blue-500",
-      activeMenuBg: "bg-blue-600/20",
-      activeMenuText: "text-blue-400",
+      sidebarBg: "bg-[#0F1D27]", 
+      sidebarText: "text-white",
+      primaryBtn: "bg-[#00B5A5] text-white hover:bg-[#009e90] font-bold",
+      primaryBtnHover: "hover:bg-[#009e90]",
+      accentText: "text-[#00B5A5]",
+      activeMenuBg: "bg-[#00B5A5]/15",
+      activeMenuText: "text-[#00B5A5]",
     },
     menu: standardProductMenu
   }

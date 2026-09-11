@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useChat } from "@/context/ChatContext";
-import { TrendingUp, MessageCircle, User } from "lucide-react";
+import { TrendingUp, MessageCircle, User, ArrowRight } from "lucide-react";
+import { RayonsLogo } from "@/components/brand/RayonsLogo";
 
 export function Footer() {
   const { user } = useAuth();
@@ -12,41 +13,61 @@ export function Footer() {
   return (
     <>
       {/* Footer / Accès Admin & Partenaires */}
-      <footer className="w-full bg-gray-900 text-white py-12 mt-12 mb-16 sm:mb-0 border-t border-gray-800">
-        <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left">
+      <footer className="w-full bg-[#0F1D27] text-white py-14 mt-16 mb-16 sm:mb-0 border-t border-white/10">
+        <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-10 text-center md:text-left">
           {/* Logo & Description */}
-          <div className="flex flex-col items-center md:items-start">
-            <div className="text-2xl font-black italic tracking-tighter mb-4">RAYON<span className="text-blue-500">.NET</span></div>
-            <p className="text-gray-400 text-sm max-w-xs">La plateforme de vente en ligne rapide et fiable. L'excellence pour votre quotidien.</p>
+          <div className="flex flex-col items-center md:items-start md:col-span-2">
+            <div className="mb-4">
+              <RayonsLogo variant="dark" size="md" href="/" />
+            </div>
+            <p className="text-gray-300 text-sm max-w-md leading-relaxed">
+              Rayons.net, une identité unifiée, trois expertises complémentaires.
+              Tout ce dont vous avez besoin, en un seul endroit.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <span className="text-xs px-2.5 py-1 rounded-full bg-white/10 text-gray-300 border border-white/10 font-medium">Rayons Connect</span>
+              <span className="text-xs px-2.5 py-1 rounded-full bg-white/10 text-gray-300 border border-white/10 font-medium">Rayons Immo</span>
+              <span className="text-xs px-2.5 py-1 rounded-full bg-white/10 text-gray-300 border border-white/10 font-medium">Rayons Mode</span>
+            </div>
           </div>
 
           {/* Contact */}
           <div className="flex flex-col items-center md:items-start">
-            <h3 className="font-bold text-lg mb-4 text-white">Nous Contacter</h3>
-            <div className="space-y-2 text-sm text-gray-400">
+            <h3 className="font-heading font-bold text-base mb-4 text-[#C7D300] uppercase tracking-wider">Contact & Support</h3>
+            <div className="space-y-2.5 text-sm text-gray-300">
               <p className="flex items-center gap-2 justify-center md:justify-start">
-                📞 +243 85 91 800 31
+                <span>📞</span> +243 85 91 800 31
               </p>
               <p className="flex items-center gap-2 justify-center md:justify-start">
-                ✉️ contact@rayon.net
+                <span>✉️</span> contact@rayons.net
+              </p>
+              <p className="text-xs text-gray-400 mt-2">
+                Kinshasa, République Démocratique du Congo
               </p>
             </div>
           </div>
 
           {/* Admin & Liens */}
           <div className="flex flex-col items-center md:items-start">
-            <h3 className="font-bold text-lg mb-4 text-white">Espace Pro</h3>
+            <h3 className="font-heading font-bold text-base mb-4 text-[#C7D300] uppercase tracking-wider">Espace Pro</h3>
+            <p className="text-xs text-gray-400 mb-3">Accédez à votre console de gestion et cPanel.</p>
             <Link 
               href="/login"
-              className="inline-block px-6 py-2 bg-white text-gray-900 text-sm font-bold rounded-xl hover:bg-gray-200 transition-colors shadow-sm"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#C7D300] text-[#0F1D27] text-sm font-bold rounded-xl hover:bg-[#b5c000] transition-colors shadow-sm"
             >
-              {user ? "Accéder à mon Dashboard" : "Connexion C-Panel"}
+              <span>{user ? "Accéder à mon Dashboard" : "Connexion C-Panel"}</span>
+              <ArrowRight size={16} />
             </Link>
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 mt-12 pt-8 border-t border-gray-800 text-center flex flex-col items-center">
-          <p className="text-gray-500 text-xs">© 2026 Rayon.net. Tous droits réservés.</p>
+        <div className="max-w-7xl mx-auto px-4 mt-12 pt-8 border-t border-white/10 text-center flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-gray-400 text-xs">© 2026 Rayons.net. Tous droits réservés.</p>
+          <div className="flex items-center gap-6 text-xs text-gray-400">
+            <Link href="/rayon/connect" className="hover:text-[#00B5A5] transition-colors">Connect</Link>
+            <Link href="/rayon/immo" className="hover:text-[#4C6EF5] transition-colors">Immo & Hôtels</Link>
+            <Link href="/rayon/mode" className="hover:text-[#D4B08C] transition-colors">Mode</Link>
+          </div>
         </div>
       </footer>
 

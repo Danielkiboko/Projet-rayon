@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { OptimizedImage } from "@/components/OptimizedImage";
 import Link from "next/link";
-import { Search, User, Menu, MapPin, ChevronRight, Star, Heart, TrendingUp, Home as HomeIcon, Wifi, Building, Globe, ArrowRight, Infinity, Shirt, MessageCircle } from "lucide-react";
+import { Search, User, Menu, MapPin, ChevronRight, Star, Heart, TrendingUp, Home as HomeIcon, Wifi, Building, Globe, ArrowRight, Shirt, MessageCircle, Sparkles } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Footer } from "@/components/Footer";
 import { useChat } from "@/context/ChatContext";
@@ -11,6 +11,7 @@ import { useCurrency, CurrencyCode } from "@/context/CurrencyContext";
 import { db } from "@/lib/firebase";
 import { collection, query, getDocs, limit, where } from "firebase/firestore";
 import { CurrencySelector } from "@/components/CurrencySelector";
+import { RayonsLogo } from "@/components/brand/RayonsLogo";
 
 
 export default function Home() {
@@ -46,7 +47,7 @@ export default function Home() {
         });
         setDbProperties(props);
       } catch (error) {
-        console.error("Error fetching homepage data:", error);
+        console.error("Erreur de chargement des données d'accueil:", error);
       } finally {
         setLoading(false);
       }
@@ -57,39 +58,34 @@ export default function Home() {
   const allProducts = dbProducts;
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20 font-sans selection:bg-gray-200">
+    <div className="min-h-screen bg-[#F8FAFC] pb-20 font-sans selection:bg-[#C7D300]/30 selection:text-[#0F1D27]">
       
       {/* Header */}
-      <header className="bg-white sticky top-0 z-50 shadow-sm transition-all border-b border-gray-100">
+      <header className="bg-white/95 backdrop-blur-md sticky top-0 z-50 shadow-xs transition-all border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <button className="p-2 -ml-2 text-gray-600 hover:text-gray-900 lg:hidden">
+            <button className="p-2 -ml-2 text-gray-600 hover:text-[#0F1D27] lg:hidden">
               <Menu size={24} />
             </button>
-            <Link href="/" className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-[#4F46E5] text-white rounded-lg flex items-center justify-center shadow-sm">
-                <Infinity size={20} />
-              </div>
-              <span className="text-xl font-bold text-gray-900 tracking-tight hidden sm:block">Rayons<span className="text-gray-400 font-normal">.NET</span></span>
-            </Link>
+            <RayonsLogo size="md" href="/" />
           </div>
 
-          <nav className="hidden lg:flex items-center gap-6">
-            <Link href="/" className="flex items-center gap-2 text-sm font-bold text-gray-900 bg-gray-100 px-4 py-2 rounded-full">
-              <HomeIcon size={18} />
+          <nav className="hidden lg:flex items-center gap-1 bg-gray-50/80 p-1 rounded-full border border-gray-100">
+            <Link href="/" className="flex items-center gap-2 text-sm font-semibold text-[#0F1D27] bg-white shadow-xs px-4 py-1.5 rounded-full">
+              <HomeIcon size={16} />
               Accueil
             </Link>
-            <Link href="/rayon/mode" className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors">
-              <Shirt size={18} />
-              Rayons Mode
-            </Link>
-            <Link href="/rayon/connect" className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors">
-              <Wifi size={18} />
+            <Link href="/rayon/connect" className="flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-[#00B5A5] hover:bg-white/60 px-4 py-1.5 rounded-full transition-colors">
+              <Wifi size={16} className="text-[#00B5A5]" />
               Rayons Connect
             </Link>
-            <Link href="/rayon/immo" className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors">
-              <Building size={18} />
+            <Link href="/rayon/immo" className="flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-[#4C6EF5] hover:bg-white/60 px-4 py-1.5 rounded-full transition-colors">
+              <Building size={16} className="text-[#4C6EF5]" />
               Rayons Immo
+            </Link>
+            <Link href="/rayon/mode" className="flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-[#D4B08C] hover:bg-white/60 px-4 py-1.5 rounded-full transition-colors">
+              <Shirt size={16} className="text-[#D4B08C]" />
+              Rayons Mode
             </Link>
           </nav>
 
@@ -101,21 +97,21 @@ export default function Home() {
 
             {user ? (
               <div className="flex items-center gap-2">
-                <Link href="/dashboard" className="flex items-center gap-1 text-sm font-bold text-gray-700 hover:text-gray-900 bg-gray-100 px-3 sm:px-4 py-2 rounded-full">
-                  <User size={18} />
+                <Link href="/dashboard" className="flex items-center gap-1.5 text-sm font-bold text-[#0F1D27] hover:bg-gray-200 bg-gray-100 px-3.5 py-2 rounded-full transition-colors">
+                  <User size={16} />
                   <span className="hidden sm:block">{userData?.displayName || user.displayName || "Mon espace"}</span>
                 </Link>
-                <button onClick={() => signOut()} className="hidden sm:block text-sm font-bold text-red-500 hover:text-red-700 bg-red-50 px-3 py-2 rounded-full">
+                <button onClick={() => signOut()} className="hidden sm:block text-sm font-bold text-red-500 hover:text-red-700 bg-red-50 px-3 py-2 rounded-full transition-colors">
                   Déconnexion
                 </button>
               </div>
             ) : (
-              <Link href="/login" className="flex items-center gap-1 text-sm font-bold text-gray-700 hover:text-gray-900 bg-gray-100 px-3 sm:px-4 py-2 rounded-full">
-                <User size={18} />
+              <Link href="/login" className="flex items-center gap-1.5 text-sm font-bold text-[#0F1D27] hover:bg-gray-200 bg-gray-100 px-3.5 py-2 rounded-full transition-colors">
+                <User size={16} />
                 <span className="hidden sm:block">Se connecter</span>
               </Link>
             )}
-            <button onClick={toggleChat} className="relative p-2.5 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors group">
+            <button onClick={toggleChat} className="relative p-2.5 text-[#0F1D27] hover:bg-gray-100 rounded-full transition-colors group" title="Messagerie & Support">
               <MessageCircle size={22} className="group-hover:scale-110 transition-transform" />
             </button>
           </div>
@@ -123,89 +119,146 @@ export default function Home() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 pt-6 space-y-10">
+      <main className="max-w-7xl mx-auto px-4 pt-6 space-y-12">
         
-        {/* Hero Banner */}
-        <section className="relative w-full h-[400px] sm:h-[500px] rounded-3xl overflow-hidden shadow-sm mt-4">
+        {/* Hero Banner avec Charte Graphique Officielle */}
+        <section className="relative w-full min-h-[420px] sm:min-h-[480px] rounded-3xl overflow-hidden shadow-xl mt-2 bg-[#0F1D27] border border-white/10 flex items-center">
+          {/* Arrière-plan stylisé */}
           <OptimizedImage 
             src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&q=80&w=2000" 
-            alt="Hero Banner" 
+            alt="Rayons Hero" 
             fill
             priority
-            className="absolute inset-0 object-cover"
+            className="absolute inset-0 object-cover opacity-35 mix-blend-luminosity"
             sizes="100vw"
           />
-          {/* Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-r from-gray-900/80 via-gray-900/50 to-transparent"></div>
+          {/* Gradient Bleu Rayons */}
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0F1D27] via-[#0F1D27]/85 to-transparent"></div>
           
-          <div className="absolute inset-0 p-8 sm:p-12 md:p-16 flex flex-col justify-center max-w-2xl">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-white leading-tight mb-4 drop-shadow-md">
-              L'excellence pour votre quotidien.
+          <div className="relative z-10 p-8 sm:p-12 md:p-16 flex flex-col justify-center max-w-2xl">
+            {/* Tag Brand */}
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#C7D300]/15 border border-[#C7D300]/30 w-max mb-5">
+              <Sparkles size={14} className="text-[#C7D300]" />
+              <span className="text-xs font-heading font-bold text-[#C7D300] tracking-wider uppercase">
+                Plateforme Officielle Rayons.net
+              </span>
+            </div>
+
+            {/* Titre Signature de la Charte */}
+            <h1 className="font-heading text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-white leading-[1.1] mb-5 tracking-tight">
+              Tout ce dont vous avez besoin, <span className="text-[#C7D300]">en un seul endroit.</span>
             </h1>
-            <p className="text-gray-200 text-sm sm:text-base md:text-lg mb-8 max-w-xl drop-shadow">
-              Découvrez notre sélection premium d'équipements technologiques et de biens immobiliers de prestige.
+            
+            <p className="text-gray-300 text-sm sm:text-base md:text-lg mb-8 max-w-xl leading-relaxed font-sans">
+              Rayons réunit trois univers d'excellence complémentaires : technologies et objets connectés, immobilier en ligne et hôtels de prestige, et prêt-à-porter de créateurs.
             </p>
-            <div>
+
+            <div className="flex flex-wrap items-center gap-4">
               <button 
                 onClick={() => document.getElementById('rayons')?.scrollIntoView({ behavior: 'smooth' })}
-                className="bg-white text-gray-900 font-bold px-6 py-3 rounded-full flex items-center gap-2 hover:bg-gray-100 transition-colors shadow-lg active:scale-95 cursor-pointer"
+                className="bg-[#C7D300] text-[#0F1D27] font-heading font-bold px-7 py-3.5 rounded-xl flex items-center gap-2 hover:bg-[#b5c000] transition-all shadow-lg shadow-[#C7D300]/20 active:scale-95 cursor-pointer text-sm sm:text-base"
               >
-                Découvrir nos rayons
-                <ArrowRight size={20} />
+                Explorer nos rayons
+                <ArrowRight size={18} />
               </button>
+              
+              <Link
+                href="/login"
+                className="px-6 py-3.5 rounded-xl text-white font-medium text-sm sm:text-base bg-white/10 hover:bg-white/15 border border-white/15 backdrop-blur-md transition-all"
+              >
+                Espace Partenaires & Fournisseurs
+              </Link>
             </div>
           </div>
         </section>
 
-        {/* Nos Rayons - Navigation type Supermarché */}
-        <section id="rayons" className="mt-12 scroll-mt-20">
-          <div className="mb-6 px-1">
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
-              Explorer nos rayons
-            </h2>
-            <p className="text-gray-500 mt-1">L'expérience d'un grand magasin réinventée en ligne</p>
+        {/* Nos Rayons - Les 3 Activités de la Charte */}
+        <section id="rayons" className="mt-14 scroll-mt-20">
+          <div className="mb-8 px-1 flex flex-col md:flex-row md:items-end justify-between gap-2">
+            <div>
+              <span className="text-xs font-heading font-bold text-gray-400 uppercase tracking-widest">
+                Une identité unifiée, trois expertises
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-heading font-extrabold text-[#0F1D27] tracking-tight mt-1">
+                Les Rayons Officiels
+              </h2>
+            </div>
+            <p className="text-gray-500 text-sm max-w-md">
+              Chaque rayon possède son univers dédié, tout en partageant la rapidité, le paiement sécurisé et la fiabilité du réseau Rayons.
+            </p>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-
-            {/* Rayon Mode */}
-            <Link href="/rayon/mode" className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md hover:border-gray-300 transition-all group flex flex-col justify-between items-start min-h-[160px] relative overflow-hidden">
-              <div className="relative z-10">
-                <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <Shirt size={24} />
-                </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-1 flex items-center">
-                  Mode <ChevronRight size={16} className="ml-1 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-                </h3>
-                <p className="text-sm text-gray-500 font-medium">Mode, Accessoires</p>
-              </div>
-            </Link>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
             {/* Rayon Connect */}
-            <Link href="/rayon/connect" className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md hover:border-gray-300 transition-all group flex flex-col justify-between items-start min-h-[160px] relative overflow-hidden">
+            <Link 
+              href="/rayon/connect" 
+              className="bg-white rounded-3xl p-7 shadow-sm border border-gray-100 hover:border-[#00B5A5]/60 hover:shadow-xl transition-all duration-300 group flex flex-col justify-between min-h-[200px] relative overflow-hidden"
+            >
+              <div className="absolute top-0 right-0 w-32 h-32 bg-[#00B5A5]/5 rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform"></div>
               <div className="relative z-10">
-                <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <Wifi size={24} />
+                <div className="w-14 h-14 bg-[#00B5A5]/10 text-[#00B5A5] rounded-2xl flex items-center justify-center mb-5 group-hover:scale-110 group-hover:bg-[#00B5A5] group-hover:text-white transition-all shadow-xs">
+                  <Wifi size={26} />
                 </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-1 flex items-center">
-                  Connect <ChevronRight size={16} className="ml-1 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                <div className="inline-block text-[11px] font-heading font-bold uppercase tracking-wider text-[#00B5A5] bg-[#00B5A5]/10 px-2.5 py-0.5 rounded-md mb-2">
+                  Innovation & Tech
+                </div>
+                <h3 className="text-xl font-heading font-extrabold text-[#0F1D27] mb-1.5 flex items-center">
+                  Rayons Connect
+                  <ChevronRight size={18} className="ml-1 text-[#00B5A5] opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
                 </h3>
-                <p className="text-sm text-gray-500 font-medium">Starlink, Tech B2B</p>
+                <p className="text-sm text-gray-500 font-medium leading-relaxed">
+                  Technologies et objets connectés (Starlink, smartphones, audio, domotique et équipements pro).
+                </p>
               </div>
             </Link>
 
-            {/* Rayon Immo */}
-            <Link href="/rayon/immo" className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md hover:border-gray-300 transition-all group flex flex-col justify-between items-start min-h-[160px] relative overflow-hidden">
+            {/* Rayon Immo & Hôtels */}
+            <Link 
+              href="/rayon/immo" 
+              className="bg-white rounded-3xl p-7 shadow-sm border border-gray-100 hover:border-[#4C6EF5]/60 hover:shadow-xl transition-all duration-300 group flex flex-col justify-between min-h-[200px] relative overflow-hidden"
+            >
+              <div className="absolute top-0 right-0 w-32 h-32 bg-[#4C6EF5]/5 rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform"></div>
               <div className="relative z-10">
-                <div className="w-12 h-12 bg-orange-50 text-orange-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <Building size={24} />
+                <div className="w-14 h-14 bg-[#4C6EF5]/10 text-[#4C6EF5] rounded-2xl flex items-center justify-center mb-5 group-hover:scale-110 group-hover:bg-[#4C6EF5] group-hover:text-white transition-all shadow-xs">
+                  <Building size={26} />
                 </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-1 flex items-center">
-                  Immobilier <ChevronRight size={16} className="ml-1 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                <div className="inline-block text-[11px] font-heading font-bold uppercase tracking-wider text-[#4C6EF5] bg-[#4C6EF5]/10 px-2.5 py-0.5 rounded-md mb-2">
+                  Immobilier & Hôtellerie
+                </div>
+                <h3 className="text-xl font-heading font-extrabold text-[#0F1D27] mb-1.5 flex items-center">
+                  Rayons Immo & Hôtels
+                  <ChevronRight size={18} className="ml-1 text-[#4C6EF5] opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
                 </h3>
-                <p className="text-sm text-gray-500 font-medium">Ventes, Locations & Hôtels</p>
+                <p className="text-sm text-gray-500 font-medium leading-relaxed">
+                  Immobilier en ligne de qualité (villas, appartements, bureaux) et réservations d'hôtels de prestige.
+                </p>
               </div>
             </Link>
+
+            {/* Rayon Mode */}
+            <Link 
+              href="/rayon/mode" 
+              className="bg-white rounded-3xl p-7 shadow-sm border border-gray-100 hover:border-[#D4B08C]/80 hover:shadow-xl transition-all duration-300 group flex flex-col justify-between min-h-[200px] relative overflow-hidden"
+            >
+              <div className="absolute top-0 right-0 w-32 h-32 bg-[#D4B08C]/10 rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform"></div>
+              <div className="relative z-10">
+                <div className="w-14 h-14 bg-[#D4B08C]/20 text-[#9C764D] rounded-2xl flex items-center justify-center mb-5 group-hover:scale-110 group-hover:bg-[#D4B08C] group-hover:text-white transition-all shadow-xs">
+                  <Shirt size={26} />
+                </div>
+                <div className="inline-block text-[11px] font-heading font-bold uppercase tracking-wider text-[#9C764D] bg-[#D4B08C]/20 px-2.5 py-0.5 rounded-md mb-2">
+                  Mode & Lifestyle
+                </div>
+                <h3 className="text-xl font-heading font-extrabold text-[#0F1D27] mb-1.5 flex items-center">
+                  Rayons Mode
+                  <ChevronRight size={18} className="ml-1 text-[#D4B08C] opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                </h3>
+                <p className="text-sm text-gray-500 font-medium leading-relaxed">
+                  Prêt-à-porter haut de gamme, maroquinerie, accessoires et collections exclusives.
+                </p>
+              </div>
+            </Link>
+
           </div>
         </section>
 
@@ -213,23 +266,32 @@ export default function Home() {
         {(() => {
           const renderProductGrid = (title: string, subtitle: string, categoryFilter: string, link: string) => {
             const isImmoSection = categoryFilter.toLowerCase() === "immo";
+            const isConnectSection = categoryFilter.toLowerCase() === "connect";
+            const isModeSection = categoryFilter.toLowerCase() === "mode";
+
+            const badgeStyles = isModeSection 
+              ? "bg-[#D4B08C]/20 text-[#8C6438] border-[#D4B08C]/35" 
+              : isConnectSection 
+              ? "bg-[#00B5A5]/20 text-[#007D72] border-[#00B5A5]/35"
+              : "bg-[#4C6EF5]/20 text-[#3B5BDB] border-[#4C6EF5]/35";
+
             const items = isImmoSection
               ? dbProperties.slice(0, 4)
               : allProducts.filter(p => p.category?.toLowerCase().includes(categoryFilter.toLowerCase())).slice(0, 4);
             
             return (
               <section className="mt-12">
-                <div className="flex flex-col mb-4 px-1 gap-2">
+                <div className="flex flex-col mb-5 px-1 gap-2">
                   <div>
-                    <span className="bg-[#4F46E5]/10 text-[#4F46E5] text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider">
+                    <span className={`text-[11px] font-heading font-extrabold px-3 py-1 rounded-md uppercase tracking-wider border ${badgeStyles}`}>
                       {subtitle}
                     </span>
                   </div>
                   <div className="flex flex-wrap items-end justify-between gap-4">
-                    <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
+                    <h2 className="text-2xl sm:text-3xl font-heading font-extrabold text-[#0F1D27] tracking-tight">
                       {title}
                     </h2>
-                    <Link href={link} className="text-sm font-bold text-gray-500 hover:text-gray-900 flex items-center gap-1 transition-colors">
+                    <Link href={link} className="text-sm font-bold text-gray-500 hover:text-[#0F1D27] flex items-center gap-1 transition-colors">
                       Voir le rayon <ChevronRight size={16} />
                     </Link>
                   </div>

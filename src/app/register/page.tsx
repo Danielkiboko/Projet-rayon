@@ -10,6 +10,7 @@ import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { ArrowLeft } from "lucide-react";
 
 import { Suspense } from "react";
+import { RayonsLogo } from "@/components/brand/RayonsLogo";
 
 function RegisterContent() {
   const [email, setEmail] = useState("");
@@ -19,7 +20,7 @@ function RegisterContent() {
   const [error, setError] = useState("");
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectUrl = searchParams.get("redirect") || "/";
+  const redirectUrl = searchParams.get("redirect") || "/dashboard";
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,21 +33,23 @@ function RegisterContent() {
       const user = userCredential.user;
 
       // 2. Update display name
-      await updateProfile(user, { displayName: name });
+      await updateProfile(user, {
+        displayName: name
+      });
 
       // 3. Create user profile in Firestore
       await setDoc(doc(db, "users", user.uid), {
-        uid: user.uid,
-        name: name,
-        email: email,
-        role: "CLIENT", // Default role
-        createdAt: serverTimestamp(),
+        id: user.uid,
+        email: user.email,
+        displayName: name,
+        role: "client",
+        createdAt: serverTimestamp()
       });
 
       // 4. Redirect
-      router.push(redirectUrl);
+      router.replace(redirectUrl);
     } catch (err: any) {
-      console.error(err);
+      console.log("Erreur d'inscription :", err.code, err.message);
       if (err.code === "auth/email-already-in-use") {
         setError("Cette adresse email est déjà utilisée.");
       } else if (err.code === "auth/weak-password") {
@@ -60,11 +63,11 @@ function RegisterContent() {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50 text-gray-900">
+    <div className="flex min-h-screen bg-[#F8FAFC] text-[#0F1D27]">
       
       {/* Left Column: Form */}
-      <div className="w-full lg:w-1/2 flex flex-col justify-center px-8 sm:px-16 lg:px-24">
-        <Link href="/" className="inline-flex items-center text-sm font-medium text-gray-500 hover:text-gray-900 mb-12 transition-colors">
+      <div className="w-full lg:w-1/2 flex flex-col justify-center px-8 sm:px-16 lg:px-24 py-12">
+        <Link href="/" className="inline-flex items-center text-sm font-medium text-gray-500 hover:text-[#0F1D27] mb-8 transition-colors">
           <ArrowLeft size={16} className="mr-2" /> Retour à l'accueil
         </Link>
         
@@ -74,52 +77,55 @@ function RegisterContent() {
           transition={{ duration: 0.5 }}
           className="max-w-md w-full"
         >
+          <div className="mb-6">
+            <RayonsLogo size="lg" href="/" />
+          </div>
+
           <div className="space-y-2 mb-8">
-            <h1 className="text-3xl font-extrabold tracking-tight text-gray-900">Créer un compte</h1>
-            <p className="text-gray-500">Rejoignez la plateforme Rayon et profitez de nos offres.</p>
+            <h1 className="text-3xl font-heading font-extrabold tracking-tight text-[#0F1D27]">Créer un compte</h1>
+            <p className="text-gray-500 text-sm">Rejoignez la marketplace unifiée Rayons.net.</p>
           </div>
 
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-100 text-red-600 text-sm rounded-lg">
+            <div className="mb-6 p-4 bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl">
               {error}
             </div>
           )}
 
           <form onSubmit={handleRegister} className="space-y-5">
-            <div className="space-y-1">
-              <label className="text-sm font-bold text-gray-700">Nom complet</label>
+            <div className="space-y-1.5">
+              <label className="text-xs font-heading font-bold uppercase tracking-wider text-gray-700">Nom complet</label>
               <input
                 type="text"
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-gray-900 transition-all shadow-sm"
-                placeholder="Jean Dupont"
+                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C7D300] focus:border-transparent text-[#0F1D27] transition-all shadow-xs"
+                placeholder="Ex: Jean Dupont"
               />
             </div>
 
-            <div className="space-y-1">
-              <label className="text-sm font-bold text-gray-700">Adresse Email</label>
+            <div className="space-y-1.5">
+              <label className="text-xs font-heading font-bold uppercase tracking-wider text-gray-700">Adresse Email</label>
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-gray-900 transition-all shadow-sm"
+                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C7D300] focus:border-transparent text-[#0F1D27] transition-all shadow-xs"
                 placeholder="votre@email.com"
               />
             </div>
             
-            <div className="space-y-1">
-              <label className="text-sm font-bold text-gray-700">Mot de passe</label>
+            <div className="space-y-1.5">
+              <label className="text-xs font-heading font-bold uppercase tracking-wider text-gray-700">Mot de passe</label>
               <input
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-gray-900 transition-all shadow-sm"
+                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C7D300] focus:border-transparent text-[#0F1D27] transition-all shadow-xs"
                 placeholder="••••••••"
-                minLength={6}
               />
             </div>
 
@@ -128,10 +134,10 @@ function RegisterContent() {
               whileTap={{ scale: 0.99 }}
               type="submit"
               disabled={isLoading}
-              className="w-full py-3.5 bg-gray-900 hover:bg-gray-800 text-white font-bold rounded-xl transition-colors shadow-sm flex justify-center items-center mt-4"
+              className="w-full py-3.5 bg-[#C7D300] hover:bg-[#b5c000] text-[#0F1D27] font-heading font-bold rounded-xl transition-all shadow-md shadow-[#C7D300]/20 flex justify-center items-center mt-4 cursor-pointer"
             >
               {isLoading ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <div className="w-5 h-5 border-2 border-[#0F1D27]/30 border-t-[#0F1D27] rounded-full animate-spin" />
               ) : (
                 "S'inscrire"
               )}
@@ -140,24 +146,31 @@ function RegisterContent() {
 
           <div className="text-center text-sm text-gray-500 mt-8">
             Vous avez déjà un compte ?{" "}
-            <Link href={redirectUrl !== "/" ? `/login?redirect=${redirectUrl}` : "/login"} className="font-bold text-primary hover:text-primary-dark transition-colors">
+            <Link href={redirectUrl !== "/" ? `/login?redirect=${redirectUrl}` : "/login"} className="font-heading font-bold text-[#0F1D27] hover:underline transition-colors">
               Se connecter
             </Link>
           </div>
         </motion.div>
       </div>
 
-      {/* Right Column: Hero Image */}
-      <div className="hidden lg:block lg:w-1/2 relative bg-gray-100 overflow-hidden">
+      {/* Right Column: Hero Image with Brand Colors */}
+      <div className="hidden lg:block lg:w-1/2 relative bg-[#0F1D27] overflow-hidden">
         <img 
           src="https://images.unsplash.com/photo-1573164713988-8665fc963095?auto=format&fit=crop&q=80&w=2000" 
-          alt="Register Hero" 
-          className="absolute inset-0 w-full h-full object-cover"
+          alt="Rayons Register Hero" 
+          className="absolute inset-0 w-full h-full object-cover opacity-40 mix-blend-luminosity"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-gray-900/80 via-transparent to-transparent pointer-events-none" />
-        <div className="absolute bottom-12 left-12 right-12 text-white">
-          <h2 className="text-3xl font-bold mb-2">Rejoignez la communauté.</h2>
-          <p className="text-gray-200 text-lg">Créez votre compte gratuitement et découvrez notre catalogue d'équipements technologiques et immobiliers.</p>
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0F1D27] via-[#0F1D27]/60 to-transparent pointer-events-none" />
+        <div className="absolute bottom-16 left-12 right-12 text-white">
+          <div className="inline-block text-xs font-heading font-bold text-[#C7D300] bg-[#C7D300]/15 border border-[#C7D300]/30 px-3 py-1 rounded-full uppercase tracking-wider mb-4">
+            Rayons.net
+          </div>
+          <h2 className="text-3xl font-heading font-extrabold mb-3 leading-tight">
+            Une identité unifiée, <span className="text-[#C7D300]">trois expertises.</span>
+          </h2>
+          <p className="text-gray-300 text-base leading-relaxed max-w-lg">
+            Connectez vos activités au réseau national et profitez d'outils professionnels pour votre commerce ou gestion immobilière.
+          </p>
         </div>
       </div>
     </div>

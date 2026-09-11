@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Wallet, ArrowDownRight, ArrowUpRight, Plus, Download, X, Search } from "lucide-react";
+import { Wallet, ArrowDownRight, ArrowUpRight, Plus, Download, X, Search, Home, Hotel, Sparkles } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, where, doc, updateDoc } from "firebase/firestore";
 import { useAuth } from "@/context/AuthContext";
@@ -12,6 +12,7 @@ interface Transaction {
   id: string;
   type: "INCOME" | "EXPENSE" | "PAYOUT";
   category?: string;
+  branch?: "habitation" | "hotel" | "generic";
   amount: number;
   currency: string;
   description: string;
@@ -33,7 +34,7 @@ export default function SupplierFinancePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Form states
-  const [txType, setTxType] = useState<"INCOME" | "EXPENSE" | "PAYOUT" | "RENT_INCOME">("INCOME");
+  const [txType, setTxType] = useState<"INCOME" | "EXPENSE" | "PAYOUT" | "RENT_INCOME" | "HOTEL_INCOME">("INCOME");
   const [expenseCategory, setExpenseCategory] = useState("Autre");
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
@@ -41,6 +42,12 @@ export default function SupplierFinancePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [tenants, setTenants] = useState<any[]>([]);
   const [selectedTenantId, setSelectedTenantId] = useState("");
+
+  // Hotel Helper State in Finance
+  const [hotelGuestName, setHotelGuestName] = useState("");
+  const [hotelRoom, setHotelRoom] = useState("");
+  const [hotelNights, setHotelNights] = useState(1);
+  const [hotelNightlyRate, setHotelNightlyRate] = useState("");
   
   const role = (userData?.role || "").toUpperCase();
   const isImmo = role === "SUPPLIER_IMMO" || role === "SUB_SUPPLIER"; // Basic check
@@ -83,7 +90,6 @@ export default function SupplierFinancePage() {
       }, (error) => {
         console.error("Error fetching transactions:", error);
         setIsLoading(false);
-        setIsLoading(false);
       });
 
       let unsubAutomatic: any = () => {};
@@ -115,6 +121,8 @@ export default function SupplierFinancePage() {
               data.push({
                 id: `payment_${doc.id}`,
                 type: "INCOME",
+                category: "Loyer Habitation",
+                branch: "habitation",
                 amount: payment.amount || 0,
                 currency: "USD",
                 description: `Paiement Loyer - ${payment.clientName}`,
@@ -180,7 +188,27 @@ export default function SupplierFinancePage() {
     
     setIsSubmitting(true);
     try {
-      if (txType === "RENT_INCOME") {
+      if (txType === "HOTEL_INCOME") {
+        const nights = hotelNights > 0 ? hotelNights : 1;
+        const totalAmt = Number(amount) || (nights * (parseFloat(hotelNightlyRate) || 0));
+
+        await addDoc(collection(db, "supplier_transactions"), {
+          supplierId: activeSupplierId,
+          type: "INCOME",
+          category: "Hôtellerie",
+          branch: "hotel",
+          amount: totalAmt,
+          currency: "USD",
+          description: description || `Séjour Hôtel - ${hotelGuestName || 'Client'} (${hotelRoom || 'Chambre'}, ${nights} nuit(s))`,
+          referenceId: referenceId || `Séjour ${hotelRoom || ''}`,
+          guestName: hotelGuestName || null,
+          room: hotelRoom || null,
+          nights: nights,
+          status: "COMPLETED",
+          createdAt: serverTimestamp(),
+          createdBy: activeSupplierId
+        });
+      } else if (txType === "RENT_INCOME") {
         if (!selectedTenantId) {
           alert("Veuillez sélectionner un locataire");
           setIsSubmitting(false);
@@ -223,6 +251,7 @@ export default function SupplierFinancePage() {
           supplierId: activeSupplierId,
           type: txType,
           category: txType === "EXPENSE" ? expenseCategory : null,
+          branch: isImmo ? "habitation" : "generic",
           amount: Number(amount),
           currency: "USD",
           description,
@@ -238,6 +267,10 @@ export default function SupplierFinancePage() {
       setDescription("");
       setReferenceId("");
       setSelectedTenantId("");
+      setHotelGuestName("");
+      setHotelRoom("");
+      setHotelNights(1);
+      setHotelNightlyRate("");
       setTxType("INCOME");
       setExpenseCategory("Autre");
     } catch (error) {
@@ -273,12 +306,26 @@ export default function SupplierFinancePage() {
   };
 
   const filteredTransactions = transactions.filter(t => {
-    if (filter !== "ALL" && t.type !== filter) return false;
+    if (filter === "RENT_INCOME") {
+      const isRent = t.branch === "habitation" || (t.category || "").toLowerCase().includes("loyer") || t.id.startsWith("payment_");
+      if (!isRent) return false;
+    } else if (filter === "HOTEL_INCOME") {
+      const isHotel = t.branch === "hotel" || (t.category || "").toLowerCase().includes("hôtellerie") || (t.category || "").toLowerCase().includes("hotel");
+      if (!isHotel) return false;
+    } else if (filter !== "ALL" && t.type !== filter) {
+      return false;
+    }
     if (search && !t.description.toLowerCase().includes(search.toLowerCase()) && !(t.referenceId || "").toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
 
   const totalIncome = transactions.filter(t => t.type === "INCOME").reduce((acc, t) => acc + t.amount, 0);
+  const totalHabitationIncome = transactions
+    .filter(t => t.type === "INCOME" && (t.branch === "habitation" || (t.category || "").toLowerCase().includes("loyer") || t.id.startsWith("payment_")))
+    .reduce((acc, t) => acc + t.amount, 0);
+  const totalHotelIncome = transactions
+    .filter(t => t.type === "INCOME" && (t.branch === "hotel" || (t.category || "").toLowerCase().includes("hôtellerie") || (t.category || "").toLowerCase().includes("hotel")))
+    .reduce((acc, t) => acc + t.amount, 0);
   const totalPayout = transactions.filter(t => t.type === "PAYOUT" || t.type === "EXPENSE").reduce((acc, t) => acc + t.amount, 0);
   const balance = totalIncome - totalPayout;
 
@@ -286,8 +333,10 @@ export default function SupplierFinancePage() {
     <div className="space-y-6 pb-20">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Mon Livre de Caisse</h1>
-          <p className="text-sm text-gray-400">Gérez vos revenus de ventes et vos paiements.</p>
+          <h1 className="text-2xl font-bold text-white">Mon Livre de Caisse & Comptabilité</h1>
+          <p className="text-sm text-gray-400">
+            {isImmo ? "Comptabilité connectée : séparez les loyers d'habitation et les recettes d'hôtels." : "Gérez vos revenus de ventes et vos paiements."}
+          </p>
         </div>
         <div className="flex space-x-3">
           <button 
@@ -307,66 +356,134 @@ export default function SupplierFinancePage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-          <div className="flex items-center justify-between">
-            <h3 className="text-gray-400 text-sm font-medium">Solde Actuel</h3>
-            <div className="p-2 bg-blue-500/20 rounded-lg">
-              <Wallet className="text-blue-400" size={20} />
+      {/* KPI Cards */}
+      {isImmo ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
+            <div className="flex items-center justify-between">
+              <h3 className="text-gray-400 text-xs font-semibold uppercase">Solde Trésorerie</h3>
+              <div className="p-2 bg-blue-500/20 rounded-lg">
+                <Wallet className="text-blue-400" size={18} />
+              </div>
             </div>
+            <p className="text-2xl font-bold text-white mt-3">${balance.toFixed(2)}</p>
+            <p className="text-xs text-gray-400 mt-1">Revenus nets cumulés</p>
           </div>
-          <p className="text-3xl font-bold text-white mt-4">${balance.toFixed(2)}</p>
-        </div>
-        
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-          <div className="flex items-center justify-between">
-            <h3 className="text-gray-400 text-sm font-medium">Revenus (Entrées)</h3>
-            <div className="p-2 bg-green-500/20 rounded-lg">
-              <ArrowDownRight className="text-green-400" size={20} />
-            </div>
-          </div>
-          <p className="text-3xl font-bold text-white mt-4">${totalIncome.toFixed(2)}</p>
-        </div>
 
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-          <div className="flex items-center justify-between">
-            <h3 className="text-gray-400 text-sm font-medium">Dépenses (Sorties)</h3>
-            <div className="p-2 bg-red-500/20 rounded-lg">
-              <ArrowUpRight className="text-red-400" size={20} />
+          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-5">
+            <div className="flex items-center justify-between">
+              <h3 className="text-emerald-300 text-xs font-semibold uppercase">🏠 Loyers Habitation</h3>
+              <div className="p-2 bg-emerald-500/20 rounded-lg">
+                <Home className="text-emerald-400" size={18} />
+              </div>
             </div>
+            <p className="text-2xl font-bold text-emerald-400 mt-3">${totalHabitationIncome.toFixed(2)}</p>
+            <p className="text-xs text-emerald-300/70 mt-1">Baux résidentiels & commerciaux</p>
           </div>
-          <p className="text-3xl font-bold text-white mt-4">${totalPayout.toFixed(2)}</p>
+
+          <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-5">
+            <div className="flex items-center justify-between">
+              <h3 className="text-amber-300 text-xs font-semibold uppercase">🏨 Recettes Hôtellerie</h3>
+              <div className="p-2 bg-amber-500/20 rounded-lg">
+                <Hotel className="text-amber-400" size={18} />
+              </div>
+            </div>
+            <p className="text-2xl font-bold text-amber-400 mt-3">${totalHotelIncome.toFixed(2)}</p>
+            <p className="text-xs text-amber-300/70 mt-1">Nuitées & séjours réservés</p>
+          </div>
+
+          <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-5">
+            <div className="flex items-center justify-between">
+              <h3 className="text-red-300 text-xs font-semibold uppercase">Dépenses & Charges</h3>
+              <div className="p-2 bg-red-500/20 rounded-lg">
+                <ArrowUpRight className="text-red-400" size={18} />
+              </div>
+            </div>
+            <p className="text-2xl font-bold text-red-400 mt-3">${totalPayout.toFixed(2)}</p>
+            <p className="text-xs text-red-300/70 mt-1">Entretien, carburant, salaires</p>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-gray-400 text-sm font-medium">Solde Actuel</h3>
+              <div className="p-2 bg-blue-500/20 rounded-lg">
+                <Wallet className="text-blue-400" size={20} />
+              </div>
+            </div>
+            <p className="text-3xl font-bold text-white mt-4">${balance.toFixed(2)}</p>
+          </div>
+          
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-gray-400 text-sm font-medium">Revenus (Entrées)</h3>
+              <div className="p-2 bg-green-500/20 rounded-lg">
+                <ArrowDownRight className="text-green-400" size={20} />
+              </div>
+            </div>
+            <p className="text-3xl font-bold text-white mt-4">${totalIncome.toFixed(2)}</p>
+          </div>
+
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-gray-400 text-sm font-medium">Dépenses (Sorties)</h3>
+              <div className="p-2 bg-red-500/20 rounded-lg">
+                <ArrowUpRight className="text-red-400" size={20} />
+              </div>
+            </div>
+            <p className="text-3xl font-bold text-white mt-4">${totalPayout.toFixed(2)}</p>
+          </div>
+        </div>
+      )}
 
       <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
         <div className="p-4 border-b border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex space-x-2">
+          <div className="flex space-x-2 overflow-x-auto pb-1 sm:pb-0">
             <button
               onClick={() => setFilter("ALL")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === "ALL" ? "bg-white/10 text-white" : "text-gray-400 hover:text-white"}`}
+              className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors shrink-0 ${filter === "ALL" ? "bg-white/10 text-white" : "text-gray-400 hover:text-white"}`}
             >
               Tous
             </button>
-            <button
-              onClick={() => setFilter("INCOME")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === "INCOME" ? "bg-green-500/20 text-green-400" : "text-gray-400 hover:text-white"}`}
-            >
-              {isImmo ? "Loyers Perçus" : "Entrées (Ventes)"}
-            </button>
+            {isImmo ? (
+              <>
+                <button
+                  onClick={() => setFilter("RENT_INCOME")}
+                  className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors shrink-0 flex items-center gap-1.5 ${filter === "RENT_INCOME" ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" : "text-gray-400 hover:text-white"}`}
+                >
+                  <Home size={14} />
+                  <span>Loyers Habitation</span>
+                </button>
+                <button
+                  onClick={() => setFilter("HOTEL_INCOME")}
+                  className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors shrink-0 flex items-center gap-1.5 ${filter === "HOTEL_INCOME" ? "bg-amber-500/20 text-amber-400 border border-amber-500/30" : "text-gray-400 hover:text-white"}`}
+                >
+                  <Hotel size={14} />
+                  <span>Recettes Hôtellerie</span>
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => setFilter("INCOME")}
+                className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors shrink-0 ${filter === "INCOME" ? "bg-green-500/20 text-green-400" : "text-gray-400 hover:text-white"}`}
+              >
+                Entrées (Ventes)
+              </button>
+            )}
             {!isImmo && (
               <button
                 onClick={() => setFilter("PAYOUT")}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === "PAYOUT" ? "bg-blue-500/20 text-blue-400" : "text-gray-400 hover:text-white"}`}
+                className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors shrink-0 ${filter === "PAYOUT" ? "bg-blue-500/20 text-blue-400" : "text-gray-400 hover:text-white"}`}
               >
                 Paiements Livreurs
               </button>
             )}
             <button
               onClick={() => setFilter("EXPENSE")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === "EXPENSE" ? "bg-red-500/20 text-red-400" : "text-gray-400 hover:text-white"}`}
+              className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors shrink-0 ${filter === "EXPENSE" ? "bg-red-500/20 text-red-400" : "text-gray-400 hover:text-white"}`}
             >
-              Autres Dépenses
+              Dépenses
             </button>
           </div>
           <div className="relative">
@@ -386,7 +503,7 @@ export default function SupplierFinancePage() {
             <thead className="text-xs uppercase bg-black/20 text-gray-400">
               <tr>
                 <th className="px-6 py-4">Date</th>
-                <th className="px-6 py-4">Type</th>
+                <th className="px-6 py-4">Branche / Type</th>
                 <th className="px-6 py-4">Description</th>
                 <th className="px-6 py-4">Référence</th>
                 <th className="px-6 py-4 text-right">Montant (USD)</th>
@@ -402,23 +519,42 @@ export default function SupplierFinancePage() {
                   <td colSpan={5} className="px-6 py-8 text-center text-gray-400">Aucune transaction trouvée.</td>
                 </tr>
               ) : (
-                filteredTransactions.map((t) => (
-                  <tr key={t.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                    <td className="px-6 py-4">
-                      {t.createdAt?.toDate ? t.createdAt.toDate().toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
-                    </td>
-                    <td className="px-6 py-4">
-                      {t.type === "INCOME" && <span className="inline-flex items-center text-green-400 bg-green-400/10 px-2 py-1 rounded text-xs"><ArrowDownRight size={12} className="mr-1"/> Entrée</span>}
-                      {t.type === "PAYOUT" && <span className="inline-flex items-center text-blue-400 bg-blue-400/10 px-2 py-1 rounded text-xs"><ArrowUpRight size={12} className="mr-1"/> Retrait</span>}
-                      {t.type === "EXPENSE" && <span className="inline-flex items-center text-red-400 bg-red-400/10 px-2 py-1 rounded text-xs"><ArrowUpRight size={12} className="mr-1"/> Sortie {t.category ? `(${t.category})` : ''}</span>}
-                    </td>
-                    <td className="px-6 py-4 text-white font-medium">{t.description}</td>
-                    <td className="px-6 py-4 text-gray-400">{t.referenceId || "-"}</td>
-                    <td className={`px-6 py-4 text-right font-bold ${t.type === 'INCOME' ? 'text-green-400' : 'text-white'}`}>
-                      {t.type === 'INCOME' ? '+' : '-'}${t.amount.toFixed(2)}
-                    </td>
-                  </tr>
-                ))
+                filteredTransactions.map((t) => {
+                  const isHotel = t.branch === "hotel" || (t.category || "").toLowerCase().includes("hôtellerie") || (t.category || "").toLowerCase().includes("hotel");
+                  const isRent = t.branch === "habitation" || (t.category || "").toLowerCase().includes("loyer") || t.id.startsWith("payment_");
+
+                  return (
+                    <tr key={t.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                      <td className="px-6 py-4">
+                        {t.createdAt?.toDate ? t.createdAt.toDate().toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
+                      </td>
+                      <td className="px-6 py-4">
+                        {t.type === "INCOME" && (
+                          isHotel ? (
+                            <span className="inline-flex items-center text-amber-300 bg-amber-500/15 border border-amber-500/30 px-2.5 py-1 rounded text-xs font-semibold">
+                              <Hotel size={12} className="mr-1"/> Hôtellerie
+                            </span>
+                          ) : isRent ? (
+                            <span className="inline-flex items-center text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-1 rounded text-xs font-semibold">
+                              <Home size={12} className="mr-1"/> Habitation
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center text-green-400 bg-green-400/10 px-2.5 py-1 rounded text-xs">
+                              <ArrowDownRight size={12} className="mr-1"/> Entrée
+                            </span>
+                          )
+                        )}
+                        {t.type === "PAYOUT" && <span className="inline-flex items-center text-blue-400 bg-blue-400/10 px-2 py-1 rounded text-xs"><ArrowUpRight size={12} className="mr-1"/> Retrait</span>}
+                        {t.type === "EXPENSE" && <span className="inline-flex items-center text-red-400 bg-red-400/10 px-2 py-1 rounded text-xs"><ArrowUpRight size={12} className="mr-1"/> Sortie {t.category ? `(${t.category})` : ''}</span>}
+                      </td>
+                      <td className="px-6 py-4 text-white font-medium">{t.description}</td>
+                      <td className="px-6 py-4 text-gray-400">{t.referenceId || "-"}</td>
+                      <td className={`px-6 py-4 text-right font-bold ${t.type === 'INCOME' ? 'text-green-400' : 'text-white'}`}>
+                        {t.type === 'INCOME' ? '+' : '-'}${t.amount.toFixed(2)}
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -451,10 +587,11 @@ export default function SupplierFinancePage() {
                     className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
                   >
                     {!isImmo && <option value="INCOME">Entrée (Vente produit/service)</option>}
-                    {isImmo && <option value="INCOME">Entrée (Gains génériques)</option>}
-                    {isImmo && <option value="RENT_INCOME">Paiement Loyer</option>}
+                    {isImmo && <option value="RENT_INCOME">🏠 Paiement Loyer (Habitation)</option>}
+                    {isImmo && <option value="HOTEL_INCOME">🏨 Recette Hôtelière (Séjour / Nuitée)</option>}
+                    {isImmo && <option value="INCOME">Entrée Générique</option>}
                     {!isImmo && <option value="PAYOUT">Paiement d'un Livreur</option>}
-                    <option value="EXPENSE">Autre Dépense (Abonnement, Stock, Entretien...)</option>
+                    <option value="EXPENSE">Dépense (Entretien, Stock, Factures...)</option>
                   </select>
                 </div>
 
@@ -479,6 +616,68 @@ export default function SupplierFinancePage() {
                   </div>
                 )}
 
+                {txType === "HOTEL_INCOME" && (
+                  <div className="space-y-3 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+                    <div className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1">
+                      <Hotel size={13} /> Détails de la réservation hôtelière
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-300 block mb-1">Nom du client / Voyageur</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Ex: Jean Marc"
+                        value={hotelGuestName}
+                        onChange={(e) => setHotelGuestName(e.target.value)}
+                        className="w-full px-3 py-1.5 bg-black/30 border border-white/10 rounded-lg text-white text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-300 block mb-1">Chambre ou Suite</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Ex: Suite Exécutive #102"
+                        value={hotelRoom}
+                        onChange={(e) => setHotelRoom(e.target.value)}
+                        className="w-full px-3 py-1.5 bg-black/30 border border-white/10 rounded-lg text-white text-sm"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-xs text-gray-300 block mb-1">Nuitées</label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={hotelNights}
+                          onChange={(e) => {
+                            const n = parseInt(e.target.value) || 1;
+                            setHotelNights(n);
+                            if (hotelNightlyRate) {
+                              setAmount((n * parseFloat(hotelNightlyRate)).toFixed(2));
+                            }
+                          }}
+                          className="w-full px-3 py-1.5 bg-black/30 border border-white/10 rounded-lg text-white text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-300 block mb-1">Tarif / nuit ($)</label>
+                        <input
+                          type="number"
+                          placeholder="Ex: 100"
+                          value={hotelNightlyRate}
+                          onChange={(e) => {
+                            setHotelNightlyRate(e.target.value);
+                            const r = parseFloat(e.target.value) || 0;
+                            setAmount((hotelNights * r).toFixed(2));
+                          }}
+                          className="w-full px-3 py-1.5 bg-black/30 border border-white/10 rounded-lg text-white text-sm"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {txType === "EXPENSE" && (
                   <div className="space-y-1">
                     <label className="text-sm font-medium text-gray-300">Catégorie de la dépense</label>
@@ -489,11 +688,14 @@ export default function SupplierFinancePage() {
                     >
                       {isImmo ? (
                         <>
-                          <option value="Réparation">Réparation</option>
-                          <option value="Entretien">Entretien</option>
-                          <option value="Taxes">Taxes / Impôts</option>
-                          <option value="Commissions">Commissions Agence</option>
-                          <option value="Autre (Immo)">Autre (Immo)</option>
+                          <option value="Entretien">Entretien & Nettoyage</option>
+                          <option value="Maintenance">Maintenance & Réparations</option>
+                          <option value="Groupe Electrogene">Groupe Électrogène & Carburant</option>
+                          <option value="Blanchisserie">Blanchisserie & Lingerie</option>
+                          <option value="Eau & Electricite">Eau & Électricité</option>
+                          <option value="Taxes">Taxes / Tourisme / Impôts</option>
+                          <option value="Commissions">Commissions / Salaires</option>
+                          <option value="Autre (Immo/Hotel)">Autre</option>
                         </>
                       ) : (
                         <>
@@ -522,7 +724,7 @@ export default function SupplierFinancePage() {
                   />
                 </div>
 
-                {txType !== "RENT_INCOME" && (
+                {txType !== "RENT_INCOME" && txType !== "HOTEL_INCOME" && (
                   <div className="space-y-1">
                     <label className="text-sm font-medium text-gray-300">Description</label>
                     <input
@@ -531,7 +733,7 @@ export default function SupplierFinancePage() {
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                       className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
-                      placeholder="ex: Vente de 3 robes"
+                      placeholder={isImmo ? "ex: Réparation climatisation" : "ex: Vente de 3 articles"}
                     />
                   </div>
                 )}
@@ -543,7 +745,7 @@ export default function SupplierFinancePage() {
                     value={referenceId}
                     onChange={(e) => setReferenceId(e.target.value)}
                     className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
-                    placeholder={txType === "RENT_INCOME" ? "Mois payé (ex: Loyer Mars 2024)" : "N° Commande"}
+                    placeholder={txType === "RENT_INCOME" ? "Mois payé (ex: Loyer Mars 2026)" : (txType === "HOTEL_INCOME" ? "Dates séjour (ex: 12-15 Sept)" : "N° Facture / Reçu")}
                   />
                 </div>
 

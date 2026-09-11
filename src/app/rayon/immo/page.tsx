@@ -9,7 +9,7 @@ import {
   Hotel, Star, Sparkles, Zap, Waves, CalendarCheck
 } from "lucide-react";
 import { RayonNavbar } from "@/components/rayon/RayonNavbar";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { ProductSkeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/context/AuthContext";
@@ -23,11 +23,11 @@ const DICT = {
     immo: "Rayons Immo",
     login: "Se connecter",
     title: "Trouvez le bien de vos rêves",
-    subtitle: "Découvrez notre sélection exclusive : villas de standing, appartements d'architecte et hôtels de prestige.",
+    subtitle: "Découvrez notre sélection exclusive : habitations de standing (villas, appartements) et établissements hôteliers de prestige.",
     tag: "Immobilier & Hôtellerie Premium",
     all: "Tous les biens",
-    sale: "À Vendre",
-    rent: "À Louer",
+    sale: "🏠 Habitation : À Vendre",
+    rent: "🏠 Habitation : À Louer",
     hotels: "🏨 Hôtels & Nuitées",
     appointment: "Prendre RDV",
   },
@@ -37,11 +37,11 @@ const DICT = {
     immo: "Immo Store",
     login: "Login",
     title: "Find your dream home",
-    subtitle: "Discover our exclusive selection: luxury villas, designer apartments and prestigious hotels.",
+    subtitle: "Discover our exclusive selection: residential homes (villas, apartments) and prestigious hotels.",
     tag: "Premium Real Estate & Hospitality",
     all: "All properties",
-    sale: "For Sale",
-    rent: "For Rent",
+    sale: "🏠 Homes: For Sale",
+    rent: "🏠 Homes: For Rent",
     hotels: "🏨 Hotels & Stays",
     appointment: "Book Appointment",
   }
@@ -59,41 +59,37 @@ export default function ImmoPage() {
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
 
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const q = query(
-          collection(db, "properties"), 
-          where("status", "==", "Disponible")
-        );
-        const querySnapshot = await getDocs(q);
-        const productsList = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        
-        setProducts(productsList);
-      } catch (error) {
-        console.error("Error fetching properties:", error);
-        setProducts([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchProducts();
+    const q = query(
+      collection(db, "properties"), 
+      where("status", "==", "Disponible")
+    );
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const productsList = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setProducts(productsList);
+      setIsLoading(false);
+    }, (error) => {
+      console.error("Error subscribing to properties:", error);
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const filteredProducts = products.filter(property => {
-    const t = (property.typeTransaction || "").toLowerCase().trim();
+    const trans = (property.typeTransaction || "").toLowerCase().trim();
     const type = (property.type || "").toLowerCase().trim();
-    const isHotel = type === "hotel" || t.includes("hotel") || t.includes("nuit") || t.includes("réservation") || t.includes("reservation") || t.includes("journali") || !!property.hotelDetails;
+    const isHotel = property.immoBranch === "hotel" || type === "hotel" || trans.includes("hotel") || trans.includes("nuit") || trans.includes("réservation") || trans.includes("reservation") || trans.includes("journali") || !!property.hotelDetails;
 
     if (selectedCategory === "all") return true;
     if (selectedCategory === "hotel") return isHotel;
     if (selectedCategory === "sale") {
-      return !isHotel && (t.includes("vent") || t.includes("vendre") || t === "sale");
+      return !isHotel && (trans.includes("vent") || trans.includes("vendre") || trans === "sale");
     }
     if (selectedCategory === "rent") {
-      return !isHotel && (t.includes("locat") || t.includes("lou") || t.includes("coloc") || t === "rent");
+      return !isHotel && (trans.includes("locat") || trans.includes("lou") || trans.includes("coloc") || trans === "rent" || (!trans && property.immoBranch === "habitation"));
     }
     return true;
   });
@@ -198,9 +194,9 @@ export default function ImmoPage() {
             </div>
           ) : (
             filteredProducts.map((property, idx) => {
-              const t = (property.typeTransaction || "").toLowerCase().trim();
-              const isHotel = property.type === "hotel" || t.includes("hotel") || t.includes("nuit") || t.includes("réservation") || t.includes("reservation") || t.includes("journali") || !!property.hotelDetails;
-              const isSale = !isHotel && (t.includes("vent") || t.includes("vendre") || t === "sale");
+              const trans = (property.typeTransaction || "").toLowerCase().trim();
+              const isHotel = property.immoBranch === "hotel" || property.type === "hotel" || trans.includes("hotel") || trans.includes("nuit") || trans.includes("réservation") || trans.includes("reservation") || trans.includes("journali") || !!property.hotelDetails;
+              const isSale = !isHotel && (trans.includes("vent") || trans.includes("vendre") || trans === "sale");
 
               return (
                 <motion.div
@@ -238,14 +234,18 @@ export default function ImmoPage() {
                             ? "bg-white/95 text-emerald-800 border-emerald-200/80" 
                             : "bg-white/95 text-blue-800 border-blue-200/80"
                         }`}>
-                          {isSale ? "À Vendre" : "À Louer"}
+                          {isSale ? "🏠 À Vendre" : "🏠 À Louer"}
                         </span>
                       )}
                     </div>
                     <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
                       <div className="text-2xl font-bold text-white drop-shadow-md flex items-baseline gap-1">
                         $ {property.price?.toLocaleString()}
-                        {isHotel && <span className="text-sm font-normal text-gray-300">/ nuitée</span>}
+                        {isHotel ? (
+                          <span className="text-sm font-normal text-gray-300">/ nuitée</span>
+                        ) : !isSale ? (
+                          <span className="text-sm font-normal text-gray-300">/ mois</span>
+                        ) : null}
                       </div>
                     </div>
                   </div>

@@ -4,8 +4,8 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Plus, X, Search, Home, Image as ImageIcon, AlertCircle, 
-  MapPin, CheckCircle, XCircle, Trash2, Building, Eye,
-  Star, Coffee, Car, Plane, Zap, Wifi, Waves, Shield, Clock, Sparkles, Bed
+  MapPin, CheckCircle, XCircle, Trash2, Building, Eye, Edit,
+  Star, Coffee, Car, Plane, Zap, Wifi, Waves, Shield, Clock, Sparkles, Bed, Hotel
 } from "lucide-react";
 import { useProductAiAssistant, handleImageUploadShared } from "@/hooks/useProductAiAssistant";
 import AiAssistantChat from "@/components/shared/AiAssistantChat";
@@ -33,14 +33,19 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [previewProperty, setPreviewProperty] = useState<any | null>(null);
 
+  // Separation: Habitation vs Hotel
+  const [immoBranch, setImmoBranch] = useState<"habitation" | "hotel">("habitation");
+  const [hotelSubtype, setHotelSubtype] = useState<string>("chambre_standard");
+  const [selectedBranchFilter, setSelectedBranchFilter] = useState<string>("all");
+
   // Form State
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [propertyTitle, setPropertyTitle] = useState("");
-  const [propertyType, setPropertyType] = useState("");
-  const [typeTransaction, setTypeTransaction] = useState("");
+  const [propertyType, setPropertyType] = useState("appartement");
+  const [typeTransaction, setTypeTransaction] = useState("À Louer");
   const [propertyPrice, setPropertyPrice] = useState("");
   const [propertyLocation, setPropertyLocation] = useState("");
   const [propertyCoords, setPropertyCoords] = useState<{lat: number, lng: number} | null>(null);
@@ -127,9 +132,11 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
 
   const resetForm = () => {
     setEditingId(null);
+    setImmoBranch("habitation");
     setPropertyTitle("");
-    setPropertyType("");
-    setTypeTransaction("À Vendre");
+    setPropertyType("appartement");
+    setHotelSubtype("chambre_standard");
+    setTypeTransaction("À Louer");
     setPropertyPrice("");
     setPropertyLocation("");
     setPropertyCoords(null);
@@ -146,6 +153,30 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
 
   const openAddModal = () => {
     resetForm();
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (property: any) => {
+    setEditingId(property.id);
+    const isHotel = property.immoBranch === "hotel" || property.type === "hotel" || !!property.hotelDetails;
+    setImmoBranch(isHotel ? "hotel" : "habitation");
+    setPropertyTitle(getTitle(property.title));
+    setPropertyType(property.type || (isHotel ? "hotel" : "appartement"));
+    setHotelSubtype(property.hotelDetails?.subtype || "chambre_standard");
+    setTypeTransaction(property.typeTransaction || (isHotel ? "Réservation / Nuitée" : "À Louer"));
+    setPropertyPrice(property.price?.toString() || "");
+    setPropertyLocation(property.location || "");
+    setPropertyCoords(property.propertyCoords || null);
+    setPropertyDesc(property.description || "");
+    setLevels(property.immoDetails?.levels || []);
+    setImagePreview(property.image || null);
+    setImageFile(null);
+    if (property.hotelDetails) {
+      setHotelStars(property.hotelDetails.stars?.toString() || "4");
+      setHotelAmenities(property.hotelDetails.amenities || ["generator", "wifi", "ac", "security", "parking"]);
+      setCheckInTime(property.hotelDetails.checkInTime || "14:00");
+      setCheckOutTime(property.hotelDetails.checkOutTime || "12:00");
+    }
     setIsModalOpen(true);
   };
 
@@ -226,25 +257,32 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
     if (!user) return;
     setIsProcessing(true);
 
+    const isHotel = immoBranch === "hotel";
+
     // Normalisation en amont du type de transaction
-    let normalizedTransaction = typeTransaction || "À Vendre";
-    const tLower = (typeTransaction || "").toLowerCase().trim();
-    if (propertyType === "hotel") {
+    let normalizedTransaction = typeTransaction || (isHotel ? "Réservation / Nuitée" : "À Louer");
+    if (isHotel) {
       normalizedTransaction = "Réservation / Nuitée";
-    } else if (tLower.includes("vent") || tLower.includes("vendre") || tLower === "sale") {
-      normalizedTransaction = "À Vendre";
-    } else if (tLower.includes("locat") || tLower.includes("lou") || tLower === "rent") {
-      normalizedTransaction = "À Louer";
+    } else {
+      const tLower = (typeTransaction || "").toLowerCase().trim();
+      if (tLower.includes("vent") || tLower.includes("vendre") || tLower === "sale") {
+        normalizedTransaction = "À Vendre";
+      } else {
+        normalizedTransaction = "À Louer";
+      }
     }
 
     const propertyData = {
       title: { fr: propertyTitle, en: propertyTitle }, // Simulating i18n
-      type: propertyType,
+      immoBranch: isHotel ? "hotel" : "habitation",
+      type: isHotel ? "hotel" : (propertyType || "appartement"),
+      category: "immo",
+      rayon: "immo",
       typeTransaction: normalizedTransaction,
       price: parseFloat(propertyPrice.toString().replace(/[^0-9.]/g, '') || "0"),
       location: propertyLocation,
       description: propertyDesc,
-      image: imagePreview || "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&q=80&w=800",
+      image: imagePreview || (isHotel ? "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&q=80&w=800" : "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&q=80&w=800"),
       propertyCoords: propertyCoords,
       supplierId: user.uid,
       immoDetails: {
@@ -253,8 +291,9 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
         baths: 0,
         levels: levels
       },
-      hotelDetails: propertyType === "hotel" ? {
+      hotelDetails: isHotel ? {
         stars: hotelStars,
+        subtype: hotelSubtype,
         amenities: hotelAmenities,
         checkInTime: checkInTime || "14:00",
         checkOutTime: checkOutTime || "12:00"
@@ -407,10 +446,39 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
     return titleObj || "Sans titre";
   };
 
+  const habitationCount = properties.filter(p => p.immoBranch === "habitation" || (p.immoBranch !== "hotel" && p.type !== "hotel")).length;
+  const hotelCount = properties.filter(p => p.immoBranch === "hotel" || p.type === "hotel" || !!p.hotelDetails).length;
+
   const filteredProperties = properties.filter(p => {
     const title = getTitle(p.title).toLowerCase();
-    return title.includes(search.toLowerCase());
+    const loc = (p.location || "").toLowerCase();
+    const matchesSearch = title.includes(search.toLowerCase()) || loc.includes(search.toLowerCase());
+    if (!matchesSearch) return false;
+
+    const isHotel = p.immoBranch === "hotel" || p.type === "hotel" || !!p.hotelDetails;
+    if (selectedBranchFilter === "habitation") return !isHotel;
+    if (selectedBranchFilter === "hotel") return isHotel;
+    return true;
   });
+
+  const getBranchBadge = (property: any) => {
+    const isHotel = property.immoBranch === "hotel" || property.type === "hotel" || !!property.hotelDetails;
+    if (isHotel) {
+      const stars = property.hotelDetails?.stars || "4";
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 uppercase tracking-wider">
+          <Hotel size={13} className="text-amber-400" />
+          <span>Hôtel {stars}★</span>
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 uppercase tracking-wider">
+        <Home size={13} className="text-emerald-400" />
+        <span>Habitation • {property.type || "Bien"}</span>
+      </span>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -418,12 +486,12 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
         <div>
           <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
             <Building className="text-blue-500" /> 
-            {isAdmin ? "Gestion de l'Immobilier" : "Mes Propriétés"}
+            {isAdmin ? "Gestion de l'Immobilier & Hôtellerie" : "Mes Propriétés & Hôtels"}
           </h1>
           <p className="text-sm text-gray-400 mt-1">
             {isAdmin 
-              ? "Validez et gérez toutes les annonces immobilières de la plateforme."
-              : "Gérez vos biens immobiliers et publiez-les dans le rayon Immo."
+              ? "Validez et séparez facilement les biens résidentiels et les établissements hôteliers."
+              : "Gérez vos biens résidentiels et hôteliers avec comptabilité connectée."
             }
           </p>
         </div>
@@ -432,46 +500,91 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
             onClick={openAddModal}
             className="bg-primary text-white px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center hover:bg-primary-light transition-colors shadow-sm"
           >
-            <Plus size={18} className="mr-2" /> Ajouter une propriété
+            <Plus size={18} className="mr-2" /> Ajouter un bien / hôtel
           </button>
         </div>
       </div>
 
-      {/* Quick Stats */}
+      {/* Quick Stats: 3 distinct cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center justify-between">
           <div>
-            <p className="text-sm text-gray-400">Total Propriétés</p>
+            <p className="text-sm text-gray-400">Total Biens Enregistrés</p>
             <p className="text-2xl font-bold text-white mt-1">{properties.length}</p>
           </div>
           <div className="p-3 bg-blue-400/10 text-blue-400 rounded-lg">
+            <Building size={20} />
+          </div>
+        </div>
+
+        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 flex items-center justify-between">
+          <div>
+            <p className="text-sm text-emerald-300">🏠 Habitations (Vente/Location)</p>
+            <p className="text-2xl font-bold text-emerald-400 mt-1">{habitationCount}</p>
+          </div>
+          <div className="p-3 bg-emerald-500/20 text-emerald-300 rounded-lg">
             <Home size={20} />
           </div>
         </div>
-        {!isAdmin && (
-          <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-400">Propriétés Vides / En attente</p>
-              <p className="text-2xl font-bold text-white mt-1">{properties.filter(p => p.status !== 'Disponible').length}</p>
-            </div>
-            <div className="p-3 bg-green-400/10 text-green-400 rounded-lg">
-              <AlertCircle size={20} />
-            </div>
+
+        <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 flex items-center justify-between">
+          <div>
+            <p className="text-sm text-amber-300">🏨 Hôtels & Séjours (Nuitées)</p>
+            <p className="text-2xl font-bold text-amber-400 mt-1">{hotelCount}</p>
           </div>
-        )}
+          <div className="p-3 bg-amber-500/20 text-amber-300 rounded-lg">
+            <Hotel size={20} />
+          </div>
+        </div>
       </div>
 
       <div className="bg-[#1a1a1a] rounded-2xl shadow-sm border border-white/5 overflow-hidden">
-        <div className="p-4 border-b border-white/10 flex flex-col sm:flex-row gap-4 justify-between">
+        <div className="p-4 border-b border-white/10 flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
           <div className="relative max-w-sm w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
             <input
               type="text"
-              placeholder="Rechercher une propriété..."
+              placeholder="Rechercher par titre ou ville..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-10 pr-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white text-sm transition-all"
             />
+          </div>
+
+          {/* Branch Filter Pills */}
+          <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto">
+            <button
+              onClick={() => setSelectedBranchFilter("all")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shrink-0 ${
+                selectedBranchFilter === "all"
+                  ? "bg-white text-gray-950 shadow-sm"
+                  : "bg-white/5 text-gray-400 hover:text-white hover:bg-white/10"
+              }`}
+            >
+              Tous ({properties.length})
+            </button>
+            <button
+              onClick={() => setSelectedBranchFilter("habitation")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shrink-0 flex items-center gap-1.5 ${
+                selectedBranchFilter === "habitation"
+                  ? "bg-emerald-600 text-white shadow-sm"
+                  : "bg-white/5 text-gray-400 hover:text-white hover:bg-white/10"
+              }`}
+            >
+              <Home size={13} />
+              <span>Habitation ({habitationCount})</span>
+            </button>
+            <button
+              onClick={() => setSelectedBranchFilter("hotel")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shrink-0 flex items-center gap-1.5 ${
+                selectedBranchFilter === "hotel"
+                  ? "bg-amber-600 text-white shadow-sm"
+                  : "bg-white/5 text-gray-400 hover:text-white hover:bg-white/10"
+              }`}
+            >
+              <Hotel size={13} />
+              <span>Hôtellerie ({hotelCount})</span>
+            </button>
           </div>
         </div>
 
@@ -481,9 +594,9 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
               <tr className="bg-white/5 text-xs uppercase tracking-wider text-gray-400 font-semibold">
                 <th className="p-4 w-16">Image</th>
                 <th className="p-4">Titre de l'annonce</th>
-                <th className="p-4">Type</th>
+                <th className="p-4">Branche & Type</th>
                 <th className="p-4">Localisation</th>
-                <th className="p-4">Prix/Loyer</th>
+                <th className="p-4">Tarification</th>
                 <th className="p-4">Statut</th>
                 <th className="p-4 text-right">Actions</th>
               </tr>
@@ -492,9 +605,11 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
               {isLoading ? (
                 <tr><td colSpan={7} className="p-12 text-center text-gray-500 font-medium">Chargement...</td></tr>
               ) : filteredProperties.length === 0 ? (
-                <tr><td colSpan={7} className="p-12 text-center text-gray-500 font-medium">Aucune propriété trouvée.</td></tr>
+                <tr><td colSpan={7} className="p-12 text-center text-gray-500 font-medium">Aucun bien trouvé.</td></tr>
               ) : (
-                filteredProperties.map((property) => (
+                filteredProperties.map((property) => {
+                  const isHotel = property.immoBranch === "hotel" || property.type === "hotel" || !!property.hotelDetails;
+                  return (
                   <tr key={property.id} className="border-b border-white/5 hover:bg-white/5 transition-colors group">
                     <td className="p-4">
                       <div className="w-12 h-12 bg-white/5 rounded-lg overflow-hidden border border-white/10 flex items-center justify-center">
@@ -510,16 +625,17 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
                       <span className="line-clamp-1">{getTitle(property.title)}</span>
                     </td>
                     <td className="p-4">
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-blue-500/10 text-blue-500 uppercase tracking-wider">
-                        {property.type || "Non défini"}
-                      </span>
+                      {getBranchBadge(property)}
                     </td>
-                    <td className="p-4 flex items-center gap-1">
+                    <td className="p-4 flex items-center gap-1 text-sm text-gray-300">
                       <MapPin size={14} className="text-gray-400" />
                       {property.location || "-"}
                     </td>
                     <td className="p-4 font-bold text-white">
                       {typeof property.price === "number" ? formatPrice(property.price) : property.price}
+                      <span className="text-xs font-normal text-gray-400 ml-1">
+                        {isHotel ? "/ nuit" : (property.typeTransaction === "À Louer" ? "/ mois" : "")}
+                      </span>
                     </td>
                     <td className="p-4">
                       {property.status === "PENDING_APPROVAL" ? (
@@ -572,6 +688,13 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
                         </button>
                       )}
                       <button 
+                        onClick={() => openEditModal(property)}
+                        title="Modifier la propriété"
+                        className="inline-flex p-2 bg-white/5 text-gray-400 hover:text-white rounded-lg hover:bg-purple-600 transition-colors border border-transparent hover:border-purple-600 mr-2"
+                      >
+                        <Edit size={18} />
+                      </button>
+                      <button 
                         onClick={() => handleDeleteProperty(property.id)}
                         className="inline-flex p-2 bg-white/5 text-gray-400 hover:text-white rounded-lg hover:bg-red-600 transition-colors border border-transparent hover:border-red-600"
                       >
@@ -579,12 +702,13 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
                       </button>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                );
+              })
+            )}
+          </tbody>
+        </table>
       </div>
+    </div>
 
       {/* Create Property Modal */}
       <AnimatePresence>
@@ -635,6 +759,84 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
                   )}
                 </div>
 
+                {/* ── Sélecteur de Branche Immo (Habitation vs Hôtellerie) ── */}
+                <div className="space-y-2 p-4 bg-white/5 border border-white/10 rounded-2xl">
+                  <label className="text-xs font-bold uppercase tracking-wider text-gray-300 block">
+                    Type de produit immobilier <span className="text-red-400">*</span>
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setImmoBranch("habitation");
+                        setPropertyType("appartement");
+                        setTypeTransaction("À Louer");
+                      }}
+                      className={`p-4 rounded-xl border text-left transition-all relative overflow-hidden flex flex-col justify-between ${
+                        immoBranch === "habitation"
+                          ? "bg-emerald-500/20 border-emerald-500 text-white shadow-lg shadow-emerald-950/40"
+                          : "bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:text-white"
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center gap-2.5 mb-2">
+                          <div className={`p-2 rounded-lg ${immoBranch === "habitation" ? "bg-emerald-500 text-black font-bold" : "bg-white/10 text-gray-400"}`}>
+                            <Home size={18} />
+                          </div>
+                          <div>
+                            <span className="font-bold text-sm block text-white">Immobilier Habitation</span>
+                            <span className="text-[11px] text-emerald-400 font-medium">Baux, Loyers & Ventes</span>
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-400 leading-relaxed mt-1">
+                          Maisons, Appartements, Terrains, Villas, Immeubles, Bureaux. Vente définitive ou location mensuelle avec contrat de bail.
+                        </p>
+                      </div>
+                      {immoBranch === "habitation" && (
+                        <div className="mt-3 flex items-center gap-1.5 text-xs text-emerald-400 font-semibold">
+                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                          Branche sélectionnée
+                        </div>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setImmoBranch("hotel");
+                        setPropertyType("hotel");
+                        setTypeTransaction("Réservation / Nuitée");
+                      }}
+                      className={`p-4 rounded-xl border text-left transition-all relative overflow-hidden flex flex-col justify-between ${
+                        immoBranch === "hotel"
+                          ? "bg-amber-500/20 border-amber-500 text-white shadow-lg shadow-amber-950/40"
+                          : "bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:text-white"
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center gap-2.5 mb-2">
+                          <div className={`p-2 rounded-lg ${immoBranch === "hotel" ? "bg-amber-500 text-black font-bold" : "bg-white/10 text-gray-400"}`}>
+                            <Hotel size={18} />
+                          </div>
+                          <div>
+                            <span className="font-bold text-sm block text-white">Immo Hôtelier & Séjours</span>
+                            <span className="text-[11px] text-amber-400 font-medium">Nuitées & Hébergements</span>
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-400 leading-relaxed mt-1">
+                          Hôtels, Suites, Chambres, Résidences meublées, Lodges. Tarification par nuitée, check-in/out et facturation de séjour.
+                        </p>
+                      </div>
+                      {immoBranch === "hotel" && (
+                        <div className="mt-3 flex items-center gap-1.5 text-xs text-amber-400 font-semibold">
+                          <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                          Branche sélectionnée
+                        </div>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1 md:col-span-2">
                     <label className="text-sm font-medium text-gray-300">Titre de l'annonce</label>
@@ -643,70 +845,87 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
                       required
                       value={propertyTitle}
                       onChange={(e) => setPropertyTitle(e.target.value)}
-                      placeholder="Ex: Bel appartement 3 pièces"
+                      placeholder={immoBranch === "hotel" ? "Ex: Suite Prestige avec Vue Panoramique" : "Ex: Bel appartement 3 pièces au centre"}
                       className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white"
                     />
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium text-gray-300">Type de bien</label>
-                    <select 
-                      required 
-                      value={propertyType} 
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setPropertyType(val);
-                        if (val === "hotel" && (!typeTransaction || typeTransaction === "À Vendre")) {
-                          setTypeTransaction("Réservation / Nuitée");
-                        }
-                      }} 
-                      className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white"
-                    >
-                      <option value="">Sélectionner</option>
-                      <option value="hotel">🏨 Hôtel & Résidence Hôtelière</option>
-                      <option value="appartement">Appartement</option>
-                      <option value="maison">Maison / Villa</option>
-                      <option value="studio">Studio</option>
-                      <option value="terrain">Terrain</option>
-                      <option value="commercial">Local Commercial</option>
-                    </select>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium text-gray-300">Statut / Type de Transaction</label>
-                    <select
-                      required
-                      value={typeTransaction}
-                      onChange={(e) => setTypeTransaction(e.target.value)}
-                      className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white"
-                    >
-                      {propertyType === "hotel" ? (
-                        <>
-                          <option value="Réservation / Nuitée">🏨 Réservation / Nuitée (Hôtellerie)</option>
-                          <option value="Location Journalière">Location Journalière</option>
-                        </>
-                      ) : (
-                        <>
-                          <option value="À Louer">À Louer (Location)</option>
-                          <option value="À Vendre">À Vendre (Vente)</option>
-                          <option value="Réservation / Nuitée">Réservation / Nuitée (Hôtellerie)</option>
-                          <option value="Location Journalière">Location Journalière</option>
-                          <option value="Colocation">Colocation</option>
-                        </>
-                      )}
-                    </select>
-                  </div>
+
+                  {immoBranch === "habitation" ? (
+                    <>
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium text-gray-300">Catégorie de bien</label>
+                        <select 
+                          required 
+                          value={propertyType} 
+                          onChange={(e) => setPropertyType(e.target.value)} 
+                          className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white"
+                        >
+                          <option value="appartement">🏢 Appartement</option>
+                          <option value="maison">🏡 Maison / Villa</option>
+                          <option value="studio">🛋️ Studio</option>
+                          <option value="terrain">📐 Terrain / Parcelle</option>
+                          <option value="commercial">🏬 Local Commercial / Bureau</option>
+                          <option value="immeuble">🏙️ Immeuble de rapport</option>
+                        </select>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium text-gray-300">Type de Transaction</label>
+                        <select
+                          required
+                          value={typeTransaction}
+                          onChange={(e) => setTypeTransaction(e.target.value)}
+                          className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white"
+                        >
+                          <option value="À Louer">🔑 À Louer (Location avec bail & loyer)</option>
+                          <option value="À Vendre">💰 À Vendre (Vente définitive)</option>
+                        </select>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium text-gray-300">Type d'hébergement / Chambre</label>
+                        <select 
+                          required 
+                          value={hotelSubtype} 
+                          onChange={(e) => setHotelSubtype(e.target.value)} 
+                          className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white"
+                        >
+                          <option value="chambre_standard">🛏️ Chambre Standard</option>
+                          <option value="chambre_deluxe">✨ Chambre Deluxe / Supérieure</option>
+                          <option value="suite_executive">👑 Suite Exécutive</option>
+                          <option value="suite_presidentielle">🌟 Suite Présidentielle</option>
+                          <option value="bungalow">🏡 Bungalow / Villa d'Hôtes</option>
+                          <option value="hotel_complet">🏨 Établissement Hôtelier Complet</option>
+                        </select>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium text-gray-300">Formule de séjour</label>
+                        <div className="w-full px-4 py-2 bg-amber-500/10 border border-amber-500/30 rounded-lg text-amber-300 text-sm font-medium flex items-center justify-between">
+                          <span>🏨 Réservation par Nuitée</span>
+                          <span className="text-xs bg-amber-500/20 px-2 py-0.5 rounded text-amber-200">Facturation Check-in/out</span>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <label className="text-sm font-medium text-gray-300">
-                      {propertyType === "hotel" ? `Tarif de base par nuitée (${currency})` : `Loyer / Prix (${currency})`}
+                      {immoBranch === "hotel" 
+                        ? `Tarif par nuitée (${currency} / nuit)` 
+                        : (typeTransaction === "À Vendre" ? `Prix de vente total (${currency})` : `Loyer mensuel (${currency} / mois)`)
+                      }
                     </label>
                     <input
                       type="text"
                       required
                       value={propertyPrice}
                       onChange={(e) => setPropertyPrice(e.target.value)}
-                      placeholder={propertyType === "hotel" ? "Ex: 120 (par nuit)" : "Ex: 500"}
+                      placeholder={immoBranch === "hotel" ? "Ex: 120" : (typeTransaction === "À Vendre" ? "Ex: 150000" : "Ex: 600")}
                       className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white"
                     />
                   </div>
@@ -729,7 +948,7 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
                 </div>
 
                 {/* ── Spécifications Hôtelières (Hospitality) ── */}
-                {propertyType === "hotel" && (
+                {immoBranch === "hotel" && (
                   <div className="p-4 bg-gradient-to-br from-amber-500/10 via-purple-500/5 to-transparent border border-amber-500/20 rounded-xl space-y-4">
                     <div className="flex items-center justify-between border-b border-white/10 pb-3">
                       <div className="flex items-center space-x-2 text-amber-400">
@@ -858,18 +1077,28 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
                 {/* Dynamic Structure Builder */}
                 <div className="space-y-4 border-t border-white/10 pt-4">
                   <div className="flex items-center justify-between">
-                    <label className="text-sm font-medium text-gray-300">Structure du bâtiment (Niveaux, Appartements, Bureaux)</label>
+                    <label className="text-sm font-medium text-gray-300">
+                      {immoBranch === "hotel" 
+                        ? "Configuration des Étages & Chambres (Hôtellerie)" 
+                        : "Structure du bâtiment (Niveaux, Appartements, Bureaux)"
+                      }
+                    </label>
                     <button 
                       type="button" 
                       onClick={handleAddLevel} 
                       className="text-xs bg-primary/20 hover:bg-primary/40 transition-colors text-primary-light px-3 py-1.5 rounded-lg flex items-center space-x-1"
                     >
-                      <Plus size={14} /> <span>Ajouter un niveau</span>
+                      <Plus size={14} /> <span>{immoBranch === "hotel" ? "Ajouter un étage d'hôtel" : "Ajouter un niveau"}</span>
                     </button>
                   </div>
                   
                   {levels.length === 0 && (
-                     <p className="text-xs text-gray-500 italic">Aucun niveau défini. (Optionnel)</p>
+                     <p className="text-xs text-gray-500 italic">
+                       {immoBranch === "hotel" 
+                         ? "Aucun étage ou chambre configuré. (Optionnel si vous louez une suite unique)" 
+                         : "Aucun niveau défini. (Optionnel)"
+                       }
+                     </p>
                   )}
 
                   {levels.map((level, lIndex) => (
@@ -949,7 +1178,7 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
                     disabled={isProcessing}
                     className="px-6 py-2 bg-primary hover:bg-primary-light text-white font-semibold rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center"
                   >
-                    {isProcessing ? "Traitement..." : (isAdmin ? "Sauvegarder l'annonce" : "Publier l'annonce")}
+                    {isProcessing ? "Traitement..." : (editingId ? "Enregistrer les modifications" : (immoBranch === "hotel" ? "🏨 Publier l'offre hôtelière" : "🏠 Publier le bien immobilier"))}
                   </button>
                 </div>
               </form>

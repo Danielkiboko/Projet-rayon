@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, X, FileText, Download, Trash2, Calendar, User, Search, Eye } from "lucide-react";
+import { Plus, X, FileText, Download, Trash2, Calendar, User, Search, Eye, Hotel, Home, CalendarCheck, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs, addDoc, serverTimestamp, deleteDoc, doc, onSnapshot, orderBy } from "firebase/firestore";
@@ -19,6 +19,10 @@ export default function InvoiceManager() {
   const [search, setSearch] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // Branch & Filter State
+  const [immoBranch, setImmoBranch] = useState<"generic" | "habitation" | "hotel">("habitation");
+  const [selectedBranchFilter, setSelectedBranchFilter] = useState<string>("all");
+
   // Form State
   const [invoiceType, setInvoiceType] = useState<"PROFORMA" | "INVOICE">("PROFORMA");
   const [clientName, setClientName] = useState("");
@@ -26,6 +30,18 @@ export default function InvoiceManager() {
   const [clientPhone, setClientPhone] = useState("");
   const [items, setItems] = useState<any[]>([{ description: "", quantity: 1, unitPrice: 0 }]);
   const [taxRate, setTaxRate] = useState(0);
+
+  // Hotel Stay Helper State
+  const [hotelRoom, setHotelRoom] = useState("");
+  const [hotelCheckIn, setHotelCheckIn] = useState("");
+  const [hotelCheckOut, setHotelCheckOut] = useState("");
+  const [hotelNightlyRate, setHotelNightlyRate] = useState("");
+  const [hotelNights, setHotelNights] = useState(1);
+
+  // Habitation Helper State
+  const [habitationProperty, setHabitationProperty] = useState("");
+  const [habitationPeriod, setHabitationPeriod] = useState("");
+  const [habitationMonthlyRent, setHabitationMonthlyRent] = useState("");
 
   useEffect(() => {
     if (!user || !activeSupplierId) return;
@@ -47,12 +63,53 @@ export default function InvoiceManager() {
   }, [user, activeSupplierId]);
 
   const resetForm = () => {
+    setImmoBranch("habitation");
     setInvoiceType("PROFORMA");
     setClientName("");
     setClientAddress("");
     setClientPhone("");
     setItems([{ description: "", quantity: 1, unitPrice: 0 }]);
     setTaxRate(0);
+    setHotelRoom("");
+    setHotelCheckIn("");
+    setHotelCheckOut("");
+    setHotelNightlyRate("");
+    setHotelNights(1);
+    setHabitationProperty("");
+    setHabitationPeriod("");
+    setHabitationMonthlyRent("");
+  };
+
+  const applyHotelStayToItems = () => {
+    if (!hotelRoom || !hotelNightlyRate) {
+      alert("Veuillez indiquer au minimum la chambre et le tarif par nuit.");
+      return;
+    }
+    const rate = parseFloat(hotelNightlyRate) || 0;
+    const desc = `Séjour ${hotelRoom}${hotelCheckIn && hotelCheckOut ? ` (du ${hotelCheckIn} au ${hotelCheckOut})` : ""}`;
+    setItems([
+      {
+        description: desc,
+        quantity: hotelNights > 0 ? hotelNights : 1,
+        unitPrice: rate
+      }
+    ]);
+  };
+
+  const applyHabitationRentToItems = () => {
+    if (!habitationProperty || !habitationMonthlyRent) {
+      alert("Veuillez indiquer au minimum le bien et le montant du loyer.");
+      return;
+    }
+    const rent = parseFloat(habitationMonthlyRent) || 0;
+    const desc = `Loyer mensuel - ${habitationProperty}${habitationPeriod ? ` (${habitationPeriod})` : ""}`;
+    setItems([
+      {
+        description: desc,
+        quantity: 1,
+        unitPrice: rent
+      }
+    ]);
   };
 
   const handleAddItem = () => {
@@ -84,23 +141,41 @@ export default function InvoiceManager() {
     
     const docPdf = new jsPDF();
     const isProforma = invoice.type === "PROFORMA";
-    const title = isProforma ? "FACTURE PROFORMA" : "FACTURE";
+    const branch = invoice.immoBranch || "generic";
+    
+    let title = isProforma ? "FACTURE PROFORMA" : "FACTURE";
+    if (branch === "hotel") {
+      title = isProforma ? "NOTE D'HÔTEL PROFORMA" : "NOTE D'HÔTEL & FACTURE DE SÉJOUR";
+    } else if (branch === "habitation") {
+      title = isProforma ? "PROFORMA IMMOBILIÈRE" : "QUITTANCE DE LOYER / FACTURE IMMOBILIÈRE";
+    }
 
-    docPdf.setFontSize(22);
+    docPdf.setFontSize(18);
     docPdf.text(title, 105, 20, { align: "center" });
 
-    docPdf.setFontSize(12);
-    docPdf.text(`Fournisseur: ${userData?.displayName || userData?.name || "Rayon"}`, 14, 40);
-    if (userData?.rccm) docPdf.text(`RCCM: ${userData.rccm}`, 14, 46);
-    if (userData?.idNat) docPdf.text(`Id. Nat: ${userData.idNat}`, 14, 52);
-    if (userData?.nif) docPdf.text(`NIF: ${userData.nif}`, 14, 58);
+    docPdf.setFontSize(11);
+    docPdf.text(`Fournisseur: ${userData?.displayName || userData?.name || "Rayon Immo & Hospitality"}`, 14, 38);
+    if (userData?.rccm) docPdf.text(`RCCM: ${userData.rccm}`, 14, 44);
+    if (userData?.idNat) docPdf.text(`Id. Nat: ${userData.idNat}`, 14, 50);
+    if (userData?.nif) docPdf.text(`NIF: ${userData.nif}`, 14, 56);
 
-    docPdf.text(`Client: ${invoice.clientName}`, 120, 40);
-    docPdf.text(`Adresse: ${invoice.clientAddress || "-"}`, 120, 46);
-    docPdf.text(`Tél: ${invoice.clientPhone || "-"}`, 120, 52);
+    const clientLabel = branch === "hotel" ? "Voyageur / Client" : (branch === "habitation" ? "Locataire / Client" : "Client");
+    docPdf.text(`${clientLabel}: ${invoice.clientName}`, 120, 38);
+    docPdf.text(`Adresse: ${invoice.clientAddress || "-"}`, 120, 44);
+    docPdf.text(`Tél: ${invoice.clientPhone || "-"}`, 120, 50);
     
     const dateStr = invoice.createdAt ? new Date(invoice.createdAt.seconds * 1000).toLocaleDateString() : new Date().toLocaleDateString();
-    docPdf.text(`Date: ${dateStr}`, 120, 58);
+    docPdf.text(`Date d'émission: ${dateStr}`, 120, 56);
+
+    // Hotel Stay Info in PDF
+    let startY = 66;
+    if (branch === "hotel" && invoice.stayDetails) {
+      docPdf.setFontSize(10);
+      docPdf.setTextColor(180, 100, 0);
+      docPdf.text(`Détails Séjour: Chambre ${invoice.stayDetails.room || "-"} | Arrivée: ${invoice.stayDetails.checkIn || "-"} | Départ: ${invoice.stayDetails.checkOut || "-"} | ${invoice.stayDetails.nights || 1} nuitée(s)`, 14, 63);
+      docPdf.setTextColor(0, 0, 0);
+      startY = 68;
+    }
 
     const tableBody = invoice.items.map((item: any) => [
       item.description,
@@ -110,24 +185,25 @@ export default function InvoiceManager() {
     ]);
 
     (docPdf as any).autoTable({
-      startY: 70,
-      head: [['Description', 'Quantité', 'Prix Unitaire', 'Total']],
+      startY: startY,
+      head: [['Désignation / Prestation', 'Quantité / Nuitées', 'Prix Unitaire', 'Total']],
       body: tableBody,
       theme: 'grid',
-      headStyles: { fillColor: [66, 66, 66] }
+      headStyles: { fillColor: branch === "hotel" ? [180, 120, 30] : (branch === "habitation" ? [20, 110, 60] : [66, 66, 66]) }
     });
 
     const finalY = (docPdf as any).lastAutoTable.finalY || 70;
     
-    docPdf.setFontSize(12);
+    docPdf.setFontSize(11);
     docPdf.text(`Sous-total: ${invoice.subtotal.toFixed(2)} ${currency}`, 140, finalY + 10);
     if (invoice.taxRate > 0) {
-      docPdf.text(`TVA (${invoice.taxRate}%): ${((invoice.subtotal * invoice.taxRate) / 100).toFixed(2)} ${currency}`, 140, finalY + 16);
+      docPdf.text(`TVA / Taxe (${invoice.taxRate}%): ${((invoice.subtotal * invoice.taxRate) / 100).toFixed(2)} ${currency}`, 140, finalY + 16);
     }
-    docPdf.setFontSize(14);
-    docPdf.text(`Total: ${invoice.total.toFixed(2)} ${currency}`, 140, finalY + (invoice.taxRate > 0 ? 24 : 18));
+    docPdf.setFontSize(13);
+    docPdf.text(`Total à payer: ${invoice.total.toFixed(2)} ${currency}`, 140, finalY + (invoice.taxRate > 0 ? 24 : 18));
 
-    docPdf.save(`${isProforma ? 'Proforma' : 'Facture'}_${invoice.clientName}_${dateStr}.pdf`);
+    const prefix = branch === "hotel" ? "Note_Hotel" : (branch === "habitation" ? "Quittance_Loyer" : (isProforma ? "Proforma" : "Facture"));
+    docPdf.save(`${prefix}_${invoice.clientName.replace(/\s+/g, '_')}_${dateStr}.pdf`);
   };
 
   const handleSaveInvoice = async (e: React.FormEvent) => {
@@ -144,9 +220,10 @@ export default function InvoiceManager() {
       const subtotal = calculateSubtotal();
       const total = calculateTotal();
 
-      await addDoc(collection(db, "invoices"), {
+      const invoicePayload: any = {
         supplierId: activeSupplierId,
         type: invoiceType,
+        immoBranch,
         clientName,
         clientAddress,
         clientPhone,
@@ -156,7 +233,25 @@ export default function InvoiceManager() {
         total,
         status: invoiceType === "PROFORMA" ? "DRAFT" : "UNPAID",
         createdAt: serverTimestamp()
-      });
+      };
+
+      if (immoBranch === "hotel") {
+        invoicePayload.stayDetails = {
+          room: hotelRoom,
+          checkIn: hotelCheckIn,
+          checkOut: hotelCheckOut,
+          nights: hotelNights,
+          nightlyRate: parseFloat(hotelNightlyRate) || 0
+        };
+      } else if (immoBranch === "habitation") {
+        invoicePayload.habitationDetails = {
+          property: habitationProperty,
+          period: habitationPeriod,
+          monthlyRent: parseFloat(habitationMonthlyRent) || 0
+        };
+      }
+
+      await addDoc(collection(db, "invoices"), invoicePayload);
 
       setIsModalOpen(false);
       resetForm();
@@ -179,25 +274,35 @@ export default function InvoiceManager() {
     }
   };
 
-  const filteredInvoices = invoices.filter(inv => inv.clientName.toLowerCase().includes(search.toLowerCase()));
+  const filteredInvoices = invoices.filter(inv => {
+    const matchesSearch = inv.clientName.toLowerCase().includes(search.toLowerCase());
+    if (!matchesSearch) return false;
+    if (selectedBranchFilter === "all") return true;
+    if (selectedBranchFilter === "hotel") return inv.immoBranch === "hotel";
+    if (selectedBranchFilter === "habitation") return inv.immoBranch === "habitation";
+    return true;
+  });
+
+  const habitationCount = invoices.filter(i => i.immoBranch === "habitation").length;
+  const hotelCount = invoices.filter(i => i.immoBranch === "hotel").length;
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Proformas & Factures</h1>
-          <p className="text-sm text-gray-400 mt-1">Générez des factures professionnelles pour vos clients.</p>
+          <h1 className="text-2xl font-bold text-white tracking-tight">Proformas & Factures Connectées</h1>
+          <p className="text-sm text-gray-400 mt-1">Facturation connectée pour baux d'habitation et séjours hôteliers.</p>
         </div>
         <button
           onClick={() => { resetForm(); setIsModalOpen(true); }}
           className="bg-primary text-white px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center hover:bg-primary-light transition-colors shadow-sm w-fit"
         >
-          <Plus size={18} className="mr-2" /> Créer un document
+          <Plus size={18} className="mr-2" /> Créer une facture / note
         </button>
       </div>
 
       <div className="bg-white/5 border border-white/10 rounded-2xl shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-white/10 flex flex-col sm:flex-row gap-4 justify-between">
+        <div className="p-4 border-b border-white/10 flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
           <div className="relative max-w-sm w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
             <input
@@ -208,14 +313,43 @@ export default function InvoiceManager() {
               className="w-full pl-10 pr-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white text-sm transition-all"
             />
           </div>
+
+          <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto">
+            <button
+              onClick={() => setSelectedBranchFilter("all")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shrink-0 ${
+                selectedBranchFilter === "all" ? "bg-white text-gray-950 shadow-sm" : "bg-white/5 text-gray-400 hover:text-white"
+              }`}
+            >
+              Toutes ({invoices.length})
+            </button>
+            <button
+              onClick={() => setSelectedBranchFilter("habitation")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shrink-0 flex items-center gap-1 ${
+                selectedBranchFilter === "habitation" ? "bg-emerald-600 text-white shadow-sm" : "bg-white/5 text-gray-400 hover:text-white"
+              }`}
+            >
+              <Home size={13} />
+              <span>Habitation ({habitationCount})</span>
+            </button>
+            <button
+              onClick={() => setSelectedBranchFilter("hotel")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shrink-0 flex items-center gap-1 ${
+                selectedBranchFilter === "hotel" ? "bg-amber-600 text-white shadow-sm" : "bg-white/5 text-gray-400 hover:text-white"
+              }`}
+            >
+              <Hotel size={13} />
+              <span>Hôtellerie ({hotelCount})</span>
+            </button>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-white/5 text-xs uppercase tracking-wider text-gray-400 font-semibold">
-                <th className="p-4 rounded-tl-xl">Type</th>
-                <th className="p-4">Client</th>
+                <th className="p-4 rounded-tl-xl">Type & Branche</th>
+                <th className="p-4">Client / Voyageur</th>
                 <th className="p-4">Date</th>
                 <th className="p-4">Total</th>
                 <th className="p-4 text-right rounded-tr-xl">Actions</th>
@@ -234,19 +368,35 @@ export default function InvoiceManager() {
                 filteredInvoices.map((inv) => (
                   <tr key={inv.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                     <td className="p-4 font-semibold text-white">
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold uppercase tracking-wider ${
-                        inv.type === 'PROFORMA' ? 'bg-purple-500/10 text-purple-400' : 'bg-blue-500/10 text-blue-400'
-                      }`}>
-                        {inv.type === "PROFORMA" ? "Proforma" : "Facture"}
-                      </span>
+                      <div className="flex flex-col gap-1 items-start">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold uppercase tracking-wider ${
+                          inv.type === 'PROFORMA' ? 'bg-purple-500/10 text-purple-400' : 'bg-blue-500/10 text-blue-400'
+                        }`}>
+                          {inv.type === "PROFORMA" ? "Proforma" : "Facture"}
+                        </span>
+                        {inv.immoBranch === "hotel" ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] text-amber-300 bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded font-medium">
+                            <Hotel size={11} /> Note de séjour
+                          </span>
+                        ) : inv.immoBranch === "habitation" ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded font-medium">
+                            <Home size={11} /> Quittance loyer
+                          </span>
+                        ) : null}
+                      </div>
                     </td>
-                    <td className="p-4">{inv.clientName}</td>
+                    <td className="p-4">
+                      <div className="font-medium text-white">{inv.clientName}</div>
+                      {inv.stayDetails?.room && (
+                        <div className="text-xs text-amber-400/80">Chambre: {inv.stayDetails.room} ({inv.stayDetails.nights || 1} n.)</div>
+                      )}
+                    </td>
                     <td className="p-4">{inv.createdAt ? new Date(inv.createdAt.seconds * 1000).toLocaleDateString() : "-"}</td>
                     <td className="p-4 font-bold text-white">{formatPrice(inv.total)}</td>
                     <td className="p-4 text-right space-x-2">
                       <button 
                         onClick={() => generatePDF(inv)}
-                        title="Télécharger PDF"
+                        title="Télécharger PDF officiel"
                         className="inline-flex p-2 bg-white/5 text-gray-400 hover:text-white rounded-lg hover:bg-blue-600 transition-colors border border-transparent hover:border-blue-600"
                       >
                         <Download size={18} />
@@ -277,7 +427,7 @@ export default function InvoiceManager() {
             >
               <div className="flex items-center justify-between p-4 border-b border-white/10 shrink-0 bg-[#140b2e]">
                 <h2 className="text-xl font-semibold text-white flex items-center">
-                  <FileText className="mr-2 text-primary" size={24}/> Créer un Document
+                  <FileText className="mr-2 text-primary" size={24}/> Créer un Document Comptable
                 </h2>
                 <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-white transition-colors">
                   <X size={24} />
@@ -285,20 +435,192 @@ export default function InvoiceManager() {
               </div>
 
               <form onSubmit={handleSaveInvoice} className="p-4 space-y-6 overflow-y-auto scrollbar-hide">
+                {/* ── Sélecteur de Branche Comptable ── */}
+                <div className="p-3 bg-white/5 border border-white/10 rounded-xl space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-wider text-gray-300 block">
+                    Branche d'activité & type de document
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setImmoBranch("habitation")}
+                      className={`p-3 rounded-lg border text-left transition-all flex items-center gap-2.5 ${
+                        immoBranch === "habitation"
+                          ? "bg-emerald-500/20 border-emerald-500 text-white"
+                          : "bg-black/20 border-white/10 text-gray-400 hover:text-white"
+                      }`}
+                    >
+                      <Home size={18} className={immoBranch === "habitation" ? "text-emerald-400" : "text-gray-400"} />
+                      <div>
+                        <div className="text-sm font-bold">🏠 Habitation (Loyer & Bail)</div>
+                        <div className="text-[11px] text-gray-400">Quittances de loyer, cautions, charges</div>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setImmoBranch("hotel")}
+                      className={`p-3 rounded-lg border text-left transition-all flex items-center gap-2.5 ${
+                        immoBranch === "hotel"
+                          ? "bg-amber-500/20 border-amber-500 text-white"
+                          : "bg-black/20 border-white/10 text-gray-400 hover:text-white"
+                      }`}
+                    >
+                      <Hotel size={18} className={immoBranch === "hotel" ? "text-amber-400" : "text-gray-400"} />
+                      <div>
+                        <div className="text-sm font-bold">🏨 Hôtellerie (Nuitées & Séjour)</div>
+                        <div className="text-[11px] text-gray-400">Notes d'hôtel, chambres, check-in/out</div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
                 <div className="flex space-x-4 mb-4">
                   <label className="flex items-center space-x-2 cursor-pointer">
                     <input type="radio" value="PROFORMA" checked={invoiceType === "PROFORMA"} onChange={() => setInvoiceType("PROFORMA")} className="text-primary focus:ring-primary h-4 w-4 bg-black/20 border-white/20"/>
-                    <span className="text-white font-medium">Facture Proforma</span>
+                    <span className="text-white font-medium">Facture Proforma / Devis</span>
                   </label>
                   <label className="flex items-center space-x-2 cursor-pointer">
                     <input type="radio" value="INVOICE" checked={invoiceType === "INVOICE"} onChange={() => setInvoiceType("INVOICE")} className="text-primary focus:ring-primary h-4 w-4 bg-black/20 border-white/20"/>
-                    <span className="text-white font-medium">Facture Définitive</span>
+                    <span className="text-white font-medium">Facture Définitive / Note</span>
                   </label>
                 </div>
 
+                {/* ── Assistant Rapide Hôtellerie ── */}
+                {immoBranch === "hotel" && (
+                  <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="text-xs font-bold uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
+                        <Hotel size={14} /> <span>Assistant Séjour Hôtelier</span>
+                      </div>
+                      <span className="text-[11px] text-amber-200/70">Calculateur automatique</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                      <div>
+                        <label className="text-gray-300 block mb-1">Chambre / Suite</label>
+                        <input
+                          type="text"
+                          placeholder="Ex: Suite Deluxe #301"
+                          value={hotelRoom}
+                          onChange={(e) => setHotelRoom(e.target.value)}
+                          className="w-full px-2.5 py-1.5 bg-black/30 border border-white/10 rounded text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-gray-300 block mb-1">Arrivée</label>
+                        <input
+                          type="date"
+                          value={hotelCheckIn}
+                          onChange={(e) => setHotelCheckIn(e.target.value)}
+                          className="w-full px-2.5 py-1.5 bg-black/30 border border-white/10 rounded text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-gray-300 block mb-1">Départ</label>
+                        <input
+                          type="date"
+                          value={hotelCheckOut}
+                          onChange={(e) => {
+                            setHotelCheckOut(e.target.value);
+                            if (hotelCheckIn && e.target.value) {
+                              const d1 = new Date(hotelCheckIn);
+                              const d2 = new Date(e.target.value);
+                              const diffTime = Math.abs(d2.getTime() - d1.getTime());
+                              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1;
+                              setHotelNights(diffDays);
+                            }
+                          }}
+                          className="w-full px-2.5 py-1.5 bg-black/30 border border-white/10 rounded text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-gray-300 block mb-1">Tarif / nuit ($)</label>
+                        <input
+                          type="number"
+                          placeholder="Ex: 80"
+                          value={hotelNightlyRate}
+                          onChange={(e) => setHotelNightlyRate(e.target.value)}
+                          className="w-full px-2.5 py-1.5 bg-black/30 border border-white/10 rounded text-white"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-xs text-amber-200">
+                        Total calculé : <strong>{hotelNights} nuit(s) × {hotelNightlyRate || 0}$ = {(hotelNights * (parseFloat(hotelNightlyRate) || 0)).toFixed(2)}$</strong>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={applyHotelStayToItems}
+                        className="px-3 py-1 bg-amber-500 hover:bg-amber-400 text-black font-semibold rounded text-xs transition-colors flex items-center gap-1"
+                      >
+                        <Sparkles size={12} /> Insérer dans la facture
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Assistant Rapide Habitation ── */}
+                {immoBranch === "habitation" && (
+                  <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="text-xs font-bold uppercase tracking-wider text-emerald-300 flex items-center gap-1.5">
+                        <Home size={14} /> <span>Assistant Quittance Habitation</span>
+                      </div>
+                      <span className="text-[11px] text-emerald-200/70">Calculateur loyer & bail</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                      <div>
+                        <label className="text-gray-300 block mb-1">Bien / Appartement</label>
+                        <input
+                          type="text"
+                          placeholder="Ex: Villa Gombe Lot #12"
+                          value={habitationProperty}
+                          onChange={(e) => setHabitationProperty(e.target.value)}
+                          className="w-full px-2.5 py-1.5 bg-black/30 border border-white/10 rounded text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-gray-300 block mb-1">Période concernée</label>
+                        <input
+                          type="text"
+                          placeholder="Ex: Septembre 2026"
+                          value={habitationPeriod}
+                          onChange={(e) => setHabitationPeriod(e.target.value)}
+                          className="w-full px-2.5 py-1.5 bg-black/30 border border-white/10 rounded text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-gray-300 block mb-1">Loyer mensuel ($)</label>
+                        <input
+                          type="number"
+                          placeholder="Ex: 500"
+                          value={habitationMonthlyRent}
+                          onChange={(e) => setHabitationMonthlyRent(e.target.value)}
+                          className="w-full px-2.5 py-1.5 bg-black/30 border border-white/10 rounded text-white"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-end pt-1">
+                      <button
+                        type="button"
+                        onClick={applyHabitationRentToItems}
+                        className="px-3 py-1 bg-emerald-500 hover:bg-emerald-400 text-black font-semibold rounded text-xs transition-colors flex items-center gap-1"
+                      >
+                        <Sparkles size={12} /> Insérer dans la facture
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <label className="text-sm font-medium text-gray-300">Nom du Client / Entreprise</label>
+                    <label className="text-sm font-medium text-gray-300">
+                      {immoBranch === "hotel" ? "Nom du Voyageur / Client" : (immoBranch === "habitation" ? "Nom du Locataire / Client" : "Nom du Client / Entreprise")}
+                    </label>
                     <input required type="text" value={clientName} onChange={e => setClientName(e.target.value)} className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white" />
                   </div>
                   <div className="space-y-1">

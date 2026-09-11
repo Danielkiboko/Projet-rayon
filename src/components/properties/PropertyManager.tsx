@@ -302,16 +302,63 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
 
     try {
       if (editingId) {
-        await updateDoc(doc(db, "properties", editingId), propertyData);
+        const updatePayload: any = {
+          ...propertyData,
+          updatedAt: serverTimestamp(),
+        };
+        // Toute modification effectuée par un fournisseur repasse obligatoirement par la validation de l'administrateur
+        if (!isAdmin) {
+          updatePayload.status = "PENDING_APPROVAL";
+        }
+        await updateDoc(doc(db, "properties", editingId), updatePayload);
+
+        if (!isAdmin) {
+          // Notification instantanée pour l'administrateur
+          await addDoc(collection(db, "inapp_notifications"), {
+            supplierId: "admin",
+            type: "property",
+            title: "Modification d'annonce à valider",
+            message: `Le bien / hôtel "${propertyTitle}" a été modifié et attend votre validation pour être remis en ligne.`,
+            propertyId: editingId,
+            time: Date.now(),
+            link: "/admin/properties",
+            read: false,
+            createdAt: serverTimestamp()
+          });
+        }
       } else {
-        await addDoc(collection(db, "properties"), {
+        const docRef = await addDoc(collection(db, "properties"), {
           ...propertyData,
           status: isAdmin ? "Disponible" : "PENDING_APPROVAL",
           createdAt: serverTimestamp(),
         });
+
+        if (!isAdmin) {
+          // Notification instantanée pour l'administrateur
+          await addDoc(collection(db, "inapp_notifications"), {
+            supplierId: "admin",
+            type: "property",
+            title: isHotel ? "Nouvelle offre hôtelière à valider" : "Nouveau bien immobilier à valider",
+            message: `Un nouveau bien "${propertyTitle}" (${isHotel ? "Hôtellerie / Nuitée" : "Habitation"}) a été soumis et attend votre validation.`,
+            propertyId: docRef.id,
+            time: Date.now(),
+            link: "/admin/properties",
+            read: false,
+            createdAt: serverTimestamp()
+          });
+        }
       }
+
       setIsModalOpen(false);
       resetForm();
+
+      if (!isAdmin) {
+        alert(
+          editingId
+            ? "Vos modifications ont été enregistrées ! L'annonce est actuellement en attente de validation par l'administrateur avant d'être remise en ligne."
+            : "Votre annonce a bien été soumise ! Elle est en attente de validation par l'administrateur avant d'être publiée sur le Rayon Immo."
+        );
+      }
     } catch (error: any) {
       console.error("Erreur lors de la sauvegarde de la propriété:", error);
       alert("Une erreur est survenue: " + error.message);
@@ -448,6 +495,7 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
 
   const habitationCount = properties.filter(p => p.immoBranch === "habitation" || (p.immoBranch !== "hotel" && p.type !== "hotel")).length;
   const hotelCount = properties.filter(p => p.immoBranch === "hotel" || p.type === "hotel" || !!p.hotelDetails).length;
+  const pendingCount = properties.filter(p => p.status === "PENDING_APPROVAL").length;
 
   const filteredProperties = properties.filter(p => {
     const title = getTitle(p.title).toLowerCase();
@@ -455,6 +503,7 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
     const matchesSearch = title.includes(search.toLowerCase()) || loc.includes(search.toLowerCase());
     if (!matchesSearch) return false;
 
+    if (selectedBranchFilter === "pending") return p.status === "PENDING_APPROVAL";
     const isHotel = p.immoBranch === "hotel" || p.type === "hotel" || !!p.hotelDetails;
     if (selectedBranchFilter === "habitation") return !isHotel;
     if (selectedBranchFilter === "hotel") return isHotel;
@@ -486,12 +535,12 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
         <div>
           <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
             <Building className="text-blue-500" /> 
-            {isAdmin ? "Gestion de l'Immobilier & Hôtellerie" : "Mes Propriétés & Hôtels"}
+            {isAdmin ? "Gestion & Validation de l'Immobilier / Hôtellerie" : "Mes Propriétés & Hôtels"}
           </h1>
           <p className="text-sm text-gray-400 mt-1">
             {isAdmin 
-              ? "Validez et séparez facilement les biens résidentiels et les établissements hôteliers."
-              : "Gérez vos biens résidentiels et hôteliers avec comptabilité connectée."
+              ? "Validez et publiez les annonces résidentielles et hôtelières soumises par les fournisseurs."
+              : "Gérez vos biens résidentiels et hôteliers. Vos annonces sont validées par l'administrateur avant publication."
             }
           </p>
         </div>
@@ -504,6 +553,32 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
           </button>
         </div>
       </div>
+
+      {/* Admin Alert Banner for Pending Approvals */}
+      {isAdmin && pendingCount > 0 && (
+        <div className="p-4 bg-orange-500/15 border border-orange-500/30 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3 text-orange-400">
+            <div className="p-2.5 bg-orange-500/20 rounded-xl">
+              <Clock size={24} className="text-orange-400 animate-pulse" />
+            </div>
+            <div>
+              <p className="font-bold text-white text-base">
+                {pendingCount} annonce(s) en attente de votre validation
+              </p>
+              <p className="text-xs text-orange-200/80 mt-0.5">
+                Des offres immobilières et hôtelières ont été déposées par les propriétaires/fournisseurs. Cliquez ci-contre pour les examiner et les valider en un clic.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setSelectedBranchFilter("pending")}
+            className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs rounded-xl transition-all shadow-md shrink-0 flex items-center gap-1.5"
+          >
+            <Clock size={14} />
+            <span>Examiner les annonces ({pendingCount})</span>
+          </button>
+        </div>
+      )}
 
       {/* Quick Stats: 3 distinct cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -585,6 +660,19 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
               <Hotel size={13} />
               <span>Hôtellerie ({hotelCount})</span>
             </button>
+            {pendingCount > 0 && (
+              <button
+                onClick={() => setSelectedBranchFilter("pending")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shrink-0 flex items-center gap-1.5 ${
+                  selectedBranchFilter === "pending"
+                    ? "bg-orange-600 text-white shadow-sm"
+                    : "bg-orange-500/15 text-orange-300 border border-orange-500/30 hover:bg-orange-500/25"
+                }`}
+              >
+                <Clock size={13} />
+                <span>En attente ({pendingCount})</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -639,16 +727,19 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
                     </td>
                     <td className="p-4">
                       {property.status === "PENDING_APPROVAL" ? (
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-orange-500/10 text-orange-500 uppercase tracking-wider">
-                          En attente
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold bg-orange-500/15 text-orange-400 border border-orange-500/30 uppercase tracking-wider">
+                          <Clock size={12} className="animate-pulse" />
+                          <span>En attente validation</span>
                         </span>
                       ) : property.status === "Disponible" ? (
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-green-500/10 text-green-500 uppercase tracking-wider">
-                          Publié
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold bg-green-500/15 text-green-400 border border-green-500/30 uppercase tracking-wider">
+                          <CheckCircle size={12} />
+                          <span>En ligne</span>
                         </span>
                       ) : property.status === "REJECTED" ? (
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-red-500/10 text-red-500 uppercase tracking-wider">
-                          Rejeté
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold bg-red-500/15 text-red-400 border border-red-500/30 uppercase tracking-wider">
+                          <XCircle size={12} />
+                          <span>Rejeté</span>
                         </span>
                       ) : (
                         <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-white/10 text-gray-300 uppercase tracking-wider">
@@ -664,17 +755,18 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
                         <>
                           <button 
                             onClick={() => handleApproveProperty(property)}
-                            title="Approuver et Publier"
-                            className="inline-flex p-2 bg-white/5 text-orange-500 hover:text-white rounded-lg hover:bg-green-500 transition-colors border border-transparent hover:border-green-500 mr-2"
+                            title="Approuver et Publier sur Rayon Immo"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-500 text-white rounded-lg text-xs font-bold transition-all shadow-sm mr-2"
                           >
-                            <CheckCircle size={18} />
+                            <CheckCircle size={14} />
+                            <span>Valider</span>
                           </button>
                           <button 
                             onClick={() => handleRejectProperty(property.id)}
-                            title="Rejeter"
-                            className="inline-flex p-2 bg-white/5 text-red-500 hover:text-white rounded-lg hover:bg-red-500 transition-colors border border-transparent hover:border-red-500 mr-2"
+                            title="Rejeter avec motif"
+                            className="inline-flex p-1.5 bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white rounded-lg transition-colors border border-red-500/30 mr-2"
                           >
-                            <XCircle size={18} />
+                            <XCircle size={16} />
                           </button>
                         </>
                       )}

@@ -284,6 +284,7 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
   const handleApproveProperty = async (property: any) => {
     if (!isAdmin) return;
     if (confirm("Approuver et publier ce bien immobilier ?")) {
+      let isSuccess = false;
       try {
         const response = await fetch("/api/properties/update-status", {
           method: "POST",
@@ -297,22 +298,46 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
         });
 
         const result = await response.json();
-        if (!result.success) throw new Error(result.error);
-
-        if (property.supplierId) {
-          // Push notification email/sms
-          fetch("/api/notifications", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              action: "PROPERTY_APPROVED",
-              supplierId: property.supplierId
-            })
-          }).catch(console.error);
+        if (result.success) {
+          isSuccess = true;
+        } else {
+          throw new Error(result.error);
         }
-      } catch (error: any) {
-        console.error("Error approving property: " + String(error));
-        alert("Erreur lors de l'approbation: " + (error?.message || "Erreur inconnue"));
+      } catch (apiError: any) {
+        console.warn("API status update failed, fallback to direct Firestore update:", apiError);
+        try {
+          await updateDoc(doc(db, "properties", property.id), {
+            status: "Disponible"
+          });
+          isSuccess = true;
+          if (property.supplierId) {
+            await addDoc(collection(db, "inapp_notifications"), {
+              supplierId: property.supplierId,
+              type: "property",
+              title: "Annonce Publiée",
+              message: `Félicitations, votre bien "${getTitle(property.title)}" est maintenant en ligne !`,
+              time: Date.now(),
+              link: "/supplier/properties",
+              read: false,
+              createdAt: serverTimestamp()
+            });
+          }
+        } catch (directError: any) {
+          console.error("Error approving property:", directError);
+          alert("Erreur lors de l'approbation: " + (apiError?.message || directError?.message));
+          return;
+        }
+      }
+
+      if (isSuccess && property.supplierId) {
+        fetch("/api/notifications", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "PROPERTY_APPROVED",
+            supplierId: property.supplierId
+          })
+        }).catch(console.error);
       }
     }
   };
@@ -321,8 +346,8 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
     if (!isAdmin) return;
     const reason = prompt("Motif de rejet (sera visible par le fournisseur) :");
     if (reason !== null) {
+      const prop = properties.find(p => p.id === id);
       try {
-        const prop = properties.find(p => p.id === id);
         const response = await fetch("/api/properties/update-status", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -337,10 +362,29 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
 
         const result = await response.json();
         if (!result.success) throw new Error(result.error);
-
-      } catch (error: any) {
-        console.error("Error rejecting property: " + String(error));
-        alert("Erreur lors du rejet: " + (error?.message || "Erreur inconnue"));
+      } catch (apiError: any) {
+        console.warn("API reject update failed, fallback to direct Firestore update:", apiError);
+        try {
+          await updateDoc(doc(db, "properties", id), {
+            status: "REJECTED",
+            rejectionReason: reason
+          });
+          if (prop?.supplierId) {
+            await addDoc(collection(db, "inapp_notifications"), {
+              supplierId: prop.supplierId,
+              type: "property",
+              title: "Annonce Rejetée",
+              message: `Votre bien "${getTitle(prop.title)}" a été rejeté. Motif : ${reason || "Non spécifié"}`,
+              time: Date.now(),
+              link: "/supplier/properties",
+              read: false,
+              createdAt: serverTimestamp()
+            });
+          }
+        } catch (directError: any) {
+          console.error("Error rejecting property:", directError);
+          alert("Erreur lors du rejet: " + (apiError?.message || directError?.message));
+        }
       }
     }
   };

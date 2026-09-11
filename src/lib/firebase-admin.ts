@@ -8,7 +8,13 @@ export function initFirebaseAdmin() {
   if (!getApps().length) {
     try {
       if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-        const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+        let saStr = process.env.FIREBASE_SERVICE_ACCOUNT_KEY.trim();
+        if (!saStr.startsWith('{')) {
+          try {
+            saStr = Buffer.from(saStr, 'base64').toString('utf-8');
+          } catch (e) {}
+        }
+        const serviceAccount = JSON.parse(saStr);
         initializeApp({
           credential: cert(serviceAccount),
         });
@@ -18,28 +24,34 @@ export function initFirebaseAdmin() {
            throw new Error(`FIREBASE_PRIVATE_KEY is missing. Found keys: ${keys}`);
         }
         let privateKey = process.env.FIREBASE_PRIVATE_KEY || '';
+
+        // Check if private key is base64 encoded
+        if (!privateKey.includes('-----BEGIN') && privateKey.length > 100) {
+          try {
+            const decoded = Buffer.from(privateKey, 'base64').toString('utf-8');
+            if (decoded.includes('-----BEGIN')) {
+              privateKey = decoded;
+            }
+          } catch (e) {}
+        }
         
         // Remove surrounding quotes if any
         if (privateKey.startsWith('"') && privateKey.endsWith('"')) privateKey = privateKey.slice(1, -1);
         if (privateKey.startsWith("'") && privateKey.endsWith("'")) privateKey = privateKey.slice(1, -1);
 
-        // Extract and reconstruct the PEM completely to avoid any formatting issues
+        // Replace literal \n
+        privateKey = privateKey.replace(/\\n/g, '\n');
+
         const beginHeader = "-----BEGIN PRIVATE KEY-----";
         const endHeader = "-----END PRIVATE KEY-----";
         
-        if (privateKey.includes(beginHeader) && privateKey.includes(endHeader)) {
-          const body = privateKey
-            .substring(privateKey.indexOf(beginHeader) + beginHeader.length, privateKey.indexOf(endHeader))
-            .replace(/\\n/g, "")
-            .replace(/\s+/g, ""); // remove all whitespace and literal \n
-            
-          const match = body.match(/.{1,64}/g);
+        if (!privateKey.includes(beginHeader)) {
+          // If the raw key was provided without PEM headers, wrap it
+          const cleaned = privateKey.replace(/\s+/g, '');
+          const match = cleaned.match(/.{1,64}/g);
           if (match) {
             privateKey = `${beginHeader}\n${match.join('\n')}\n${endHeader}\n`;
           }
-        } else {
-          // Fallback if it doesn't contain headers (which it should)
-          privateKey = privateKey.replace(/\\n/g, '\n');
         }
         
         initializeApp({

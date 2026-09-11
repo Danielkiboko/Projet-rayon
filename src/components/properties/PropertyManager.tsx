@@ -129,7 +129,7 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
     setEditingId(null);
     setPropertyTitle("");
     setPropertyType("");
-    setTypeTransaction("Vente");
+    setTypeTransaction("À Vendre");
     setPropertyPrice("");
     setPropertyLocation("");
     setPropertyCoords(null);
@@ -226,10 +226,21 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
     if (!user) return;
     setIsProcessing(true);
 
+    // Normalisation en amont du type de transaction
+    let normalizedTransaction = typeTransaction || "À Vendre";
+    const tLower = (typeTransaction || "").toLowerCase().trim();
+    if (propertyType === "hotel") {
+      normalizedTransaction = "Réservation / Nuitée";
+    } else if (tLower.includes("vent") || tLower.includes("vendre") || tLower === "sale") {
+      normalizedTransaction = "À Vendre";
+    } else if (tLower.includes("locat") || tLower.includes("lou") || tLower === "rent") {
+      normalizedTransaction = "À Louer";
+    }
+
     const propertyData = {
       title: { fr: propertyTitle, en: propertyTitle }, // Simulating i18n
       type: propertyType,
-      typeTransaction,
+      typeTransaction: normalizedTransaction,
       price: parseFloat(propertyPrice.toString().replace(/[^0-9.]/g, '') || "0"),
       location: propertyLocation,
       description: propertyDesc,
@@ -660,23 +671,28 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
                     </select>
                   </div>
                   <div className="space-y-1">
-                    <label className="text-sm font-medium text-gray-300">Statut / Transaction</label>
-                    <input
-                      type="text"
+                    <label className="text-sm font-medium text-gray-300">Statut / Type de Transaction</label>
+                    <select
                       required
                       value={typeTransaction}
                       onChange={(e) => setTypeTransaction(e.target.value)}
-                      placeholder="Ex: Réservation / Nuitée, À Louer..."
-                      list="transaction-types"
                       className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white"
-                    />
-                    <datalist id="transaction-types">
-                      <option value="Réservation / Nuitée" />
-                      <option value="Location Journalière" />
-                      <option value="À Louer" />
-                      <option value="À Vendre" />
-                      <option value="Colocation" />
-                    </datalist>
+                    >
+                      {propertyType === "hotel" ? (
+                        <>
+                          <option value="Réservation / Nuitée">🏨 Réservation / Nuitée (Hôtellerie)</option>
+                          <option value="Location Journalière">Location Journalière</option>
+                        </>
+                      ) : (
+                        <>
+                          <option value="À Louer">À Louer (Location)</option>
+                          <option value="À Vendre">À Vendre (Vente)</option>
+                          <option value="Réservation / Nuitée">Réservation / Nuitée (Hôtellerie)</option>
+                          <option value="Location Journalière">Location Journalière</option>
+                          <option value="Colocation">Colocation</option>
+                        </>
+                      )}
+                    </select>
                   </div>
                 </div>
 

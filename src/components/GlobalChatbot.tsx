@@ -58,16 +58,17 @@ export function GlobalChatbot() {
   const handlePayDelivery = async (msg: any) => {
     if (!user) return;
     
-    // Pour l'instant, on simule un paiement réussi instantané
-    // Plus tard: Intégrer l'API Makuta
-    alert("Redirection vers le paiement Makuta pour la livraison (3$)...");
+    const isHotel = msg.proforma?.type === 'hotel';
+    
+    if (isHotel) {
+      alert(`Validation de votre réservation de séjour (${msg.proforma.price}$)...`);
+    } else {
+      alert("Redirection vers le paiement Makuta pour la livraison (3$)...");
+    }
     
     try {
       const orderId = `ord_${Date.now()}`;
       
-      // 1. Mettre à jour le statut du message proforma dans Firebase
-      // => On doit trouver le document du message
-      // En réalité, msg.id existe car on l'a fetch
       const currentChatRef = selectedChatId || (activeProduct ? userChats.find(c => c.productId === activeProduct.id)?.id : null);
       if (currentChatRef) {
         await updateDoc(doc(db, "chats", currentChatRef, "messages", msg.id), {
@@ -76,7 +77,22 @@ export function GlobalChatbot() {
         });
       }
       
-      // 2. Créer une nouvelle commande "pending_driver"
+      if (isHotel) {
+        // Enregistrer la réservation hôtelière confirmée
+        await addDoc(collection(db, "hotel_bookings"), {
+          propertyTitle: msg.proforma.productName,
+          supplierId: msg.senderId,
+          clientId: user.uid,
+          nightsCount: msg.proforma.quantity,
+          totalPrice: msg.proforma.price,
+          status: "CONFIRMED",
+          createdAt: serverTimestamp()
+        });
+        alert("Réservation confirmée avec succès ! L'établissement a été notifié.");
+        return;
+      }
+
+      // 2. Créer une nouvelle commande "pending_driver" pour e-commerce
       await setDoc(doc(db, "orders", orderId), {
         id: orderId,
         clientId: user.uid,
@@ -119,7 +135,7 @@ export function GlobalChatbot() {
       
     } catch (error) {
       console.error("Erreur de paiement", error);
-      alert("Erreur lors du paiement.");
+      alert("Erreur lors de la confirmation.");
     }
   };
 
@@ -241,6 +257,10 @@ export function GlobalChatbot() {
         updateData.supplierId = activeProduct.supplierId;
         updateData.propertyId = activeProduct.id; // generic ID
         updateData.productName = activeProduct.name;
+        if (activeProduct.type === "hotel") {
+          updateData.isHotel = true;
+          updateData.propertyTitle = activeProduct.name;
+        }
       }
 
       await setDoc(chatDocRef, updateData, { merge: true });
@@ -279,14 +299,17 @@ export function GlobalChatbot() {
   // Header Title
   let headerTitle = "Mes Discussions";
   let headerSubtitle = "Discutez avec nos fournisseurs";
+  let isHotelChat = false;
   if (activeProduct) {
-    headerTitle = activeProduct.name;
-    headerSubtitle = "Nouveau message";
+    isHotelChat = activeProduct.type === "hotel";
+    headerTitle = (isHotelChat ? "🏨 " : "") + activeProduct.name;
+    headerSubtitle = isHotelChat ? "Séjour & Réservation hôtelière" : "Nouveau message";
   } else if (selectedChatId) {
     const chat = userChats.find(c => c.id === selectedChatId);
     if (chat) {
-      headerTitle = chat.productName || chat.propertyTitle || "Discussion";
-      headerSubtitle = "En ligne";
+      isHotelChat = Boolean(chat.isHotel || chat.propertyTitle?.toLowerCase().includes("hotel"));
+      headerTitle = (isHotelChat ? "🏨 " : "") + (chat.productName || chat.propertyTitle || "Discussion");
+      headerSubtitle = isHotelChat ? "Réception & Réservation" : "En ligne";
     }
   }
 
@@ -415,25 +438,29 @@ export function GlobalChatbot() {
             </div>
           ) : (
             <div className="space-y-2">
-              {userChats.map(chat => (
-                <button
-                  key={chat.id}
-                  onClick={() => setSelectedChatId(chat.id)}
-                  className="w-full text-left bg-white p-3 rounded-xl border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all flex flex-col"
-                >
-                  <div className="flex justify-between items-start mb-1">
-                    <h5 className="font-bold text-sm text-gray-900 truncate pr-2">
-                      {chat.productName || chat.propertyTitle || "Produit sans nom"}
-                    </h5>
-                    {chat.unreadClient && (
-                      <span className="w-2.5 h-2.5 bg-red-500 rounded-full shrink-0"></span>
-                    )}
-                  </div>
-                  <p className="text-xs text-gray-500 truncate">
-                    {chat.lastMessage || "Nouvelle conversation"}
-                  </p>
-                </button>
-              ))}
+              {userChats.map(chat => {
+                const isChatHotel = Boolean(chat.isHotel || chat.propertyTitle?.toLowerCase().includes("hotel"));
+                return (
+                  <button
+                    key={chat.id}
+                    onClick={() => setSelectedChatId(chat.id)}
+                    className="w-full text-left bg-white p-3 rounded-xl border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all flex flex-col"
+                  >
+                    <div className="flex justify-between items-start mb-1">
+                      <h5 className="font-bold text-sm text-gray-900 truncate pr-2 flex items-center gap-1.5">
+                        {isChatHotel && <span className="text-sm">🏨</span>}
+                        <span className="truncate">{chat.productName || chat.propertyTitle || "Discussion"}</span>
+                      </h5>
+                      {chat.unreadClient && (
+                        <span className="w-2.5 h-2.5 bg-red-500 rounded-full shrink-0"></span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 truncate">
+                      {chat.lastMessage || "Nouvelle conversation"}
+                    </p>
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
@@ -448,34 +475,37 @@ export function GlobalChatbot() {
             ) : (
               messages.map(msg => {
                 const isMe = msg.senderId === user?.uid;
+                const isHotelProforma = msg.proforma?.type === 'hotel';
                 return (
                   <div key={msg.id} className={`flex flex-col max-w-[85%] ${isMe ? 'self-end' : 'self-start'}`}>
                     <div className={`p-3 rounded-2xl text-sm ${isMe ? 'bg-gray-900 text-white rounded-br-sm' : (msg.type === 'proforma' ? 'bg-white border-2 border-gray-900 text-gray-900 rounded-bl-sm' : 'bg-white border border-gray-200 text-gray-900 rounded-bl-sm')}`}>
                       {msg.type === 'proforma' && msg.proforma ? (
                         <div className="flex flex-col space-y-2 min-w-[200px]">
                           <div className="font-bold border-b border-gray-200 pb-2 mb-1 flex items-center justify-between">
-                            <span>📄 Offre Proforma</span>
-                            {msg.proforma.status === 'paid' && <span className="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded font-bold">Payé</span>}
+                            <span>{isHotelProforma ? '🏨 Devis Séjour Hôtel' : '📄 Offre Proforma'}</span>
+                            {msg.proforma.status === 'paid' && <span className="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded font-bold">Confirmé</span>}
                             {msg.proforma.status === 'pending' && <span className="bg-orange-100 text-orange-800 text-xs px-2 py-0.5 rounded font-bold">En attente</span>}
                           </div>
                           <p className="font-semibold text-base">{msg.proforma.productName}</p>
                           <div className="flex justify-between text-xs text-gray-600">
-                            <span>Quantité:</span>
+                            <span>{isHotelProforma ? 'Nuitées / Séjour :' : 'Quantité :'}</span>
                             <span className="font-medium text-gray-900">{msg.proforma.quantity}</span>
                           </div>
                           <div className="flex justify-between text-xs text-gray-600">
-                            <span>Prix Total Prod.:</span>
+                            <span>{isHotelProforma ? 'Montant Total Séjour :' : 'Prix Total Prod. :'}</span>
                             <span className="font-medium text-gray-900">{msg.proforma.price} $</span>
                           </div>
-                          <div className="flex justify-between text-xs text-gray-600">
-                            <span>Frais Livraison:</span>
-                            <span className="font-medium text-gray-900">{msg.proforma.deliveryFee} $</span>
-                          </div>
+                          {!isHotelProforma && (
+                            <div className="flex justify-between text-xs text-gray-600">
+                              <span>Frais Livraison:</span>
+                              <span className="font-medium text-gray-900">{msg.proforma.deliveryFee} $</span>
+                            </div>
+                          )}
                           
                           <div className="mt-3 pt-3 border-t border-gray-200">
                             <div className="flex justify-between font-bold mb-3">
-                              <span>À Payer Maintenant (Livraison):</span>
-                              <span>{msg.proforma.deliveryFee} $</span>
+                              <span>{isHotelProforma ? 'Total à Régler :' : 'À Payer Maintenant (Livraison):'}</span>
+                              <span>{isHotelProforma ? `${msg.proforma.price} $` : `${msg.proforma.deliveryFee} $`}</span>
                             </div>
                             
                             {msg.proforma.status === 'pending' && (
@@ -483,14 +513,18 @@ export function GlobalChatbot() {
                                 onClick={() => handlePayDelivery(msg)}
                                 className="w-full bg-gray-900 text-white py-2 rounded-lg font-medium hover:bg-gray-800 transition-colors flex items-center justify-center shadow-sm"
                               >
-                                Payer la Livraison
+                                {isHotelProforma ? 'Confirmer la Réservation' : 'Payer la Livraison'}
                               </button>
                             )}
                             
                             {msg.proforma.status === 'paid' && (
                               <div className="flex flex-col space-y-2 text-center mt-2">
-                                <p className="text-xs text-green-600 font-medium">Livraison payée. Le livreur est en route ! Le produit sera payé à la livraison.</p>
-                                {msg.proforma.orderId && (
+                                <p className="text-xs text-green-600 font-medium">
+                                  {isHotelProforma 
+                                    ? 'Réservation confirmée avec succès auprès de l\'hôtel !' 
+                                    : 'Livraison payée. Le livreur est en route ! Le produit sera payé à la livraison.'}
+                                </p>
+                                {msg.proforma.orderId && !isHotelProforma && (
                                   <a href={`/order/${msg.proforma.orderId}/tracking`} className="w-full bg-gray-100 text-gray-900 py-2 rounded-lg font-medium text-sm hover:bg-gray-200 transition-colors">
                                     Suivre la livraison
                                   </a>

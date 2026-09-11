@@ -6,6 +6,7 @@ interface ProductInfo {
   id: string;
   supplierId: string;
   name: string;
+  type?: string;
 }
 
 interface ChatContextType {

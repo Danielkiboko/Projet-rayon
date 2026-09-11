@@ -83,10 +83,18 @@ export default function ImmoPage() {
   }, []);
 
   const filteredProducts = products.filter(property => {
+    const t = (property.typeTransaction || "").toLowerCase().trim();
+    const type = (property.type || "").toLowerCase().trim();
+    const isHotel = type === "hotel" || t.includes("hotel") || t.includes("nuit") || t.includes("réservation") || t.includes("reservation") || t.includes("journali") || !!property.hotelDetails;
+
     if (selectedCategory === "all") return true;
-    if (selectedCategory === "sale") return property.typeTransaction === "À Vendre";
-    if (selectedCategory === "rent") return property.typeTransaction === "À Louer" || property.typeTransaction === "Colocation";
-    if (selectedCategory === "hotel") return property.type === "hotel" || property.typeTransaction === "Réservation / Nuitée" || property.typeTransaction === "Location Journalière";
+    if (selectedCategory === "hotel") return isHotel;
+    if (selectedCategory === "sale") {
+      return !isHotel && (t.includes("vent") || t.includes("vendre") || t === "sale");
+    }
+    if (selectedCategory === "rent") {
+      return !isHotel && (t.includes("locat") || t.includes("lou") || t.includes("coloc") || t === "rent");
+    }
     return true;
   });
 
@@ -146,10 +154,12 @@ export default function ImmoPage() {
           <button 
             onClick={() => setSelectedCategory("hotel")}
             className={`px-5 py-2 font-semibold rounded-full text-sm transition-all whitespace-nowrap flex items-center gap-1.5 ${
-              selectedCategory === "hotel" ? "bg-amber-600 text-white shadow-md" : "bg-white border border-amber-200 text-amber-700 hover:bg-amber-50"
+              selectedCategory === "hotel" 
+                ? "bg-gray-900 text-white shadow-md" 
+                : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300"
             }`}
           >
-            <Hotel size={16} />
+            <Hotel size={16} className={selectedCategory === "hotel" ? "text-amber-400" : "text-amber-600"} />
             <span>{t.hotels}</span>
           </button>
           <button 
@@ -188,7 +198,10 @@ export default function ImmoPage() {
             </div>
           ) : (
             filteredProducts.map((property, idx) => {
-              const isHotel = property.type === "hotel";
+              const t = (property.typeTransaction || "").toLowerCase().trim();
+              const isHotel = property.type === "hotel" || t.includes("hotel") || t.includes("nuit") || t.includes("réservation") || t.includes("reservation") || t.includes("journali") || !!property.hotelDetails;
+              const isSale = !isHotel && (t.includes("vent") || t.includes("vendre") || t === "sale");
+
               return (
                 <motion.div
                   key={property.id}
@@ -206,24 +219,33 @@ export default function ImmoPage() {
                     />
                     <div className="absolute top-4 left-4">
                       {isHotel ? (
-                        <span className="px-3 py-1 text-xs font-bold tracking-wider rounded-lg uppercase bg-amber-500 text-white border border-amber-400 backdrop-blur-md shadow-md flex items-center gap-1">
-                          <Hotel size={14} />
-                          {property.hotelDetails?.stars && !isNaN(parseInt(property.hotelDetails.stars)) 
-                            ? `${property.hotelDetails.stars}★ Hôtel`
-                            : (property.hotelDetails?.stars === "boutique" ? "Hôtel Boutique" : "Résidence Hôtelière")}
+                        <span className="px-3 py-1.5 text-xs font-bold tracking-wider rounded-xl uppercase bg-black/85 text-white border border-white/20 backdrop-blur-md shadow-lg flex items-center gap-1.5">
+                          <Hotel size={13} className="text-amber-400" />
+                          {property.hotelDetails?.stars && !isNaN(parseInt(property.hotelDetails.stars)) ? (
+                            <>
+                              <span className="text-amber-400 font-bold">{property.hotelDetails.stars}★</span>
+                              <span className="text-gray-100 font-semibold tracking-wider">HÔTEL</span>
+                            </>
+                          ) : property.hotelDetails?.stars === "boutique" ? (
+                            <span className="text-amber-300 font-semibold tracking-wider">HÔTEL BOUTIQUE</span>
+                          ) : (
+                            <span className="text-emerald-300 font-semibold tracking-wider">RÉSIDENCE HÔTELIÈRE</span>
+                          )}
                         </span>
                       ) : (
-                        <span className={`px-3 py-1 text-xs font-bold tracking-wider rounded border uppercase ${
-                          property.typeTransaction === "Vente" ? "bg-white/90 text-green-700 border-green-200" : "bg-white/90 text-blue-700 border-blue-200"
-                        } backdrop-blur-md shadow-sm`}>
-                          {property.typeTransaction || "Vente"}
+                        <span className={`px-3 py-1.5 text-xs font-bold tracking-wider rounded-xl border uppercase backdrop-blur-md shadow-sm ${
+                          isSale 
+                            ? "bg-white/95 text-emerald-800 border-emerald-200/80" 
+                            : "bg-white/95 text-blue-800 border-blue-200/80"
+                        }`}>
+                          {isSale ? "À Vendre" : "À Louer"}
                         </span>
                       )}
                     </div>
                     <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
                       <div className="text-2xl font-bold text-white drop-shadow-md flex items-baseline gap-1">
                         $ {property.price?.toLocaleString()}
-                        {isHotel && <span className="text-sm font-normal text-amber-200">/ nuit</span>}
+                        {isHotel && <span className="text-sm font-normal text-gray-300">/ nuitée</span>}
                       </div>
                     </div>
                   </div>
@@ -309,13 +331,15 @@ export default function ImmoPage() {
                           setIsContactModalOpen(true);
                         }}
                         className={`flex-1 py-3 text-white text-sm font-bold rounded-xl transition-all flex items-center justify-center space-x-2 shadow-sm ${
-                          isHotel ? "bg-amber-600 hover:bg-amber-700" : "bg-gray-900 hover:bg-gray-800"
+                          isHotel 
+                            ? "bg-gradient-to-r from-gray-900 via-neutral-900 to-black hover:bg-black border border-amber-500/30" 
+                            : "bg-gray-900 hover:bg-gray-800"
                         }`}
                       >
                         {isHotel ? (
                           <>
-                            <CalendarCheck size={16} />
-                            <span>Réserver une chambre</span>
+                            <CalendarCheck size={16} className="text-amber-400" />
+                            <span>Réserver une nuitée</span>
                           </>
                         ) : (
                           <>
@@ -330,10 +354,11 @@ export default function ImmoPage() {
                           openChatForProduct({
                             id: property.id,
                             supplierId: property.supplierId || "admin",
-                            name: property.title?.[lang] || property.title?.fr || property.title
+                            name: property.title?.[lang] || property.title?.fr || property.title,
+                            type: isHotel ? "hotel" : "property"
                           });
                         }}
-                        title="Discuter directement"
+                        title={isHotel ? "Contacter l'hôtel" : "Discuter directement"}
                         className="p-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl transition-colors shrink-0"
                       >
                         <MessageSquare size={16} />

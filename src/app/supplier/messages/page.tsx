@@ -13,6 +13,7 @@ type Chat = {
   supplierId: string;
   propertyTitle?: string;
   productName?: string;
+  isHotel?: boolean;
   lastMessage: string;
   updatedAt: any;
 };
@@ -29,6 +30,7 @@ type ChatMessage = {
     quantity: number;
     price: number;
     deliveryFee: number;
+    type?: 'hotel' | 'product';
     status: 'pending' | 'paid' | 'delivered';
   };
 };
@@ -106,30 +108,37 @@ export default function SupplierMessagesPage() {
     }
   };
 
+  const activeChat = chats.find(c => c.id === activeChatId);
+  const isHotelChat = Boolean(
+    activeChat?.isHotel ||
+    activeChat?.propertyTitle?.toLowerCase().includes("hotel") ||
+    activeChat?.productName?.toLowerCase().includes("hotel")
+  );
+
   const handleSendProforma = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !activeChatId) return;
-
-    const activeChat = chats.find(c => c.id === activeChatId);
     
     try {
+      const isHotel = isHotelChat;
       await addDoc(collection(db, "chats", activeChatId, "messages"), {
-        text: "Facture Proforma (Offre)",
+        text: isHotel ? "Devis / Réservation Séjour Hôtel" : "Facture Proforma (Offre)",
         senderId: activeSupplierId,
         createdAt: serverTimestamp(),
         type: 'proforma',
         proforma: {
           productId: activeChat?.propertyTitle ? null : (activeChat?.productName || "Produit"),
-          productName: activeChat?.propertyTitle || activeChat?.productName || "Produit",
+          productName: activeChat?.propertyTitle || activeChat?.productName || (isHotel ? "Séjour Hôtel" : "Produit"),
           quantity: proformaQuantity,
           price: proformaPrice,
-          deliveryFee: 3, // $3 fixe pour la livraison selon les règles
+          deliveryFee: isHotel ? 0 : 3, // $0 pour hôtel, $3 fixe pour e-commerce
+          type: isHotel ? 'hotel' : 'product',
           status: 'pending'
         }
       });
       
       await updateDoc(doc(db, "chats", activeChatId), {
-        lastMessage: "📄 Nouveau Proforma envoyé",
+        lastMessage: isHotel ? "🏨 Devis Séjour envoyé" : "📄 Nouveau Proforma envoyé",
         updatedAt: serverTimestamp()
       });
       
@@ -166,25 +175,30 @@ export default function SupplierMessagesPage() {
               </div>
             ) : (
               <div className="divide-y divide-white/5">
-                {chats.map(chat => (
-                  <button
-                    key={chat.id}
-                    onClick={() => setActiveChatId(chat.id)}
-                    className={`w-full p-4 text-left transition-colors flex items-center space-x-3 hover:bg-white/5 ${
-                      activeChatId === chat.id ? "bg-white/10 border-l-4 border-primary" : "border-l-4 border-transparent"
-                    }`}
-                  >
-                    <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary-light flex-shrink-0">
-                      <User size={18} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-white truncate">
-                        {chat.propertyTitle ? `Bien: ${chat.propertyTitle}` : chat.productName ? `Produit: ${chat.productName}` : `Client: ${chat.clientId.substring(0,6)}...`}
-                      </p>
-                      <p className="text-xs text-gray-400 truncate mt-0.5">{chat.lastMessage || "Nouveau message"}</p>
-                    </div>
-                  </button>
-                ))}
+                {chats.map(chat => {
+                  const isChatHotel = chat.isHotel || chat.propertyTitle?.toLowerCase().includes("hotel") || chat.productName?.toLowerCase().includes("hotel");
+                  return (
+                    <button
+                      key={chat.id}
+                      onClick={() => setActiveChatId(chat.id)}
+                      className={`w-full p-4 text-left transition-colors flex items-center space-x-3 hover:bg-white/5 ${
+                        activeChatId === chat.id ? "bg-white/10 border-l-4 border-primary" : "border-l-4 border-transparent"
+                      }`}
+                    >
+                      <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary-light flex-shrink-0">
+                        {isChatHotel ? <span className="text-base">🏨</span> : <User size={18} />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-white truncate">
+                          {isChatHotel 
+                            ? `Hôtel: ${chat.propertyTitle || chat.productName}` 
+                            : (chat.propertyTitle ? `Bien: ${chat.propertyTitle}` : chat.productName ? `Produit: ${chat.productName}` : `Client: ${chat.clientId.substring(0,6)}...`)}
+                        </p>
+                        <p className="text-xs text-gray-400 truncate mt-0.5">{chat.lastMessage || "Nouveau message"}</p>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -203,13 +217,25 @@ export default function SupplierMessagesPage() {
           ) : (
             <>
               {/* Chat Header */}
-              <div className="p-4 border-b border-white/10 bg-black/20 flex items-center">
-                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary-light mr-3">
-                  <User size={16} />
+              <div className="p-4 border-b border-white/10 bg-black/20 flex items-center justify-between">
+                <div className="flex items-center">
+                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary-light mr-3">
+                    {isHotelChat ? <span className="text-sm">🏨</span> : <User size={16} />}
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-white">Client {activeChat?.clientId.substring(0,6)}...</p>
+                    <p className="text-xs text-gray-400">
+                      {isHotelChat 
+                        ? `Séjour Hôtelier : ${activeChat?.propertyTitle || activeChat?.productName}` 
+                        : (activeChat?.propertyTitle ? `Bien : ${activeChat?.propertyTitle}` : activeChat?.productName ? `Produit : ${activeChat?.productName}` : "Discussion active")}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-bold text-white">Client {chats.find(c => c.id === activeChatId)?.clientId.substring(0,6)}...</p>
-                </div>
+                {isHotelChat && (
+                  <span className="text-xs px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/20 font-medium flex items-center gap-1">
+                    🏨 Hôtellerie
+                  </span>
+                )}
               </div>
 
               {/* Messages History */}
@@ -245,26 +271,28 @@ export default function SupplierMessagesPage() {
                           {msg.type === 'proforma' && msg.proforma ? (
                             <div className="flex flex-col space-y-2 min-w-[200px]">
                               <div className="font-bold border-b border-white/20 pb-1 mb-1 flex items-center justify-between">
-                                <span>📄 Proforma</span>
-                                {msg.proforma.status === 'paid' && <span className="bg-green-500 text-white text-xs px-2 py-0.5 rounded">Payé</span>}
+                                <span>{msg.proforma.type === 'hotel' ? '🏨 Devis Séjour Hôtel' : '📄 Proforma'}</span>
+                                {msg.proforma.status === 'paid' && <span className="bg-green-500 text-white text-xs px-2 py-0.5 rounded">Confirmé</span>}
                                 {msg.proforma.status === 'pending' && <span className="bg-orange-500 text-white text-xs px-2 py-0.5 rounded">En attente</span>}
                               </div>
                               <p className="font-semibold">{msg.proforma.productName}</p>
                               <div className="flex justify-between text-xs opacity-90">
-                                <span>Quantité:</span>
+                                <span>{msg.proforma.type === 'hotel' ? 'Nuitées :' : 'Quantité :'}</span>
                                 <span>{msg.proforma.quantity}</span>
                               </div>
                               <div className="flex justify-between text-xs opacity-90">
-                                <span>Prix total prod.:</span>
+                                <span>{msg.proforma.type === 'hotel' ? 'Tarif total séjour :' : 'Prix total prod. :'}</span>
                                 <span>{msg.proforma.price} $</span>
                               </div>
-                              <div className="flex justify-between text-xs opacity-90">
-                                <span>Frais Livraison:</span>
-                                <span>{msg.proforma.deliveryFee} $</span>
-                              </div>
+                              {msg.proforma.type !== 'hotel' && (
+                                <div className="flex justify-between text-xs opacity-90">
+                                  <span>Frais Livraison:</span>
+                                  <span>{msg.proforma.deliveryFee} $</span>
+                                </div>
+                              )}
                               <div className="flex justify-between font-bold border-t border-white/20 pt-1 mt-1">
-                                <span>À Payer Maintenant (Livraison):</span>
-                                <span>{msg.proforma.deliveryFee} $</span>
+                                <span>{msg.proforma.type === 'hotel' ? 'Total Séjour :' : 'À Payer Maintenant (Livraison):'}</span>
+                                <span>{msg.proforma.type === 'hotel' ? `${msg.proforma.price} $` : `${msg.proforma.deliveryFee} $`}</span>
                               </div>
                             </div>
                           ) : (
@@ -282,7 +310,9 @@ export default function SupplierMessagesPage() {
                 {showProformaForm && (
                   <form onSubmit={handleSendProforma} className="bg-white/5 p-4 rounded-xl border border-primary/30 flex gap-4 items-end animate-fade-in">
                     <div className="flex-1">
-                      <label className="block text-xs text-gray-400 mb-1">Quantité</label>
+                      <label className="block text-xs text-gray-400 mb-1">
+                        {isHotelChat ? "Nombre de Nuitées" : "Quantité"}
+                      </label>
                       <input 
                         type="number" 
                         min="1" 
@@ -293,7 +323,9 @@ export default function SupplierMessagesPage() {
                       />
                     </div>
                     <div className="flex-1">
-                      <label className="block text-xs text-gray-400 mb-1">Prix Négocié ($)</label>
+                      <label className="block text-xs text-gray-400 mb-1">
+                        {isHotelChat ? "Tarif Total Séjour ($)" : "Prix Négocié ($)"}
+                      </label>
                       <input 
                         type="number" 
                         min="0" 
@@ -303,8 +335,8 @@ export default function SupplierMessagesPage() {
                         required 
                       />
                     </div>
-                    <button type="submit" className="bg-primary hover:bg-primary-light text-white px-4 py-2 rounded font-medium h-[42px]">
-                      Envoyer Proforma
+                    <button type="submit" className="bg-primary hover:bg-primary-light text-white px-4 py-2 rounded font-medium h-[42px] whitespace-nowrap">
+                      {isHotelChat ? "Envoyer Devis Séjour" : "Envoyer Proforma"}
                     </button>
                     <button type="button" onClick={() => setShowProformaForm(false)} className="text-gray-400 hover:text-white px-2 h-[42px]">
                       Annuler
@@ -316,17 +348,17 @@ export default function SupplierMessagesPage() {
                   <button
                     type="button"
                     onClick={() => setShowProformaForm(!showProformaForm)}
-                    className="bg-white/10 hover:bg-white/20 text-white p-3 rounded-xl transition-colors border border-white/10 flex items-center justify-center"
-                    title="Générer Proforma"
+                    className="bg-white/10 hover:bg-white/20 text-white p-3 rounded-xl transition-colors border border-white/10 flex items-center justify-center text-base"
+                    title={isHotelChat ? "Générer Devis Séjour Hôtel" : "Générer Proforma"}
                   >
-                    📄
+                    {isHotelChat ? "🏨" : "📄"}
                   </button>
                   <form onSubmit={handleSendMessage} className="flex flex-1 space-x-2">
                     <input
                       type="text"
                       value={newChatMessage}
                       onChange={(e) => setNewChatMessage(e.target.value)}
-                      placeholder="Écrivez votre message..."
+                      placeholder={isHotelChat ? "Répondre au client pour son séjour..." : "Écrivez votre message..."}
                       className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary placeholder-gray-500 transition-all"
                     />
                     <button

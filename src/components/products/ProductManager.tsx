@@ -89,27 +89,28 @@ export default function ProductManager({ isAdmin }: ProductManagerProps) {
         setIsLoading(false);
       });
     } else {
-      // Supplier: Fetch only their products
-      const fetchSupplierProducts = async () => {
-        try {
-          const q = query(collection(db, "products"), where("supplierId", "==", activeSupplierId));
-          const snapshot = await getDocs(q);
-          const prods: any[] = [];
-          snapshot.forEach(docSnap => prods.push({ id: docSnap.id, ...docSnap.data() }));
-          setProducts(prods);
-        } catch (error) {
-          console.error("Error fetching products", error);
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      fetchSupplierProducts();
+      // Supplier: Fetch only their products, real-time with onSnapshot
+      const q = query(collection(db, "products"), where("supplierId", "==", activeSupplierId));
+      unsubscribe = onSnapshot(q, (snapshot) => {
+        const prods: any[] = [];
+        snapshot.forEach(docSnap => prods.push({ id: docSnap.id, ...docSnap.data() }));
+        prods.sort((a, b) => {
+          const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt?.seconds ? a.createdAt.seconds * 1000 : 0);
+          const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt?.seconds ? b.createdAt.seconds * 1000 : 0);
+          return timeB - timeA;
+        });
+        setProducts(prods);
+        setIsLoading(false);
+      }, (error) => {
+        console.error("Error fetching supplier products:", error);
+        setIsLoading(false);
+      });
     }
 
     return () => {
-      if (isAdmin) unsubscribe();
+      unsubscribe();
     };
-  }, [user, isAdmin]);
+  }, [user, isAdmin, activeSupplierId]);
 
   const resetForm = () => {
     setEditingId(null);
@@ -125,9 +126,11 @@ export default function ProductManager({ isAdmin }: ProductManagerProps) {
 
   const openAddModal = () => {
     resetForm();
-    const activeRayon = localStorage.getItem("activeSupplierRayon");
-    if (activeRayon) {
+    const activeRayon = typeof window !== "undefined" ? localStorage.getItem("activeSupplierRayon") : null;
+    if (activeRayon && (activeRayon === "mode" || activeRayon === "connect" || activeRayon === "immo")) {
       setProductCategory(activeRayon);
+    } else if (Array.isArray(userData?.assignedRayons) && userData.assignedRayons.length > 0) {
+      setProductCategory(userData.assignedRayons[0]);
     } else if (userData) {
       const defaultType = getSupplierType(userData);
       setProductCategory(defaultType);
@@ -168,9 +171,18 @@ export default function ProductManager({ isAdmin }: ProductManagerProps) {
     if (!user) return;
     setIsProcessing(true);
 
+    const normalizedCategory = (() => {
+      const c = (productCategory || "").toLowerCase().trim();
+      if (c.includes("mode") || c.includes("vetement") || c.includes("vêtement") || c.includes("habit") || c.includes("chaussure") || c.includes("accessoire")) return "mode";
+      if (c.includes("connect") || c.includes("electr") || c.includes("électr") || c.includes("tech") || c.includes("telecom") || c.includes("télécom") || c.includes("phone")) return "connect";
+      if (c.includes("immo")) return "immo";
+      return c || "general";
+    })();
+
     const productData = {
       title: { fr: productTitle, en: productTitle }, // Unified Data Model
-      category: productCategory,
+      category: normalizedCategory,
+      rayon: normalizedCategory,
       price: parseFloat(productPrice),
       stock: parseInt(productStock || "0", 10),
       description: productDesc,
@@ -184,20 +196,12 @@ export default function ProductManager({ isAdmin }: ProductManagerProps) {
         await addDoc(collection(db, "products"), {
           ...productData,
           supplierId: activeSupplierId,
-          status: isAdmin ? "Disponible" : "pending_approval",
+          status: "Disponible",
           createdAt: serverTimestamp(),
         });
       }
       setIsModalOpen(false);
       resetForm();
-      if (!isAdmin) {
-        // Fetch products manually for supplier to refresh list
-        const q = query(collection(db, "products"), where("supplierId", "==", activeSupplierId));
-        const snapshot = await getDocs(q);
-        const prods: any[] = [];
-        snapshot.forEach(docSnap => prods.push({ id: docSnap.id, ...docSnap.data() }));
-        setProducts(prods);
-      }
     } catch (error) {
       console.error("Erreur lors de la sauvegarde du produit", error);
       alert("Erreur lors de la sauvegarde du produit.");
@@ -305,9 +309,60 @@ export default function ProductManager({ isAdmin }: ProductManagerProps) {
     return titleObj || "Sans titre";
   };
 
+  const [selectedRayonFilter, setSelectedRayonFilter] = useState<string>("all");
+  const assignedRayons = (userData?.assignedRayons as string[]) || [];
+
+  const getRayonBadge = (p: any) => {
+    const cat = (p.category || "").toLowerCase();
+    const ray = (p.rayon || "").toLowerCase();
+    if (cat === "mode" || ray === "mode" || cat.includes("mode") || cat.includes("vetement") || cat.includes("habit") || cat.includes("chaussure")) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold bg-purple-500/15 text-purple-400 border border-purple-500/30 uppercase tracking-wider">
+          <span>👗</span> Mode
+        </span>
+      );
+    }
+    if (cat === "connect" || ray === "connect" || cat.includes("connect") || cat.includes("electr") || cat.includes("tech") || cat.includes("telecom")) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold bg-blue-500/15 text-blue-400 border border-blue-500/30 uppercase tracking-wider">
+          <span>📡</span> Connect
+        </span>
+      );
+    }
+    if (cat === "immo" || ray === "immo") {
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 uppercase tracking-wider">
+          <span>🏢</span> Immo
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-gray-500/15 text-gray-300 uppercase tracking-wider">
+        {p.category || "Général"}
+      </span>
+    );
+  };
+
   const filteredProducts = products.filter(p => {
     const title = getTitle(p.title).toLowerCase();
-    return title.includes(search.toLowerCase());
+    const matchesSearch = title.includes(search.toLowerCase());
+    if (!matchesSearch) return false;
+
+    if (selectedRayonFilter === "all") return true;
+
+    const cat = (p.category || "").toLowerCase();
+    const ray = (p.rayon || "").toLowerCase();
+
+    if (selectedRayonFilter === "mode") {
+      return cat === "mode" || ray === "mode" || cat.includes("mode") || cat.includes("vetement") || cat.includes("habit");
+    }
+    if (selectedRayonFilter === "connect") {
+      return cat === "connect" || ray === "connect" || cat.includes("connect") || cat.includes("electr") || cat.includes("tech");
+    }
+    if (selectedRayonFilter === "immo") {
+      return cat === "immo" || ray === "immo";
+    }
+    return cat === selectedRayonFilter;
   });
 
   const lowStockCount = products.filter(p => (p.stock || 0) < 5).length;
@@ -367,7 +422,7 @@ export default function ProductManager({ isAdmin }: ProductManagerProps) {
       </div>
 
       <div className="bg-white/5 border border-white/10 rounded-2xl shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-white/10 flex flex-col sm:flex-row gap-4 justify-between">
+        <div className="p-4 border-b border-white/10 flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
           <div className="relative max-w-sm w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
             <input
@@ -378,6 +433,59 @@ export default function ProductManager({ isAdmin }: ProductManagerProps) {
               className="w-full pl-10 pr-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white text-sm transition-all"
             />
           </div>
+
+          {/* Multi-Rayon Filter Tabs */}
+          <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto">
+            <button
+              onClick={() => setSelectedRayonFilter("all")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shrink-0 ${
+                selectedRayonFilter === "all"
+                  ? "bg-white text-gray-950 shadow-sm"
+                  : "bg-white/5 text-gray-400 hover:text-white hover:bg-white/10"
+              }`}
+            >
+              Tous ({products.length})
+            </button>
+            
+            {(isAdmin || assignedRayons.includes("mode") || assignedRayons.length === 0) && (
+              <button
+                onClick={() => setSelectedRayonFilter("mode")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shrink-0 flex items-center gap-1.5 ${
+                  selectedRayonFilter === "mode"
+                    ? "bg-purple-600 text-white shadow-sm"
+                    : "bg-white/5 text-gray-400 hover:text-white hover:bg-white/10"
+                }`}
+              >
+                <span>👗</span> Rayon Mode
+              </button>
+            )}
+
+            {(isAdmin || assignedRayons.includes("connect") || assignedRayons.length === 0) && (
+              <button
+                onClick={() => setSelectedRayonFilter("connect")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shrink-0 flex items-center gap-1.5 ${
+                  selectedRayonFilter === "connect"
+                    ? "bg-blue-600 text-white shadow-sm"
+                    : "bg-white/5 text-gray-400 hover:text-white hover:bg-white/10"
+                }`}
+              >
+                <span>📡</span> Rayon Connect
+              </button>
+            )}
+
+            {(isAdmin || assignedRayons.includes("immo")) && (
+              <button
+                onClick={() => setSelectedRayonFilter("immo")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shrink-0 flex items-center gap-1.5 ${
+                  selectedRayonFilter === "immo"
+                    ? "bg-emerald-600 text-white shadow-sm"
+                    : "bg-white/5 text-gray-400 hover:text-white hover:bg-white/10"
+                }`}
+              >
+                <span>🏢</span> Rayon Immo
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -386,7 +494,7 @@ export default function ProductManager({ isAdmin }: ProductManagerProps) {
               <tr className="bg-white/5 text-xs uppercase tracking-wider text-gray-400 font-semibold">
                 <th className="p-4 w-16">Image</th>
                 <th className="p-4">Titre (FR / EN)</th>
-                <th className="p-4">Catégorie</th>
+                <th className="p-4">Rayon / Catégorie</th>
                 <th className="p-4">Prix</th>
                 <th className="p-4">Statut</th>
                 <th className="p-4 text-right">Actions</th>
@@ -419,9 +527,7 @@ export default function ProductManager({ isAdmin }: ProductManagerProps) {
                       <span className="line-clamp-1">{getTitle(product.title)}</span>
                     </td>
                     <td className="p-4">
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-blue-500/10 text-blue-500 uppercase tracking-wider">
-                        {product.category || "-"}
-                      </span>
+                      {getRayonBadge(product)}
                     </td>
                     <td className="p-4 font-bold text-white">
                       {formatPrice(product.price)}
@@ -591,13 +697,13 @@ export default function ProductManager({ isAdmin }: ProductManagerProps) {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-sm font-medium text-gray-300">Catégorie</label>
-                  <select required value={productCategory} onChange={(e) => setProductCategory(e.target.value)} className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white appearance-none">
+                  <label className="text-sm font-medium text-gray-300">Rayon / Catégorie de publication</label>
+                  <select required value={productCategory} onChange={(e) => setProductCategory(e.target.value)} className="w-full px-4 py-2.5 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white appearance-none text-sm font-medium">
                     <option className="bg-[#1a1a1a]" value="">Sélectionner un rayon</option>
-                    <option className="bg-[#1a1a1a]" value="mode">Mode (Vêtements & Accessoires)</option>
-                    <option className="bg-[#1a1a1a]" value="connect">Connect (Électronique & Télécom)</option>
-                    <option className="bg-[#1a1a1a]" value="immo">Immo (Immobilier)</option>
-                    <option className="bg-[#1a1a1a]" value="general">Général (Divers)</option>
+                    <option className="bg-[#1a1a1a]" value="mode">👗 Rayon Mode (Vêtements, Chaussures & Accessoires)</option>
+                    <option className="bg-[#1a1a1a]" value="connect">📡 Rayon Connect (Électronique, Starlink, Télécom)</option>
+                    <option className="bg-[#1a1a1a]" value="immo">🏢 Rayon Immo (Immobilier & Résidences)</option>
+                    <option className="bg-[#1a1a1a]" value="general">📦 Général (Divers)</option>
                   </select>
                 </div>
                 

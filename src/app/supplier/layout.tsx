@@ -182,9 +182,9 @@ export default function SupplierLayout({
 
   const getRayonLabel = (r: string) => {
     switch (r) {
-      case 'immo': return 'Immobilier';
-      case 'mode': return 'Mode & Vêtements';
-      case 'connect': return 'Connect (Matériel)';
+      case 'immo': return '🏢 Immobilier';
+      case 'mode': return '👗 Rayon Mode';
+      case 'connect': return '📡 Rayon Connect';
       default: return r;
     }
   };
@@ -215,21 +215,24 @@ export default function SupplierLayout({
     >
       {/* ── Rayon Switcher ── */}
       {availableRayons.length > 1 && (
-        <div className="flex items-center space-x-2 bg-white/5 border border-white/10 p-2 rounded-xl overflow-x-auto mb-6 w-max">
+        <div className="flex items-center space-x-2 bg-white/5 border border-white/10 p-2 rounded-xl overflow-x-auto mb-6 w-max shadow-lg backdrop-blur-md">
           <div className="flex items-center space-x-2 px-3 text-gray-400 shrink-0">
-            <Layers size={18} />
-            <span className="text-sm font-medium">Changer de module :</span>
+            <Layers size={18} className="text-primary" />
+            <span className="text-sm font-semibold text-gray-200">Rayon actif :</span>
           </div>
           {availableRayons.map((r: string) => (
             <button
               key={r}
               onClick={() => handleSwitchRayon(r)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all shrink-0 ${
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all shrink-0 flex items-center gap-2 ${
                 activeRayon === r
-                  ? `bg-opacity-20 text-[${theme.colors.accentText}] ${theme.colors.activeMenuBg} border border-[${theme.colors.accentText}]/30`
-                  : "text-gray-400 hover:text-white hover:bg-white/10 border border-transparent"
+                  ? "bg-white text-gray-950 shadow-md shadow-black/30 font-bold"
+                  : "text-gray-400 hover:text-white hover:bg-white/10"
               }`}
             >
+              {activeRayon === r && (
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              )}
               {getRayonLabel(r)}
             </button>
           ))}

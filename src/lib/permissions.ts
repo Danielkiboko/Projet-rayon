@@ -31,24 +31,37 @@ export const isSupplier = (userData: any): boolean => {
  * Centralizes the logic to avoid duplicated checks across the app.
  */
 export const getSupplierType = (userData: any): "immo" | "mode" | "connect" | "default" => {
-  // First, check if there's a strong indicator for Real Estate
+  // If running in browser and user has a saved active rayon from assigned rayons, respect it
+  if (typeof window !== "undefined") {
+    const active = localStorage.getItem("activeSupplierRayon");
+    if (active && (active === "immo" || active === "mode" || active === "connect")) {
+      const assigned = userData?.assignedRayons;
+      if (!assigned || (Array.isArray(assigned) && assigned.includes(active))) {
+        return active;
+      }
+    }
+  }
+
+  // If user has specific assignedRayons array, use the first one
+  if (Array.isArray(userData?.assignedRayons) && userData.assignedRayons.length > 0) {
+    const first = userData.assignedRayons[0];
+    if (first === "immo" || first === "mode" || first === "connect") {
+      return first;
+    }
+  }
+
+  // Check if role or business type is explicitly Real Estate
   const isImmo = 
     userData?.role === "SUPPLIER_IMMO" || 
     userData?.businessType === "IMMOBILIER" || 
     userData?.rayon?.type === "REAL_ESTATE" || 
-    userData?.rayon === "immo" ||
-    (userData?.assignedRayons && userData.assignedRayons.includes("immo"));
+    userData?.rayon === "immo";
 
   if (isImmo) return "immo";
 
   const service = userData?.serviceAttached || userData?.rayon;
   if (service === "mode" || service === "connect") {
     return service as "mode" | "connect";
-  }
-  
-  if (userData?.assignedRayons && userData.assignedRayons.length > 0) {
-    if (userData.assignedRayons.includes("mode")) return "mode";
-    if (userData.assignedRayons.includes("connect")) return "connect";
   }
 
   // Otherwise, fallback to default

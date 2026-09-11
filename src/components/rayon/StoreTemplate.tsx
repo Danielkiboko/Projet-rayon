@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { ProductSkeleton } from "@/components/ui/Skeleton";
 import { useChat } from "@/context/ChatContext";
@@ -24,28 +24,73 @@ export function StoreTemplate({ category, heroImage, dummyProducts, dict }: Stor
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const q = query(collection(db, "products"), where("category", "==", category));
-        const querySnapshot = await getDocs(q);
-        const productsList = querySnapshot.docs.map(doc => ({
+    const productsRef = collection(db, "products");
+    const unsubscribe = onSnapshot(
+      productsRef,
+      (snapshot) => {
+        const allProducts = snapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
         }));
-        
-        if (productsList.length === 0) {
+
+        const isTargetRayon = (p: any) => {
+          if (p.status === "REJECTED") return false;
+
+          const cat = (p.category || "").toString().toLowerCase().trim();
+          const ray = (p.rayon || "").toString().toLowerCase().trim();
+
+          if (category === "mode") {
+            return (
+              cat === "mode" ||
+              ray === "mode" ||
+              cat.includes("mode") ||
+              cat.includes("vetement") ||
+              cat.includes("vêtement") ||
+              cat.includes("habit") ||
+              cat.includes("chaussure") ||
+              cat.includes("accessoire") ||
+              cat.includes("pantalon") ||
+              cat.includes("robe") ||
+              cat.includes("chemise") ||
+              cat.includes("costume")
+            );
+          } else if (category === "connect") {
+            return (
+              cat === "connect" ||
+              ray === "connect" ||
+              cat.includes("connect") ||
+              cat.includes("electr") ||
+              cat.includes("électr") ||
+              cat.includes("tech") ||
+              cat.includes("telecom") ||
+              cat.includes("télécom") ||
+              cat.includes("starlink") ||
+              cat.includes("wifi") ||
+              cat.includes("informatique") ||
+              cat.includes("ordi") ||
+              cat.includes("phone")
+            );
+          }
+          return cat === category || ray === category;
+        };
+
+        const matchedProducts = allProducts.filter(isTargetRayon);
+
+        if (matchedProducts.length === 0) {
           setProducts(dummyProducts);
         } else {
-          setProducts(productsList);
+          setProducts(matchedProducts);
         }
-      } catch (error) {
-        console.error("Error fetching products:", error);
+        setIsLoading(false);
+      },
+      (error) => {
+        console.error("Error listening to products:", error);
         setProducts(dummyProducts);
-      } finally {
         setIsLoading(false);
       }
-    };
-    fetchProducts();
+    );
+
+    return () => unsubscribe();
   }, [category, dummyProducts]);
 
   const handleChat = (product: any) => {

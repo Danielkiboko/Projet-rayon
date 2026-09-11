@@ -28,13 +28,15 @@ export default function Home() {
       try {
         const q = query(
           collection(db, "products"),
-          where("status", "==", "published"),
           limit(50)
         );
         const snapshot = await getDocs(q);
         const prods: any[] = [];
         snapshot.forEach(doc => {
-          prods.push({ id: doc.id, ...doc.data() });
+          const data = doc.data();
+          if (data.status !== "REJECTED") {
+            prods.push({ id: doc.id, ...data });
+          }
         });
         setDbProducts(prods);
       } catch (error) {

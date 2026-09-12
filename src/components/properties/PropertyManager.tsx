@@ -53,6 +53,9 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
   const [propertyCoords, setPropertyCoords] = useState<{lat: number, lng: number} | null>(null);
   const [isFetchingGps, setIsFetchingGps] = useState(false);
   const [propertyDesc, setPropertyDesc] = useState("");
+  const [ownerName, setOwnerName] = useState("");
+  const [ownerPhone, setOwnerPhone] = useState("");
+  const [agencyCommissionRate, setAgencyCommissionRate] = useState<number | string>(10);
 
   const {
     chatMessages,
@@ -143,6 +146,9 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
     setPropertyLocation("");
     setPropertyCoords(null);
     setPropertyDesc("");
+    setOwnerName("");
+    setOwnerPhone("");
+    setAgencyCommissionRate(10);
     setLevels([]);
     setImagePreview(null);
     setImageFile(null);
@@ -174,6 +180,9 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
     setPropertyLocation(property.location || "");
     setPropertyCoords(property.propertyCoords || null);
     setPropertyDesc(property.description || "");
+    setOwnerName(property.ownerName || "");
+    setOwnerPhone(property.ownerPhone || "");
+    setAgencyCommissionRate(property.agencyCommissionRate ?? 10);
     setLevels(property.immoDetails?.levels || []);
     setImagePreview(property.image || null);
     setImageFile(null);
@@ -290,6 +299,9 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
       description: propertyDesc,
       image: imagePreview || (isHotel ? "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&q=80&w=800" : "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&q=80&w=800"),
       propertyCoords: propertyCoords,
+      ownerName: ownerName.trim(),
+      ownerPhone: ownerPhone.trim(),
+      agencyCommissionRate: Number(agencyCommissionRate) || 10,
       supplierId: user.uid,
       immoDetails: {
         area: 0,
@@ -1055,6 +1067,53 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
                   </div>
                 </div>
 
+                {/* ── Gestion Bailleur & Mandat de gestion (Habitation) ── */}
+                {immoBranch === "habitation" && (
+                  <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl space-y-3">
+                    <div className="flex items-center justify-between border-b border-emerald-500/20 pb-2">
+                      <span className="text-xs font-bold uppercase tracking-wider text-emerald-300 flex items-center gap-1.5">
+                        <Building size={14} className="text-emerald-400" />
+                        Propriétaire / Bailleur & Mandat Agence (Optionnel)
+                      </span>
+                      <span className="text-[11px] text-gray-400">Pour rétrocession loyer & commissions</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium text-gray-300">Nom du Bailleur / Proprio</label>
+                        <input
+                          type="text"
+                          value={ownerName}
+                          onChange={(e) => setOwnerName(e.target.value)}
+                          placeholder="Ex: M. Jean Kasongo"
+                          className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium text-gray-300">Téléphone du Bailleur</label>
+                        <input
+                          type="text"
+                          value={ownerPhone}
+                          onChange={(e) => setOwnerPhone(e.target.value)}
+                          placeholder="Ex: +243 81 234 5678"
+                          className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium text-gray-300">Commission Agence (%)</label>
+                        <input
+                          type="number"
+                          min={0}
+                          max={100}
+                          value={agencyCommissionRate}
+                          onChange={(e) => setAgencyCommissionRate(e.target.value)}
+                          placeholder="Ex: 10"
+                          className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* ── Spécifications Hôtelières (Hospitality) ── */}
                 {immoBranch === "hotel" && (
                   <div className="p-4 bg-gradient-to-br from-amber-500/10 via-purple-500/5 to-transparent border border-amber-500/20 rounded-xl space-y-4">
@@ -1349,6 +1408,16 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
                         <MapPin size={16} className="text-gray-400" />
                         <span className="text-white">{previewProperty.location || "-"}</span>
                       </div>
+                      {previewProperty.ownerName && (
+                        <div className="bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-lg col-span-2 text-xs">
+                          <span className="text-emerald-400 font-bold block mb-1">Bailleur / Propriétaire Mandant :</span>
+                          <span className="text-white font-medium">{previewProperty.ownerName}</span>
+                          {previewProperty.ownerPhone && <span className="text-gray-300 ml-2">({previewProperty.ownerPhone})</span>}
+                          {previewProperty.agencyCommissionRate !== undefined && (
+                            <span className="text-emerald-300 ml-2 font-semibold">| Commission agence: {previewProperty.agencyCommissionRate}%</span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Users, Search, Plus, Bell, Home, X, DollarSign } from "lucide-react";
+import { Users, Search, Plus, Bell, Home, X, DollarSign, FileText, ClipboardCheck, Wrench, ShieldCheck } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { auth, db } from "@/lib/firebase";
 import { collection, getDocs, query, where, addDoc, updateDoc, doc, getDoc, serverTimestamp } from "firebase/firestore";
 import { useAuth } from "@/context/AuthContext";
+import { generateFormalLeasePDF, generateInspectionChecklistPDF } from "@/lib/leaseGenerator";
 
 interface Tenant {
   id: string;
@@ -14,6 +15,7 @@ interface Tenant {
   email: string;
   propertyId: string;
   propertyName: string;
+  propertyAddress?: string;
   unitName?: string;
   rentAmount: number;
   nextPayment: string;
@@ -23,12 +25,24 @@ interface Tenant {
   departureDate?: string;
   levelId?: string;
   unitId?: string;
+  
+  // Nouveaux champs Gestion Locative & Caution
+  depositAmount?: number; // Montant de la garantie locative ($)
+  depositMonths?: number; // Nombre de mois de caution
+  depositStatus?: "CONSERVED" | "RESTITUTED" | "DEDUCTED";
+  leaseType?: "Habitation" | "Commercial" | "Mixte";
+  leaseStartDate?: string;
+  leaseEndDate?: string;
+  paymentDueDay?: number;
+  tenantIdCard?: string;
 }
 
 interface Property {
   id: string;
   title: { fr: string; en: string };
   price: number;
+  location?: string;
+  ownerName?: string;
   immoDetails?: {
     levels?: any[];
   }
@@ -48,24 +62,42 @@ export default function SupplierTenantsPage() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [tenantIdCard, setTenantIdCard] = useState("");
   const [selectedPropertyId, setSelectedPropertyId] = useState("");
   const [selectedLevelId, setSelectedLevelId] = useState("");
   const [selectedUnitId, setSelectedUnitId] = useState("");
   const [rentAmount, setRentAmount] = useState<number | "">("");
   const [nextPayment, setNextPayment] = useState("");
   const [periodicity, setPeriodicity] = useState("Mensuel");
+  
+  // Nouveaux champs Garantie & Bail
+  const [depositAmount, setDepositAmount] = useState<number | "">("");
+  const [depositMonths, setDepositMonths] = useState<number>(3);
+  const [leaseType, setLeaseType] = useState<"Habitation" | "Commercial">("Habitation");
+  const [leaseStartDate, setLeaseStartDate] = useState(new Date().toISOString().split("T")[0]);
+  const [leaseEndDate, setLeaseEndDate] = useState("");
+  const [paymentDueDay, setPaymentDueDay] = useState<number>(5);
 
   // Departure Modal State
   const [isDepartureModalOpen, setIsDepartureModalOpen] = useState(false);
   const [tenantToDepart, setTenantToDepart] = useState<Tenant | null>(null);
   const [departureDate, setDepartureDate] = useState("");
   const [debtAmount, setDebtAmount] = useState<number | "">(0);
+  const [depositRestitutionStatus, setDepositRestitutionStatus] = useState<"RESTITUTED" | "DEDUCTED">("RESTITUTED");
 
   // Payment Modal State
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [tenantToPay, setTenantToPay] = useState<Tenant | null>(null);
   const [paymentAmount, setPaymentAmount] = useState<number | "">("");
   const [paymentReference, setPaymentReference] = useState("");
+
+  // Maintenance Tickets Modal State
+  const [isMaintenanceModalOpen, setIsMaintenanceModalOpen] = useState(false);
+  const [maintenanceTenant, setMaintenanceTenant] = useState<Tenant | null>(null);
+  const [maintenanceTitle, setMaintenanceTitle] = useState("");
+  const [maintenanceCost, setMaintenanceCost] = useState<number | "">("");
+  const [maintenanceChargedTo, setMaintenanceChargedTo] = useState<"BAILLEUR" | "LOCATAIRE">("BAILLEUR");
+  const [maintenanceCategory, setMaintenanceCategory] = useState("Plomberie");
 
   const fetchData = async () => {
     if (!user) return;
@@ -148,17 +180,28 @@ export default function SupplierTenantsPage() {
          if (unit) unitName = `${selectedLevel.name} - ${unit.name}`;
       }
 
+      const calculatedDeposit = Number(depositAmount || (Number(rentAmount) * (depositMonths || 3)));
+
       const newTenant = {
         supplierId: activeSupplierId,
         name,
         phone,
         email,
+        tenantIdCard: tenantIdCard || "",
         propertyId: selectedPropertyId,
         propertyName: selectedProperty?.title?.fr || "Propriété",
+        propertyAddress: selectedProperty?.location || "Kinshasa, RDC",
         unitName,
         levelId: selectedLevelId,
         unitId: selectedUnitId,
         rentAmount: Number(rentAmount),
+        depositAmount: calculatedDeposit,
+        depositMonths: Number(depositMonths || 3),
+        depositStatus: "CONSERVED",
+        leaseType: leaseType || "Habitation",
+        leaseStartDate: leaseStartDate || new Date().toISOString().split("T")[0],
+        leaseEndDate: leaseEndDate || "",
+        paymentDueDay: Number(paymentDueDay || 5),
         nextPayment,
         periodicity,
         status: "À jour",
@@ -209,16 +252,103 @@ export default function SupplierTenantsPage() {
       setName("");
       setPhone("");
       setEmail("");
+      setTenantIdCard("");
       setSelectedPropertyId("");
       setSelectedLevelId("");
       setSelectedUnitId("");
       setRentAmount("");
+      setDepositAmount("");
       setNextPayment("");
       setPeriodicity("Mensuel");
       fetchData();
     } catch (err) {
       console.error(err);
       alert("Erreur lors de l'ajout du locataire");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDownloadLease = async (tenant: Tenant) => {
+    const prop = properties.find(p => p.id === tenant.propertyId);
+    try {
+      await generateFormalLeasePDF({
+        agencyName: userData?.company || userData?.name || "AGENCE IMMOBILIÈRE RAYONS",
+        agencyPhone: userData?.phone || "",
+        agencyEmail: userData?.email || user?.email || "",
+        agencyAddress: userData?.address || "Kinshasa, RDC",
+        agencyRccm: userData?.rccm || "",
+        agencyNif: userData?.nif || "",
+        agencyIdNat: userData?.idNat || "",
+        ownerName: prop?.ownerName || undefined,
+
+        tenantName: tenant.name,
+        tenantPhone: tenant.phone,
+        tenantEmail: tenant.email,
+        tenantIdCard: tenant.tenantIdCard,
+
+        propertyName: tenant.propertyName,
+        unitName: tenant.unitName,
+        propertyAddress: tenant.propertyAddress || prop?.location || "Kinshasa, RDC",
+
+        monthlyRent: tenant.rentAmount,
+        depositAmount: tenant.depositAmount || (tenant.rentAmount * (tenant.depositMonths || 3)),
+        depositMonths: tenant.depositMonths || 3,
+        paymentPeriodicity: tenant.periodicity || "Mensuel",
+        paymentDueDay: tenant.paymentDueDay || 5,
+
+        leaseType: tenant.leaseType || "Habitation",
+        startDate: tenant.leaseStartDate || new Date().toLocaleDateString("fr-FR"),
+        endDate: tenant.leaseEndDate || undefined,
+      });
+    } catch (error) {
+      console.error("Erreur génération bail:", error);
+      alert("Erreur lors de la génération du contrat de bail.");
+    }
+  };
+
+  const handleDownloadInspection = async (tenant: Tenant, type: "ENTRÉE" | "SORTIE") => {
+    try {
+      await generateInspectionChecklistPDF({
+        inspectionType: type,
+        agencyName: userData?.company || userData?.name || "AGENCE IMMOBILIÈRE RAYONS",
+        tenantName: tenant.name,
+        propertyName: tenant.propertyName,
+        unitName: tenant.unitName,
+        inspectionDate: new Date().toLocaleDateString("fr-FR")
+      });
+    } catch (error) {
+      console.error("Erreur génération état des lieux:", error);
+      alert("Erreur lors de la génération de la fiche d'état des lieux.");
+    }
+  };
+
+  const handleCreateMaintenanceTicket = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!maintenanceTenant || !maintenanceTitle) return;
+    setIsSubmitting(true);
+    try {
+      await addDoc(collection(db, "maintenance_tickets"), {
+        supplierId: activeSupplierId,
+        tenantId: maintenanceTenant.id,
+        tenantName: maintenanceTenant.name,
+        propertyId: maintenanceTenant.propertyId,
+        propertyName: maintenanceTenant.propertyName,
+        unitName: maintenanceTenant.unitName || "",
+        title: maintenanceTitle,
+        category: maintenanceCategory,
+        cost: Number(maintenanceCost || 0),
+        chargedTo: maintenanceChargedTo,
+        status: "EN COURS",
+        createdAt: serverTimestamp()
+      });
+      alert("Incident de maintenance enregistré avec succès !");
+      setIsMaintenanceModalOpen(false);
+      setMaintenanceTitle("");
+      setMaintenanceCost("");
+    } catch (err) {
+      console.error(err);
+      alert("Erreur lors de l'enregistrement de l'incident.");
     } finally {
       setIsSubmitting(false);
     }
@@ -235,7 +365,8 @@ export default function SupplierTenantsPage() {
       await updateDoc(tenantRef, {
         status: "PARTI",
         departureDate,
-        debtAmount: Number(debtAmount)
+        debtAmount: Number(debtAmount),
+        depositStatus: depositRestitutionStatus
       });
       
       // 2. Release property/unit
@@ -298,9 +429,9 @@ export default function SupplierTenantsPage() {
       await addDoc(collection(db, "payments"), {
         supplierId: activeSupplierId,
         tenantId: tenantToPay.id,
-        clientName: tenantToPay.name,
+        tenantName: tenantToPay.name,
         propertyId: tenantToPay.propertyId,
-        propertyTitle: tenantToPay.propertyName,
+        propertyName: tenantToPay.propertyName,
         unitId: tenantToPay.unitId || null,
         unitTitle: tenantToPay.unitName || null,
         amount: Number(paymentAmount),
@@ -345,19 +476,26 @@ export default function SupplierTenantsPage() {
     (t) => (t.name || "").toLowerCase().includes(search.toLowerCase()) || (t.propertyName || "").toLowerCase().includes(search.toLowerCase())
   );
 
+  const totalDeposits = tenants
+    .filter(t => t.status !== "PARTI")
+    .reduce((sum, t) => sum + (t.depositAmount || (t.rentAmount * (t.depositMonths || 3))), 0);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Mes Locataires</h1>
-          <p className="text-sm text-gray-400">Gérez vos locataires et suivez les paiements de loyer.</p>
+          <h1 className="text-2xl font-bold text-white">Mes Locataires & Baux</h1>
+          <p className="text-sm text-gray-400">Gérez vos locataires, garanties locatives, contrats de bail et réparations.</p>
         </div>
         <button
-          onClick={() => setIsModalOpen(true)}
-          className="flex items-center space-x-2 bg-primary hover:bg-primary-light text-white px-4 py-2 rounded-lg transition-colors"
+          onClick={() => {
+            setDepositAmount(rentAmount ? Number(rentAmount) * 3 : "");
+            setIsModalOpen(true);
+          }}
+          className="flex items-center space-x-2 bg-primary hover:bg-primary-light text-white px-4 py-2 rounded-lg transition-colors font-medium shadow-md"
         >
           <Plus size={20} />
-          <span>Ajouter un locataire</span>
+          <span>Nouveau Bail & Locataire</span>
         </button>
       </div>
 
@@ -373,7 +511,7 @@ export default function SupplierTenantsPage() {
         </div>
         <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center justify-between">
           <div>
-            <p className="text-sm text-gray-400">En retard</p>
+            <p className="text-sm text-gray-400">En retard de loyer</p>
             <p className="text-2xl font-bold text-red-400 mt-1">{tenants.filter(t => t.status === "En retard").length}</p>
           </div>
           <div className="p-3 bg-red-400/10 text-red-400 rounded-lg">
@@ -382,15 +520,15 @@ export default function SupplierTenantsPage() {
         </div>
         <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center justify-between">
           <div>
-            <p className="text-sm text-gray-400">Anciens (Partis)</p>
-            <p className="text-2xl font-bold text-gray-400 mt-1">{tenants.filter(t => t.status === "PARTI").length}</p>
+            <p className="text-sm text-gray-400">Garanties Locatives (Cautions)</p>
+            <p className="text-2xl font-bold text-emerald-400 mt-1">{totalDeposits.toLocaleString()} $</p>
           </div>
-          <div className="p-3 bg-gray-500/10 text-gray-400 rounded-lg">
-            <Users size={20} />
+          <div className="p-3 bg-emerald-400/10 text-emerald-400 rounded-lg">
+            <ShieldCheck size={20} />
           </div>
         </div>
         <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex flex-col justify-center">
-          <p className="text-sm text-gray-400">Dettes Locataires</p>
+          <p className="text-sm text-gray-400">Arriérés & Dettes</p>
           <p className="text-lg font-bold text-red-400 mt-1">
             {tenants.reduce((sum, t) => sum + (t.status === "PARTI" ? (t.debtAmount || 0) : 0), 0)} $
           </p>
@@ -403,7 +541,7 @@ export default function SupplierTenantsPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
             <input
               type="text"
-              placeholder="Rechercher un locataire..."
+              placeholder="Rechercher par nom ou bien loué..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-10 pr-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white text-sm transition-all"
@@ -415,64 +553,119 @@ export default function SupplierTenantsPage() {
           <table className="w-full text-left text-sm text-gray-300">
             <thead className="text-xs uppercase bg-black/20 text-gray-400">
               <tr>
-                <th className="px-6 py-4">Nom</th>
-                <th className="px-6 py-4">Propriété</th>
-                <th className="px-6 py-4">Contact</th>
-                <th className="px-6 py-4">Loyer</th>
-                <th className="px-6 py-4">Prochain paiement</th>
-                <th className="px-6 py-4">Statut</th>
-                <th className="px-6 py-4 text-right">Actions</th>
+                <th className="px-5 py-4">Locataire</th>
+                <th className="px-5 py-4">Bien & Unité</th>
+                <th className="px-5 py-4">Loyer Mensuel</th>
+                <th className="px-5 py-4">Garantie (Caution)</th>
+                <th className="px-5 py-4">Prochaine Échéance</th>
+                <th className="px-5 py-4">Statut</th>
+                <th className="px-5 py-4 text-right">Actions Juridiques & Gestion</th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={7} className="px-6 py-8 text-center text-gray-400">Chargement...</td></tr>
+                <tr><td colSpan={7} className="px-6 py-8 text-center text-gray-400">Chargement des baux...</td></tr>
               ) : filteredTenants.length === 0 ? (
-                <tr><td colSpan={7} className="px-6 py-8 text-center text-gray-400">Aucun locataire trouvé.</td></tr>
+                <tr><td colSpan={7} className="px-6 py-8 text-center text-gray-400">Aucun locataire enregistré.</td></tr>
               ) : (
                 filteredTenants.map((tenant) => (
                   <tr key={tenant.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                    <td className="px-6 py-4 font-medium text-white flex items-center space-x-3">
-                      <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary-light uppercase">
-                        {tenant.name.charAt(0)}
+                    <td className="px-5 py-4 font-medium text-white">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary-light uppercase font-bold text-xs shrink-0">
+                          {tenant.name.charAt(0)}
+                        </div>
+                        <div>
+                          <span className="font-semibold block">{tenant.name}</span>
+                          <span className="text-xs text-gray-400">{tenant.phone}</span>
+                        </div>
                       </div>
-                      <span>{tenant.name}</span>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col space-y-1">
-                        <div className="flex items-center space-x-2">
-                          <Home size={14} className="text-gray-400" />
-                          <span className="font-medium text-white">{tenant.propertyName}</span>
+                    <td className="px-5 py-4">
+                      <div className="flex flex-col space-y-0.5">
+                        <div className="flex items-center space-x-1.5 text-white font-medium">
+                          <Home size={14} className="text-primary-light shrink-0" />
+                          <span className="truncate max-w-[160px]">{tenant.propertyName}</span>
                         </div>
                         {tenant.unitName && (
-                           <span className="text-xs text-gray-400 ml-5">{tenant.unitName}</span>
+                          <span className="text-xs text-gray-400 ml-5">{tenant.unitName}</span>
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4">{tenant.phone}</td>
-                    <td className="px-6 py-4 font-semibold text-white">{tenant.rentAmount} $</td>
-                    <td className="px-6 py-4">{new Date(tenant.nextPayment).toLocaleDateString()}</td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2 py-1 rounded text-xs ${tenant.status === "À jour" ? "bg-green-400/10 text-green-400" : tenant.status === "PARTI" ? "bg-gray-500/10 text-gray-400" : "bg-red-400/10 text-red-400"}`}>
+                    <td className="px-5 py-4">
+                      <span className="font-bold text-white">{tenant.rentAmount} $</span>
+                      <span className="text-[11px] text-gray-400 block">/ {tenant.periodicity || "Mois"}</span>
+                    </td>
+                    <td className="px-5 py-4">
+                      <div className="flex flex-col space-y-0.5">
+                        <span className="font-semibold text-emerald-400">
+                          {(tenant.depositAmount || (tenant.rentAmount * (tenant.depositMonths || 3))).toLocaleString()} $
+                        </span>
+                        <span className="text-[11px] text-gray-400">
+                          {tenant.depositMonths || 3} mois ({tenant.depositStatus === "RESTITUTED" ? "Restituée" : tenant.depositStatus === "DEDUCTED" ? "Déduite" : "Conservée"})
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-5 py-4">
+                      <span className="text-white text-xs">{tenant.nextPayment ? new Date(tenant.nextPayment).toLocaleDateString("fr-FR") : "Non définie"}</span>
+                    </td>
+                    <td className="px-5 py-4">
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                        tenant.status === "À jour" 
+                          ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" 
+                          : tenant.status === "PARTI" 
+                          ? "bg-gray-500/10 text-gray-400 border border-gray-500/20" 
+                          : "bg-red-500/10 text-red-400 border border-red-500/20"
+                      }`}>
                         {tenant.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end space-x-2">
+                    <td className="px-5 py-4 text-right">
+                      <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                        {/* Bouton Bail PDF */}
+                        <button
+                          onClick={() => handleDownloadLease(tenant)}
+                          title="Télécharger le Contrat de Bail officiel (PDF)"
+                          className="px-2 py-1 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded text-xs flex items-center gap-1 transition-all"
+                        >
+                          <FileText size={13} />
+                          <span>Bail</span>
+                        </button>
+
+                        {/* Bouton État des Lieux */}
+                        <button
+                          onClick={() => handleDownloadInspection(tenant, tenant.status === "PARTI" ? "SORTIE" : "ENTRÉE")}
+                          title="Fiche d'État des Lieux (Entrée/Sortie)"
+                          className="px-2 py-1 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/30 rounded text-xs flex items-center gap-1 transition-all"
+                        >
+                          <ClipboardCheck size={13} />
+                          <span>État lieux</span>
+                        </button>
+
+                        {/* Bouton Maintenance / Incidents */}
+                        <button
+                          onClick={() => {
+                            setMaintenanceTenant(tenant);
+                            setIsMaintenanceModalOpen(true);
+                          }}
+                          title="Signaler une panne ou des réparations"
+                          className="px-2 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded text-xs flex items-center gap-1 transition-all"
+                        >
+                          <Wrench size={13} />
+                          <span>Réparation</span>
+                        </button>
+
                         {tenant.status !== "PARTI" ? (
                           <>
-                            <button className="text-primary-light hover:text-white transition-colors flex items-center space-x-1" title="Rappeler">
-                              <Bell size={16} />
-                            </button>
                             <button 
                               onClick={() => {
                                 setTenantToPay(tenant);
                                 setPaymentAmount(tenant.rentAmount);
                                 setIsPaymentModalOpen(true);
                               }}
-                              className="text-green-400 hover:text-green-300 transition-colors flex items-center space-x-1 text-xs bg-green-400/10 px-2 py-1 rounded"
+                              className="text-emerald-400 hover:text-emerald-300 transition-colors flex items-center text-xs bg-emerald-400/10 hover:bg-emerald-400/20 px-2 py-1 rounded border border-emerald-500/30"
                             >
-                              <DollarSign size={14} className="mr-1" />
+                              <DollarSign size={13} className="mr-0.5" />
                               <span>Paiement</span>
                             </button>
                             <button 
@@ -480,7 +673,7 @@ export default function SupplierTenantsPage() {
                                 setTenantToDepart(tenant);
                                 setIsDepartureModalOpen(true);
                               }}
-                              className="text-red-400 hover:text-red-300 transition-colors flex items-center space-x-1 text-xs bg-red-400/10 px-2 py-1 rounded"
+                              className="text-red-400 hover:text-red-300 transition-colors flex items-center text-xs bg-red-400/10 hover:bg-red-400/20 px-2 py-1 rounded border border-red-500/30"
                             >
                               <span>Départ</span>
                             </button>
@@ -498,55 +691,73 @@ export default function SupplierTenantsPage() {
         </div>
       </div>
 
-      {/* CREATE TENANT MODAL */}
+      {/* CREATE TENANT / BAIL MODAL */}
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-lg bg-[#140b2e] border border-white/10 rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto"
+              className="w-full max-w-xl bg-[#140b2e] border border-white/10 rounded-2xl shadow-2xl overflow-hidden max-h-[92vh] overflow-y-auto"
             >
               <div className="flex items-center justify-between p-6 border-b border-white/10 sticky top-0 bg-[#140b2e] z-10">
-                <h2 className="text-xl font-semibold text-white">Ajouter un locataire</h2>
+                <div>
+                  <h2 className="text-xl font-bold text-white">Nouveau Bail & Locataire</h2>
+                  <p className="text-xs text-gray-400">Établissez le contrat, la garantie locative et les détails d'occupation.</p>
+                </div>
                 <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-white">
                   <X size={24} />
                 </button>
               </div>
 
               <form onSubmit={handleCreateTenant} className="p-6 space-y-4">
-                <div className="space-y-1">
-                  <label className="text-sm font-medium text-gray-300">Nom du locataire</label>
-                  <input type="text" required value={name} onChange={(e) => setName(e.target.value)} className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white" />
-                </div>
-
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <label className="text-sm font-medium text-gray-300">Téléphone (SMS)</label>
-                    <input type="text" required value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white" />
+                    <label className="text-xs font-semibold text-gray-300 uppercase">Type de Bail</label>
+                    <select value={leaseType} onChange={(e: any) => setLeaseType(e.target.value)} className="w-full px-3 py-2 bg-black/30 border border-white/10 rounded-lg text-white text-sm [&>option]:bg-[#140b2e]">
+                      <option value="Habitation">Bail d'Habitation (Résidentiel)</option>
+                      <option value="Commercial">Bail Commercial / Bureaux</option>
+                      <option value="Mixte">Usage Mixte</option>
+                    </select>
                   </div>
                   <div className="space-y-1">
-                    <label className="text-sm font-medium text-gray-300">Email</label>
-                    <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white" />
+                    <label className="text-xs font-semibold text-gray-300 uppercase">Nom complet du locataire *</label>
+                    <input type="text" required value={name} onChange={(e) => setName(e.target.value)} className="w-full px-3 py-2 bg-black/30 border border-white/10 rounded-lg text-white text-sm" placeholder="ex: Jean Dupont" />
                   </div>
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-sm font-medium text-gray-300">Propriété associée</label>
-                  <select required value={selectedPropertyId} onChange={(e) => setSelectedPropertyId(e.target.value)} className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white [&>option]:bg-[#140b2e]">
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-gray-300 uppercase">Téléphone (SMS) *</label>
+                    <input type="text" required value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full px-3 py-2 bg-black/30 border border-white/10 rounded-lg text-white text-sm" placeholder="+243..." />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-gray-300 uppercase">Email</label>
+                    <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-3 py-2 bg-black/30 border border-white/10 rounded-lg text-white text-sm" placeholder="client@domaine.com" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-gray-300 uppercase">N° Pièce d'identité</label>
+                    <input type="text" value={tenantIdCard} onChange={(e) => setTenantIdCard(e.target.value)} className="w-full px-3 py-2 bg-black/30 border border-white/10 rounded-lg text-white text-sm" placeholder="Passeport / C. Electeur" />
+                  </div>
+                </div>
+
+                {/* Propriété & Sous-unité */}
+                <div className="space-y-1 pt-1">
+                  <label className="text-xs font-semibold text-gray-300 uppercase">Propriété louée *</label>
+                  <select required value={selectedPropertyId} onChange={(e) => setSelectedPropertyId(e.target.value)} className="w-full px-3 py-2 bg-black/30 border border-white/10 rounded-lg text-white text-sm [&>option]:bg-[#140b2e]">
                     <option value="">Sélectionner une propriété...</option>
                     {properties.map(p => (
-                      <option key={p.id} value={p.id}>{p.title?.fr || "Propriété sans nom"}</option>
+                      <option key={p.id} value={p.id}>{p.title?.fr || "Propriété sans titre"} — {p.price} $/mois</option>
                     ))}
                   </select>
                 </div>
 
                 {levels.length > 0 && (
-                  <div className="grid grid-cols-2 gap-4 border-l-2 border-primary/50 pl-4 py-2">
+                  <div className="grid grid-cols-2 gap-4 border-l-2 border-primary/50 pl-4 py-2 bg-white/5 rounded-r-lg">
                     <div className="space-y-1">
-                      <label className="text-sm font-medium text-gray-300">Niveau</label>
-                      <select required value={selectedLevelId} onChange={(e) => setSelectedLevelId(e.target.value)} className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white [&>option]:bg-[#140b2e]">
+                      <label className="text-xs font-medium text-gray-300">Niveau / Étage</label>
+                      <select required value={selectedLevelId} onChange={(e) => setSelectedLevelId(e.target.value)} className="w-full px-3 py-1.5 bg-black/30 border border-white/10 rounded-lg text-white text-sm [&>option]:bg-[#140b2e]">
                         <option value="">Sélectionner...</option>
                         {levels.map((l: any) => (
                           <option key={l.id} value={l.id}>{l.name}</option>
@@ -555,8 +766,8 @@ export default function SupplierTenantsPage() {
                     </div>
                     {selectedLevelId && (
                       <div className="space-y-1">
-                        <label className="text-sm font-medium text-gray-300">Sous-unité</label>
-                        <select required value={selectedUnitId} onChange={(e) => setSelectedUnitId(e.target.value)} className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white [&>option]:bg-[#140b2e]">
+                        <label className="text-xs font-medium text-gray-300">Sous-unité (Porte)</label>
+                        <select required value={selectedUnitId} onChange={(e) => setSelectedUnitId(e.target.value)} className="w-full px-3 py-1.5 bg-black/30 border border-white/10 rounded-lg text-white text-sm [&>option]:bg-[#140b2e]">
                           <option value="">Sélectionner...</option>
                           {units.filter((u: any) => (u.capacity || 1) > 0).map((u: any) => (
                             <option key={u.id} value={u.id}>{u.name} ({u.type})</option>
@@ -567,31 +778,150 @@ export default function SupplierTenantsPage() {
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium text-gray-300">Loyer convenu ($)</label>
-                    <input type="number" required value={rentAmount} onChange={(e) => setRentAmount(Number(e.target.value))} className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white" />
+                {/* Conditions Financières & Garantie */}
+                <div className="border-t border-white/10 pt-3">
+                  <span className="text-xs font-bold text-primary-light uppercase tracking-wider block mb-3">
+                    Conditions Financières & Garantie Locative
+                  </span>
+                  
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-gray-300">Loyer convenu ($) *</label>
+                      <input 
+                        type="number" 
+                        required 
+                        value={rentAmount} 
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          setRentAmount(val);
+                          setDepositAmount(val * (depositMonths || 3));
+                        }} 
+                        className="w-full px-3 py-2 bg-black/30 border border-white/10 rounded-lg text-white text-sm font-bold" 
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-gray-300">Mois de caution</label>
+                      <input 
+                        type="number" 
+                        min="1" 
+                        max="12" 
+                        value={depositMonths} 
+                        onChange={(e) => {
+                          const m = Number(e.target.value);
+                          setDepositMonths(m);
+                          if (rentAmount) setDepositAmount(Number(rentAmount) * m);
+                        }} 
+                        className="w-full px-3 py-2 bg-black/30 border border-white/10 rounded-lg text-white text-sm" 
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-gray-300">Caution Totale ($)</label>
+                      <input 
+                        type="number" 
+                        value={depositAmount} 
+                        onChange={(e) => setDepositAmount(Number(e.target.value))} 
+                        className="w-full px-3 py-2 bg-black/30 border border-emerald-500/30 rounded-lg text-emerald-400 font-bold text-sm" 
+                        placeholder="Calculé auto" 
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium text-gray-300">Périodicité</label>
-                    <select required value={periodicity} onChange={(e) => setPeriodicity(e.target.value)} className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white [&>option]:bg-[#140b2e]">
-                      <option value="Mensuel">Mensuel</option>
-                      <option value="Trimestriel">Trimestriel</option>
-                      <option value="Annuel">Annuel</option>
-                    </select>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium text-gray-300">Prochaine échéance</label>
-                    <input type="date" required value={nextPayment} onChange={(e) => setNextPayment(e.target.value)} className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white [color-scheme:dark]" />
+
+                  <div className="grid grid-cols-3 gap-3 mt-3">
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-gray-300">Périodicité</label>
+                      <select required value={periodicity} onChange={(e) => setPeriodicity(e.target.value)} className="w-full px-3 py-2 bg-black/30 border border-white/10 rounded-lg text-white text-sm [&>option]:bg-[#140b2e]">
+                        <option value="Mensuel">Mensuel</option>
+                        <option value="Trimestriel">Trimestriel</option>
+                        <option value="Annuel">Annuel</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-gray-300">Date d'effet (Début)</label>
+                      <input type="date" value={leaseStartDate} onChange={(e) => setLeaseStartDate(e.target.value)} className="w-full px-3 py-2 bg-black/30 border border-white/10 rounded-lg text-white text-xs [color-scheme:dark]" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-gray-300">Prochaine échéance *</label>
+                      <input type="date" required value={nextPayment} onChange={(e) => setNextPayment(e.target.value)} className="w-full px-3 py-2 bg-black/30 border border-white/10 rounded-lg text-white text-xs [color-scheme:dark]" />
+                    </div>
                   </div>
                 </div>
 
                 <div className="pt-4 flex justify-end space-x-3 border-t border-white/10">
-                  <button type="button" onClick={() => setIsModalOpen(false)} disabled={isSubmitting} className="px-4 py-2 text-gray-400 hover:text-white transition-colors disabled:opacity-50">
+                  <button type="button" onClick={() => setIsModalOpen(false)} disabled={isSubmitting} className="px-4 py-2 text-gray-400 hover:text-white text-sm">
                     Annuler
                   </button>
-                  <button type="submit" disabled={isSubmitting} className="px-6 py-2 bg-primary hover:bg-primary-light text-white font-semibold rounded-lg transition-colors flex items-center disabled:opacity-50">
-                    {isSubmitting ? "Ajout..." : "Confirmer"}
+                  <button type="submit" disabled={isSubmitting} className="px-6 py-2 bg-primary hover:bg-primary-light text-white font-semibold rounded-lg text-sm flex items-center gap-2">
+                    {isSubmitting ? "Création en cours..." : "Enregistrer le Bail & Locataire"}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MAINTENANCE / INCIDENTS MODAL */}
+      <AnimatePresence>
+        {isMaintenanceModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-md bg-[#140b2e] border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+            >
+              <div className="flex items-center justify-between p-6 border-b border-white/10 bg-[#140b2e]">
+                <div className="flex items-center gap-2">
+                  <Wrench className="text-amber-400" size={20} />
+                  <h2 className="text-lg font-bold text-white">Signaler un Incident / Réparation</h2>
+                </div>
+                <button onClick={() => setIsMaintenanceModalOpen(false)} className="text-gray-400 hover:text-white">
+                  <X size={20} />
+                </button>
+              </div>
+
+              <form onSubmit={handleCreateMaintenanceTicket} className="p-6 space-y-4">
+                <p className="text-xs text-gray-300">
+                  Pour <strong className="text-white">{maintenanceTenant?.name}</strong> dans le bien <strong className="text-white">{maintenanceTenant?.propertyName}</strong>.
+                </p>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-gray-300 uppercase">Catégorie</label>
+                  <select value={maintenanceCategory} onChange={(e) => setMaintenanceCategory(e.target.value)} className="w-full px-3 py-2 bg-black/30 border border-white/10 rounded-lg text-white text-sm [&>option]:bg-[#140b2e]">
+                    <option value="Plomberie">Plomberie & Fuites d'eau</option>
+                    <option value="Électricité">Électricité & SNEL / Disjoncteur</option>
+                    <option value="Climatisation">Climatisation & Froid</option>
+                    <option value="Toiture">Toiture & Infiltration</option>
+                    <option value="Serrurerie">Serrurerie & Portes</option>
+                    <option value="Autre">Autre réparation</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-gray-300 uppercase">Description de la panne</label>
+                  <input type="text" required value={maintenanceTitle} onChange={(e) => setMaintenanceTitle(e.target.value)} className="w-full px-3 py-2 bg-black/30 border border-white/10 rounded-lg text-white text-sm" placeholder="ex: Remplacement robinet cuisine" />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-gray-300 uppercase">Coût estimé ($)</label>
+                    <input type="number" min="0" value={maintenanceCost} onChange={(e) => setMaintenanceCost(e.target.value === "" ? "" : Number(e.target.value))} className="w-full px-3 py-2 bg-black/30 border border-white/10 rounded-lg text-white text-sm" placeholder="0" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-gray-300 uppercase">Imputation (Qui paie ?)</label>
+                    <select value={maintenanceChargedTo} onChange={(e: any) => setMaintenanceChargedTo(e.target.value)} className="w-full px-3 py-2 bg-black/30 border border-white/10 rounded-lg text-white text-sm [&>option]:bg-[#140b2e]">
+                      <option value="BAILLEUR">À la charge du Bailleur</option>
+                      <option value="LOCATAIRE">À la charge du Locataire</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="pt-4 flex justify-end space-x-3 border-t border-white/10">
+                  <button type="button" onClick={() => setIsMaintenanceModalOpen(false)} className="px-4 py-2 text-gray-400 hover:text-white text-sm">
+                    Annuler
+                  </button>
+                  <button type="submit" disabled={isSubmitting} className="px-6 py-2 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-lg text-sm">
+                    {isSubmitting ? "Enregistrement..." : "Valider le ticket"}
                   </button>
                 </div>
               </form>
@@ -603,7 +933,7 @@ export default function SupplierTenantsPage() {
       {/* DECLARE DEPARTURE MODAL */}
       <AnimatePresence>
         {isDepartureModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -611,34 +941,41 @@ export default function SupplierTenantsPage() {
               className="w-full max-w-sm bg-[#140b2e] border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
             >
               <div className="flex items-center justify-between p-6 border-b border-white/10 bg-[#140b2e]">
-                <h2 className="text-lg font-semibold text-white">Déclarer un départ</h2>
+                <h2 className="text-lg font-semibold text-white">Déclarer un départ & Clôture du Bail</h2>
                 <button onClick={() => setIsDepartureModalOpen(false)} className="text-gray-400 hover:text-white">
                   <X size={20} />
                 </button>
               </div>
 
               <form onSubmit={handleDeclareDeparture} className="p-6 space-y-4">
-                <p className="text-sm text-gray-400 mb-4">
-                  Vous déclarez le départ de <strong className="text-white">{tenantToDepart?.name}</strong> de la propriété <strong className="text-white">{tenantToDepart?.propertyName}</strong>.
+                <p className="text-xs text-gray-300 mb-2">
+                  Départ de <strong className="text-white">{tenantToDepart?.name}</strong> de <strong className="text-white">{tenantToDepart?.propertyName}</strong>.
                 </p>
 
                 <div className="space-y-1">
-                  <label className="text-sm font-medium text-gray-300">Date de départ</label>
-                  <input type="date" required value={departureDate} onChange={(e) => setDepartureDate(e.target.value)} className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-400 text-white [color-scheme:dark]" />
+                  <label className="text-xs font-semibold text-gray-300 uppercase">Date de libération des lieux</label>
+                  <input type="date" required value={departureDate} onChange={(e) => setDepartureDate(e.target.value)} className="w-full px-3 py-2 bg-black/30 border border-white/10 rounded-lg text-white text-xs [color-scheme:dark]" />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-sm font-medium text-gray-300">Dette restante ($)</label>
-                  <input type="number" required min="0" value={debtAmount} onChange={(e) => setDebtAmount(e.target.value === "" ? "" : Number(e.target.value))} className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-400 text-white" placeholder="0 si aucune dette" />
-                  <p className="text-xs text-gray-500 mt-1">Saisissez 0 si le locataire est à jour de ses paiements.</p>
+                  <label className="text-xs font-semibold text-gray-300 uppercase">Sort de la Garantie Locative (Caution)</label>
+                  <select value={depositRestitutionStatus} onChange={(e: any) => setDepositRestitutionStatus(e.target.value)} className="w-full px-3 py-2 bg-black/30 border border-white/10 rounded-lg text-white text-xs [&>option]:bg-[#140b2e]">
+                    <option value="RESTITUTED">Restituée intégralement au locataire</option>
+                    <option value="DEDUCTED">Retenue (déduite pour impayés ou réparations)</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-gray-300 uppercase">Dette restante nette ($)</label>
+                  <input type="number" required min="0" value={debtAmount} onChange={(e) => setDebtAmount(e.target.value === "" ? "" : Number(e.target.value))} className="w-full px-3 py-2 bg-black/30 border border-white/10 rounded-lg text-white text-sm" placeholder="0 si soldé" />
                 </div>
 
                 <div className="pt-4 flex justify-end space-x-3 border-t border-white/10">
-                  <button type="button" onClick={() => setIsDepartureModalOpen(false)} disabled={isSubmitting} className="px-4 py-2 text-gray-400 hover:text-white transition-colors disabled:opacity-50">
+                  <button type="button" onClick={() => setIsDepartureModalOpen(false)} className="px-4 py-2 text-gray-400 hover:text-white text-sm">
                     Annuler
                   </button>
-                  <button type="submit" disabled={isSubmitting} className="px-6 py-2 bg-red-500 hover:bg-red-400 text-white font-semibold rounded-lg transition-colors flex items-center disabled:opacity-50">
-                    {isSubmitting ? "Traitement..." : "Confirmer le départ"}
+                  <button type="submit" disabled={isSubmitting} className="px-5 py-2 bg-red-500 hover:bg-red-400 text-white font-semibold rounded-lg text-sm">
+                    {isSubmitting ? "Traitement..." : "Clôturer le bail"}
                   </button>
                 </div>
               </form>
@@ -650,7 +987,7 @@ export default function SupplierTenantsPage() {
       {/* DECLARE PAYMENT MODAL */}
       <AnimatePresence>
         {isPaymentModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -658,33 +995,33 @@ export default function SupplierTenantsPage() {
               className="w-full max-w-sm bg-[#140b2e] border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
             >
               <div className="flex items-center justify-between p-6 border-b border-white/10 bg-[#140b2e]">
-                <h2 className="text-lg font-semibold text-white">Enregistrer un paiement</h2>
+                <h2 className="text-lg font-semibold text-white">Enregistrer un paiement de loyer</h2>
                 <button onClick={() => setIsPaymentModalOpen(false)} className="text-gray-400 hover:text-white">
                   <X size={20} />
                 </button>
               </div>
 
               <form onSubmit={handleDeclarePayment} className="p-6 space-y-4">
-                <p className="text-sm text-gray-400 mb-4">
-                  Paiement de <strong className="text-white">{tenantToPay?.name}</strong> pour la propriété <strong className="text-white">{tenantToPay?.propertyName}</strong>.
+                <p className="text-xs text-gray-300 mb-2">
+                  Paiement de <strong className="text-white">{tenantToPay?.name}</strong> pour <strong className="text-white">{tenantToPay?.propertyName}</strong>.
                 </p>
 
                 <div className="space-y-1">
-                  <label className="text-sm font-medium text-gray-300">Montant (USD)</label>
-                  <input type="number" required min="0" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value === "" ? "" : Number(e.target.value))} className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 text-white" />
+                  <label className="text-xs font-semibold text-gray-300 uppercase">Montant perçu (USD) *</label>
+                  <input type="number" required min="1" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value === "" ? "" : Number(e.target.value))} className="w-full px-3 py-2 bg-black/30 border border-emerald-500/30 rounded-lg text-emerald-400 font-bold text-base" />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-sm font-medium text-gray-300">Référence (Optionnel)</label>
-                  <input type="text" value={paymentReference} onChange={(e) => setPaymentReference(e.target.value)} className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 text-white" placeholder="Mois payé (ex: Mars 2024)" />
+                  <label className="text-xs font-semibold text-gray-300 uppercase">Référence ou Mois réglé</label>
+                  <input type="text" value={paymentReference} onChange={(e) => setPaymentReference(e.target.value)} className="w-full px-3 py-2 bg-black/30 border border-white/10 rounded-lg text-white text-sm" placeholder="ex: Loyer Mars 2024" />
                 </div>
 
                 <div className="pt-4 flex justify-end space-x-3 border-t border-white/10">
-                  <button type="button" onClick={() => setIsPaymentModalOpen(false)} disabled={isSubmitting} className="px-4 py-2 text-gray-400 hover:text-white transition-colors disabled:opacity-50">
+                  <button type="button" onClick={() => setIsPaymentModalOpen(false)} className="px-4 py-2 text-gray-400 hover:text-white text-sm">
                     Annuler
                   </button>
-                  <button type="submit" disabled={isSubmitting} className="px-6 py-2 bg-green-500 hover:bg-green-400 text-white font-semibold rounded-lg transition-colors flex items-center disabled:opacity-50">
-                    {isSubmitting ? "Traitement..." : "Enregistrer"}
+                  <button type="submit" disabled={isSubmitting} className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-white font-bold rounded-lg text-sm">
+                    {isSubmitting ? "Traitement..." : "Valider l'encaissement"}
                   </button>
                 </div>
               </form>

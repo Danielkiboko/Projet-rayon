@@ -23,54 +23,36 @@ export function initFirebaseAdmin() {
            const keys = Object.keys(process.env).filter(k => k.includes('FIREBASE')).join(', ');
            throw new Error(`FIREBASE_PRIVATE_KEY is missing. Found keys: ${keys}`);
         }
-        let privateKey = process.env.FIREBASE_PRIVATE_KEY || '';
+        let privateKey = (process.env.FIREBASE_PRIVATE_KEY || '').trim();
 
-        // Check if private key is base64 encoded
-        if (!privateKey.includes('-----BEGIN') && privateKey.length > 100) {
-          try {
-            const decoded = Buffer.from(privateKey, 'base64').toString('utf-8');
-            if (decoded.includes('-----BEGIN')) {
-              privateKey = decoded;
-            }
-          } catch (e) {}
-        }
-        
-        // Remove surrounding quotes if any
-        if (privateKey.startsWith('"') && privateKey.endsWith('"')) privateKey = privateKey.slice(1, -1);
-        if (privateKey.startsWith("'") && privateKey.endsWith("'")) privateKey = privateKey.slice(1, -1);
+        // 1. Remove surrounding quotes
+        privateKey = privateKey.replace(/^["']|["']$/g, '');
 
-        // Replace literal \n
-        privateKey = privateKey.replace(/\\n/g, '\n');
+        // 2. Handle literal \n or escaped slashes
+        privateKey = privateKey.replace(/\\\\n/g, '\n').replace(/\\n/g, '\n').replace(/\r/g, '');
 
-        const beginHeader = "-----BEGIN PRIVATE KEY-----";
-        const endHeader = "-----END PRIVATE KEY-----";
-        
-        if (!privateKey.includes(beginHeader)) {
-          // If the raw key was provided without PEM headers, wrap it
-          const cleaned = privateKey.replace(/\s+/g, '');
-          const match = cleaned.match(/.{1,64}/g);
-          if (match) {
-            privateKey = `${beginHeader}\n${match.join('\n')}\n${endHeader}\n`;
-          }
-        }
+        // 3. Clean up lines: trim every line, remove empty lines, join with single newline
+        const lines = privateKey.split('\n').map(l => l.trim()).filter(Boolean);
+        privateKey = lines.join('\n') + '\n';
+
+        const clientEmail = (process.env.FIREBASE_CLIENT_EMAIL || '').replace(/^["']|["']$/g, '').trim();
+        const projectId = (process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'rayon-projet').replace(/^["']|["']$/g, '').trim();
         
         initializeApp({
           credential: cert({
-            projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-            clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+            projectId: projectId,
+            clientEmail: clientEmail,
             privateKey: privateKey,
           }),
         });
       }
       console.log('Firebase Admin initialized successfully.');
-      // Clear any previous init errors on successful retry
       adminInitError = null;
     } catch (error) {
       console.error('Firebase Admin initialization error', error);
       adminInitError = error;
     }
   } else {
-    // If apps exist, clear the error
     adminInitError = null;
   }
 }

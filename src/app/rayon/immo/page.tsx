@@ -15,6 +15,7 @@ import { ProductSkeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/context/AuthContext";
 import { useChat } from "@/context/ChatContext";
 import { ImmoContactModal } from "@/components/ImmoContactModal";
+import PropertyDetailModal from "@/components/properties/PropertyDetailModal";
 
 const DICT = {
   fr: {
@@ -55,8 +56,22 @@ export default function ImmoPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<"all" | "sale" | "rent" | "hotel">("all");
+  
+  // Recherche avancée et filtres multicritères
+  const [searchQuery, setSearchQuery] = useState("");
+  const [minPrice, setMinPrice] = useState<number | "">("");
+  const [maxPrice, setMaxPrice] = useState<number | "">("");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [bedFilter, setBedFilter] = useState("all");
+  const [filterGenerator, setFilterGenerator] = useState(false);
+  const [filterAc, setFilterAc] = useState(false);
+  const [filterPool, setFilterPool] = useState(false);
+
+  // Modales
   const [contactProperty, setContactProperty] = useState<any | null>(null);
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+  const [selectedDetailProperty, setSelectedDetailProperty] = useState<any | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
   useEffect(() => {
     const q = query(
@@ -83,14 +98,49 @@ export default function ImmoPage() {
     const type = (property.type || "").toLowerCase().trim();
     const isHotel = property.immoBranch === "hotel" || type === "hotel" || trans.includes("hotel") || trans.includes("nuit") || trans.includes("réservation") || trans.includes("reservation") || trans.includes("journali") || !!property.hotelDetails;
 
-    if (selectedCategory === "all") return true;
-    if (selectedCategory === "hotel") return isHotel;
-    if (selectedCategory === "sale") {
-      return !isHotel && (trans.includes("vent") || trans.includes("vendre") || trans === "sale");
+    // 1. Category Tab Filter
+    if (selectedCategory === "hotel" && !isHotel) return false;
+    if (selectedCategory === "sale" && (isHotel || (!trans.includes("vent") && !trans.includes("vendre") && trans !== "sale"))) return false;
+    if (selectedCategory === "rent" && (isHotel || (!trans.includes("locat") && !trans.includes("lou") && !trans.includes("coloc") && trans !== "rent" && (!trans && property.immoBranch !== "habitation")))) return false;
+
+    // 2. Text Search Query (Location, Title, Description)
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      const titleMatch = (property.title?.[lang] || property.title?.fr || property.title || "").toLowerCase().includes(q);
+      const locMatch = (property.location || "").toLowerCase().includes(q);
+      const descMatch = (property.description || "").toLowerCase().includes(q);
+      if (!titleMatch && !locMatch && !descMatch) return false;
     }
-    if (selectedCategory === "rent") {
-      return !isHotel && (trans.includes("locat") || trans.includes("lou") || trans.includes("coloc") || trans === "rent" || (!trans && property.immoBranch === "habitation"));
+
+    // 3. Price Filter
+    const price = Number(property.price || 0);
+    if (minPrice !== "" && price < Number(minPrice)) return false;
+    if (maxPrice !== "" && price > Number(maxPrice)) return false;
+
+    // 4. Property Type Filter
+    if (typeFilter !== "all") {
+      if (typeFilter === "hotel" && !isHotel) return false;
+      if (typeFilter !== "hotel" && type !== typeFilter) return false;
     }
+
+    // 5. Bedrooms Filter
+    if (bedFilter !== "all") {
+      const beds = Number(property.immoDetails?.beds || 0);
+      const targetBeds = parseInt(bedFilter);
+      if (beds < targetBeds) return false;
+    }
+
+    // 6. Amenities Filter
+    if (filterGenerator && !property.hotelDetails?.amenities?.includes("generator") && !property.amenities?.includes("generator")) {
+      return false;
+    }
+    if (filterAc && !property.hotelDetails?.amenities?.includes("ac") && !property.amenities?.includes("ac")) {
+      return false;
+    }
+    if (filterPool && !property.hotelDetails?.amenities?.includes("pool") && !property.amenities?.includes("pool")) {
+      return false;
+    }
+
     return true;
   });
 
@@ -137,8 +187,8 @@ export default function ImmoPage() {
           </div>
         </div>
 
-        {/* Filters */}
-        <div className="flex space-x-3 mb-8 overflow-x-auto pb-2">
+        {/* Category Tabs */}
+        <div className="flex space-x-3 mb-6 overflow-x-auto pb-2">
           <button 
             onClick={() => setSelectedCategory("all")}
             className={`px-5 py-2 font-semibold rounded-full text-sm transition-all whitespace-nowrap ${
@@ -176,6 +226,131 @@ export default function ImmoPage() {
           </button>
         </div>
 
+        {/* Multi-Criteria Advanced Search Toolbar */}
+        <div className="bg-white border border-gray-200 rounded-3xl p-5 mb-10 shadow-sm space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+            {/* Search Input */}
+            <div className="md:col-span-5 relative">
+              <input
+                type="text"
+                placeholder="Rechercher par commune, quartier, mot-clé (ex: Gombe, Piscine, Villa)..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-4 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-600"
+              />
+            </div>
+
+            {/* Type Filter */}
+            <div className="md:col-span-3">
+              <select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+                className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-600"
+              >
+                <option value="all">Tous les types de biens</option>
+                <option value="appartement">Appartement</option>
+                <option value="villa">Villa / Maison</option>
+                <option value="studio">Studio</option>
+                <option value="bureau">Bureau / Local commercial</option>
+                <option value="terrain">Terrain</option>
+                <option value="hotel">Chambre / Suite d'Hôtel</option>
+              </select>
+            </div>
+
+            {/* Price Range */}
+            <div className="md:col-span-2">
+              <input
+                type="number"
+                placeholder="Prix Min ($)"
+                value={minPrice}
+                onChange={(e) => setMinPrice(e.target.value === "" ? "" : Number(e.target.value))}
+                className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-600"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <input
+                type="number"
+                placeholder="Prix Max ($)"
+                value={maxPrice}
+                onChange={(e) => setMaxPrice(e.target.value === "" ? "" : Number(e.target.value))}
+                className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-600"
+              />
+            </div>
+          </div>
+
+          {/* Secondary Quick Filters: Bedrooms & Amenities */}
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-gray-100">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-gray-500 uppercase">Chambres :</span>
+              {["all", "1", "2", "3", "4"].map((b) => (
+                <button
+                  key={b}
+                  onClick={() => setBedFilter(b)}
+                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                    bedFilter === b
+                      ? "bg-gray-900 text-white shadow-xs"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  {b === "all" ? "Toutes" : `${b}+`}
+                </button>
+              ))}
+            </div>
+
+            {/* Amenities toggles */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-bold text-gray-500 uppercase">Commodités :</span>
+              <button
+                onClick={() => setFilterGenerator(!filterGenerator)}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all ${
+                  filterGenerator ? "bg-amber-500 text-black shadow-xs font-bold" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                ⚡ <span>Groupe 24/7</span>
+              </button>
+              <button
+                onClick={() => setFilterAc(!filterAc)}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all ${
+                  filterAc ? "bg-sky-500 text-white shadow-xs font-bold" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                ❄️ <span>Clim</span>
+              </button>
+              <button
+                onClick={() => setFilterPool(!filterPool)}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all ${
+                  filterPool ? "bg-teal-500 text-white shadow-xs font-bold" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                🏊 <span>Piscine</span>
+              </button>
+
+              {(searchQuery || minPrice !== "" || maxPrice !== "" || typeFilter !== "all" || bedFilter !== "all" || filterGenerator || filterAc || filterPool) && (
+                <button
+                  onClick={() => {
+                    setSearchQuery("");
+                    setMinPrice("");
+                    setMaxPrice("");
+                    setTypeFilter("all");
+                    setBedFilter("all");
+                    setFilterGenerator(false);
+                    setFilterAc(false);
+                    setFilterPool(false);
+                  }}
+                  className="text-xs text-red-600 hover:underline font-medium ml-2"
+                >
+                  Réinitialiser les filtres
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Results Counter */}
+        <div className="mb-6 flex items-center justify-between text-sm text-gray-500">
+          <span>{filteredProducts.length} bien(s) correspondant à vos critères</span>
+        </div>
+
         {/* Properties Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {isLoading ? (
@@ -206,8 +381,14 @@ export default function ImmoPage() {
                   transition={{ delay: idx * 0.1, duration: 0.5 }}
                   className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-lg transition-all group flex flex-col"
                 >
-                  {/* Image */}
-                  <div className="relative h-64 overflow-hidden">
+                  {/* Image with click to open detail */}
+                  <div 
+                    onClick={() => {
+                      setSelectedDetailProperty(property);
+                      setIsDetailModalOpen(true);
+                    }}
+                    className="relative h-64 overflow-hidden cursor-pointer"
+                  >
                     <img 
                       src={property.image} 
                       alt={property.title?.[lang] || property.title?.fr || property.title}
@@ -254,7 +435,13 @@ export default function ImmoPage() {
 
                   {/* Info */}
                   <div className="p-6 flex-1 flex flex-col">
-                    <h3 className="text-xl font-bold text-gray-900 mb-2 leading-tight">
+                    <h3 
+                      onClick={() => {
+                        setSelectedDetailProperty(property);
+                        setIsDetailModalOpen(true);
+                      }}
+                      className="text-xl font-bold text-gray-900 mb-2 leading-tight cursor-pointer hover:text-green-700 transition-colors"
+                    >
                       {property.title?.[lang] || property.title?.fr || property.title}
                     </h3>
                     
@@ -374,6 +561,28 @@ export default function ImmoPage() {
         </div>
 
       </main>
+
+      {/* Property Detail Modal */}
+      <PropertyDetailModal
+        isOpen={isDetailModalOpen}
+        onClose={() => setIsDetailModalOpen(false)}
+        property={selectedDetailProperty}
+        lang={lang}
+        onBook={(prop) => {
+          setContactProperty(prop);
+          setIsContactModalOpen(true);
+        }}
+        onChat={(prop) => {
+          const trans = (prop.typeTransaction || "").toLowerCase();
+          const isHotel = prop.immoBranch === "hotel" || prop.type === "hotel" || trans.includes("hotel") || trans.includes("nuit");
+          openChatForProduct({
+            id: prop.id,
+            supplierId: prop.supplierId || "admin",
+            name: prop.title?.[lang] || prop.title?.fr || prop.title,
+            type: isHotel ? "hotel" : "property"
+          });
+        }}
+      />
 
       {/* Contact / Reservation Modal */}
       <ImmoContactModal 

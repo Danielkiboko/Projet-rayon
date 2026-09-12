@@ -12,10 +12,13 @@ import KpiGrid from "./shared/KpiGrid";
 import ActionCard from "./shared/ActionCard";
 import GenericDashboard, { KpiConfig, ActionConfig } from "./shared/GenericDashboard";
 import { groupPaymentsByDate } from "@/lib/dateUtils";
+import HotelBookingsManager from "@/components/hotels/HotelBookingsManager";
+import { Hotel, CalendarCheck } from "lucide-react";
 
 export default function ImmoDashboard() {
   const { user, userData } = useAuth();
   const activeSupplierId = userData?.parentSupplierId || user?.uid;
+  const [operationalTab, setOperationalTab] = useState<"VISITS" | "HOTELS">("VISITS");
   
   const [stats, setStats] = useState({
     totalProperties: 0,

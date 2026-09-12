@@ -55,7 +55,15 @@ export function ChatBox({ chatId, otherUserName = "Utilisateur" }: ChatBoxProps)
       setMessages(msgs);
       setIsLoading(false);
       scrollToBottom();
+    }, (error) => {
+      console.warn("ChatBox messages listener warning:", error.message);
+      setIsLoading(false);
     });
+
+    // Mark as read for client when opened
+    updateDoc(doc(db, "chats", chatId), {
+      unreadClient: false
+    }).catch(() => {});
 
     return () => unsubscribe();
   }, [chatId]);
@@ -80,13 +88,14 @@ export function ChatBox({ chatId, otherUserName = "Utilisateur" }: ChatBoxProps)
         senderId: user.uid,
         createdAt: serverTimestamp(),
       });
-      await updateDoc(doc(db, "chats", chatId), {
+      await setDoc(doc(db, "chats", chatId), {
         lastMessage: messageText,
         lastMessageTime: serverTimestamp(),
         updatedAt: serverTimestamp(),
-        unreadClient: true,
+        unreadSupplier: true,
+        unreadClient: false,
         notified: false
-      });
+      }, { merge: true });
       scrollToBottom();
     } catch (error) {
       console.error("Erreur d'envoi du message:", error);
@@ -172,7 +181,7 @@ export function ChatBox({ chatId, otherUserName = "Utilisateur" }: ChatBoxProps)
   }
 
   return (
-    <div className="flex flex-col h-[500px] bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+    <div className="flex flex-col h-full min-h-[450px] flex-1 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
       {/* Header */}
       <div className="p-4 border-b border-gray-200 bg-gray-50">
         <h3 className="font-bold text-gray-900">Discussion avec {otherUserName}</h3>

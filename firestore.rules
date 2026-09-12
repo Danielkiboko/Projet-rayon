@@ -110,16 +110,26 @@ service cloud.firestore {
 
     // Chats collection
     match /chats/{chatId} {
+      allow create: if request.auth != null;
       allow read, update: if request.auth != null && (
         resource.data.clientId == request.auth.uid || 
+        resource.data.supplierId == request.auth.uid ||
         ownsSupplierData(resource.data.supplierId) ||
         isSuperAdmin() || isAdmin()
       );
-      allow create: if request.auth != null; 
 
       match /messages/{messageId} {
-        allow read, write: if request.auth != null && (
+        allow read: if request.auth != null && (
+          !exists(/databases/$(database)/documents/chats/$(chatId)) ||
           get(/databases/$(database)/documents/chats/$(chatId)).data.clientId == request.auth.uid ||
+          get(/databases/$(database)/documents/chats/$(chatId)).data.supplierId == request.auth.uid ||
+          ownsSupplierData(get(/databases/$(database)/documents/chats/$(chatId)).data.supplierId) ||
+          isSuperAdmin() || isAdmin()
+        );
+        allow create, write: if request.auth != null && (
+          !exists(/databases/$(database)/documents/chats/$(chatId)) ||
+          get(/databases/$(database)/documents/chats/$(chatId)).data.clientId == request.auth.uid ||
+          get(/databases/$(database)/documents/chats/$(chatId)).data.supplierId == request.auth.uid ||
           ownsSupplierData(get(/databases/$(database)/documents/chats/$(chatId)).data.supplierId) ||
           isSuperAdmin() || isAdmin()
         );

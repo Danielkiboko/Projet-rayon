@@ -53,6 +53,8 @@ export function GlobalChatbot() {
       }));
       fetchedChats.sort((a, b) => (b.updatedAt?.toMillis?.() || 0) - (a.updatedAt?.toMillis?.() || 0));
       setUserChats(fetchedChats);
+    }, (err) => {
+      console.warn("GlobalChatbot userChats warning:", err.message);
     });
     return () => unsubscribe();
   }, [user, isChatOpen]);
@@ -146,6 +148,36 @@ export function GlobalChatbot() {
     ? `${user?.uid}_${activeProduct.supplierId}_${activeProduct.id}`
     : selectedChatId;
 
+  // Pre-initialize chat doc when activeProduct is active so document exists for Firestore rules & listeners
+  useEffect(() => {
+    if (!user || !activeProduct) return;
+    const cid = `${user.uid}_${activeProduct.supplierId}_${activeProduct.id}`;
+    const initChatDoc = async () => {
+      try {
+        await setDoc(doc(db, "chats", cid), {
+          clientId: user.uid,
+          supplierId: activeProduct.supplierId,
+          productId: activeProduct.id,
+          productName: activeProduct.name,
+          propertyTitle: activeProduct.name,
+          isHotel: activeProduct.type === "hotel",
+          updatedAt: serverTimestamp(),
+        }, { merge: true });
+      } catch (e) {
+        console.warn("Could not pre-init chat doc:", e);
+      }
+    };
+    initChatDoc();
+  }, [user, activeProduct]);
+
+  // Mark chat as read when client opens it
+  useEffect(() => {
+    if (!selectedChatId || !user) return;
+    updateDoc(doc(db, "chats", selectedChatId), {
+      unreadClient: false
+    }).catch(() => {});
+  }, [selectedChatId, user]);
+
   // 3. Fetch messages for active chat
   useEffect(() => {
     if (!user || !currentChatId || !isChatOpen) {
@@ -164,6 +196,8 @@ export function GlobalChatbot() {
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
       }, 100);
+    }, (err) => {
+      console.warn("GlobalChatbot messages listener warning:", err.message);
     });
 
     return () => unsubscribe();
@@ -426,6 +460,15 @@ export function GlobalChatbot() {
               >
                 {isAuthenticating ? <Loader2 size={20} className="animate-spin" /> : "Accéder au chat"}
               </button>
+
+              <div className="text-center pt-2">
+                <p className="text-xs text-gray-500">
+                  Vous avez déjà un compte ?{" "}
+                  <a href="/login" className="text-blue-600 hover:underline font-medium">
+                    Se connecter
+                  </a>
+                </p>
+              </div>
             </form>
           )}
         </div>

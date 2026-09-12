@@ -76,9 +76,11 @@ function Toast({ message, type }: { message: string; type: "success" | "error" }
   );
 }
 
+import { isSuperAdmin } from "@/lib/permissions";
+
 export default function AdminSettingsPage() {
   const { user, userData } = useAuth();
-  const isSuperAdmin = user?.email === "danielkiboko218@gmail.com" || userData?.role === "SUPER_ADMIN";
+  const isSuper = isSuperAdmin(user, userData);
 
   const [settings, setSettings] = useState<PlatformSettings>(DEFAULT_SETTINGS);
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
@@ -229,7 +231,7 @@ export default function AdminSettingsPage() {
     );
   };
 
-  if (!isSuperAdmin) {
+  if (!isSuper) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-center">

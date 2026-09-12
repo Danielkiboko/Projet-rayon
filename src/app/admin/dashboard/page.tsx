@@ -14,12 +14,14 @@ import {
 } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, query, where } from "firebase/firestore";
+import { hasAdminAccess } from "@/lib/permissions";
 import Link from "next/link";
 import { motion } from "framer-motion";
 
 export default function AdminDashboardPage() {
   const { user, userData, loading } = useAuth();
   const router = useRouter();
+  const isAuthorized = hasAdminAccess(user, userData);
 
   const [stats, setStats] = useState({
     pendingSuppliers: 0,
@@ -37,23 +39,15 @@ export default function AdminDashboardPage() {
     if (!loading) {
       if (!user) {
         router.push("/login");
-      } else {
-        const isSuperAdmin = user.email === "danielkiboko218@gmail.com" || userData?.role === "SUPER_ADMIN";
-        const isAuthorizedSubAdmin = userData?.role === "SUB_ADMIN";
-        
-        if (!isSuperAdmin && !isAuthorizedSubAdmin) {
-          router.push("/");
-        }
+      } else if (!isAuthorized) {
+        router.push("/");
       }
     }
-  }, [user, userData, loading, router]);
+  }, [user, userData, loading, router, isAuthorized]);
 
   // Fetch Validation & Regulation Data
   useEffect(() => {
-    if (!user || !userData) return;
-    const isSuperAdmin = user.email === "danielkiboko218@gmail.com" || userData?.role === "SUPER_ADMIN";
-    const isAuthorizedSubAdmin = userData?.role === "SUB_ADMIN";
-    if (!isSuperAdmin && !isAuthorizedSubAdmin) return;
+    if (!user || !userData || !isAuthorized) return;
 
     let unsubUsers: any;
     let unsubProps: any;
@@ -132,12 +126,9 @@ export default function AdminDashboardPage() {
       if (unsubProps) unsubProps();
       if (unsubProds) unsubProds();
     };
-  }, [user, userData]);
+  }, [user, userData, isAuthorized]);
 
-  const isSuperAdmin = user?.email === "danielkiboko218@gmail.com" || userData?.role === "SUPER_ADMIN";
-  const isAuthorizedSubAdmin = userData?.role === "SUB_ADMIN";
-
-  if (loading || !user || (!isSuperAdmin && !isAuthorizedSubAdmin)) {
+  if (loading || !user || !isAuthorized) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-white flex flex-col items-center">

@@ -3,33 +3,27 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { hasAdminAccess } from "@/lib/permissions";
 import PropertyManager from "@/components/properties/PropertyManager";
 import { ShieldAlert } from "lucide-react";
 
 export default function AdminPropertiesPage() {
   const { user, userData, loading } = useAuth();
   const router = useRouter();
+  const isAuthorized = hasAdminAccess(user, userData);
 
-  // Protect route for Super Admin and authorized SUB_ADMINs
+  // Protect route for Admin and authorized staff
   useEffect(() => {
     if (!loading) {
       if (!user) {
         router.push("/login");
-      } else {
-        const isSuperAdmin = user.email === "danielkiboko218@gmail.com";
-        const isAuthorizedSubAdmin = userData?.role === "SUB_ADMIN";
-        
-        if (!isSuperAdmin && !isAuthorizedSubAdmin) {
-          router.push("/");
-        }
+      } else if (!isAuthorized) {
+        router.push("/");
       }
     }
-  }, [user, userData, loading, router]);
+  }, [user, userData, loading, router, isAuthorized]);
 
-  const isSuperAdmin = user?.email === "danielkiboko218@gmail.com";
-  const isAuthorizedSubAdmin = userData?.role === "SUB_ADMIN";
-
-  if (loading || !user || (!isSuperAdmin && !isAuthorizedSubAdmin)) {
+  if (loading || !user || !isAuthorized) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-white flex flex-col items-center">

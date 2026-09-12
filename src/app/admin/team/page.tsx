@@ -45,6 +45,8 @@ export default function AdminTeamPage() {
   const router = useRouter();
 
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [subSuppliers, setSubSuppliers] = useState<any[]>([]);
+  const [activeTeamTab, setActiveTeamTab] = useState<"internal" | "sub_agents">("internal");
   const [pendingDrivers, setPendingDrivers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -139,9 +141,34 @@ export default function AdminTeamPage() {
       console.warn("Pending drivers listener warning:", err.message);
     });
 
+    // Also fetch sub-agents / agency collaborators across all suppliers
+    const qSub = query(collection(db, "users"), where("role", "in", ["SUB_SUPPLIER", "sub_supplier"]));
+    const unsubSub = onSnapshot(qSub, (snapshot) => {
+      const subs: any[] = [];
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        subs.push({
+          id: docSnap.id,
+          name: data.displayName || `${data.firstName || ''} ${data.lastName || ''}`.trim() || "Sous-Agent",
+          email: data.email || "",
+          phone: data.phone || data.phoneNumber || "",
+          role: data.role || "SUB_SUPPLIER",
+          parentSupplierId: data.parentSupplierId || data.createdBy || "",
+          permissions: Array.isArray(data.permissions) ? data.permissions : [],
+          serviceAttached: data.serviceAttached || "immo",
+          status: data.status || "active",
+          createdAt: data.createdAt,
+        });
+      });
+      setSubSuppliers(subs);
+    }, (err) => {
+      console.warn("Pending sub-agents listener warning:", err.message);
+    });
+
     return () => {
       unsubscribe();
       unsubDrivers();
+      unsubSub();
     };
   }, [user, isAuthorized]);
 
@@ -470,28 +497,70 @@ export default function AdminTeamPage() {
         </div>
       </div>
 
+      {/* Navigation Tabs between Internal Staff and Sub-Agents */}
+      <div className="flex items-center gap-2 border-b border-white/10 pb-3">
+        <button
+          onClick={() => setActiveTeamTab("internal")}
+          className={`px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all ${
+            activeTeamTab === "internal"
+              ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/25"
+              : "text-gray-400 hover:text-white bg-white/5"
+          }`}
+        >
+          <Users size={16} />
+          <span>Fonctionnaires Rayons ({teamMembers.length})</span>
+        </button>
+        <button
+          onClick={() => setActiveTeamTab("sub_agents")}
+          className={`px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all ${
+            activeTeamTab === "sub_agents"
+              ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/25"
+              : "text-gray-400 hover:text-white bg-white/5"
+          }`}
+        >
+          <ShieldCheck size={16} />
+          <span>Sous-Agents Partenaires & Immo ({subSuppliers.length})</span>
+        </button>
+      </div>
+
       {/* Main Staff Table */}
       <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden shadow-xl">
         <div className="p-4 border-b border-white/10 flex items-center justify-between">
           <div>
-            <h2 className="text-base font-bold text-white">Fonctionnaires & Collaborateurs Actifs</h2>
-            <p className="text-xs text-gray-400 mt-0.5">Membres ayant accès aux modules du panneau d'administration selon leur fonction.</p>
+            <h2 className="text-base font-bold text-white">
+              {activeTeamTab === "internal" ? "Fonctionnaires & Collaborateurs Internes" : "Sous-Agents & Délégués des Agences Partenaires"}
+            </h2>
+            <p className="text-xs text-gray-400 mt-0.5">
+              {activeTeamTab === "internal" 
+                ? "Membres ayant accès aux modules du panneau d'administration selon leur fonction." 
+                : "Collaborateurs et agents créés par les fournisseurs immobiliers et partenaires pour gérer leurs opérations."}
+            </p>
           </div>
           <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-white/10 text-gray-300">
-            {teamMembers.length} membre{teamMembers.length > 1 ? "s" : ""}
+            {activeTeamTab === "internal" ? teamMembers.length : subSuppliers.length} membre{((activeTeamTab === "internal" ? teamMembers.length : subSuppliers.length) > 1) ? "s" : ""}
           </span>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-gray-300">
             <thead className="text-xs uppercase bg-black/30 text-gray-400 tracking-wider">
-              <tr>
-                <th className="px-6 py-4 font-semibold">Collaborateur</th>
-                <th className="px-6 py-4 font-semibold">Attribution Interne</th>
-                <th className="px-6 py-4 font-semibold">Périmètre d'Accès</th>
-                <th className="px-6 py-4 font-semibold">Statut</th>
-                <th className="px-6 py-4 font-semibold text-right">Actions</th>
-              </tr>
+              {activeTeamTab === "internal" ? (
+                <tr>
+                  <th className="px-6 py-4 font-semibold">Collaborateur</th>
+                  <th className="px-6 py-4 font-semibold">Attribution Interne</th>
+                  <th className="px-6 py-4 font-semibold">Périmètre d'Accès</th>
+                  <th className="px-6 py-4 font-semibold">Statut</th>
+                  <th className="px-6 py-4 font-semibold text-right">Actions</th>
+                </tr>
+              ) : (
+                <tr>
+                  <th className="px-6 py-4 font-semibold">Sous-Agent</th>
+                  <th className="px-6 py-4 font-semibold">Rayon & Type</th>
+                  <th className="px-6 py-4 font-semibold">Modules Autorisés</th>
+                  <th className="px-6 py-4 font-semibold">Statut</th>
+                  <th className="px-6 py-4 font-semibold text-right">Actions</th>
+                </tr>
+              )}
             </thead>
             <tbody className="divide-y divide-white/5">
               {isLoading ? (
@@ -499,91 +568,211 @@ export default function AdminTeamPage() {
                   <td colSpan={5} className="px-6 py-12 text-center text-gray-400">
                     <div className="flex flex-col items-center gap-2">
                       <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-                      <span>Chargement des collaborateurs...</span>
+                      <span>Chargement...</span>
                     </div>
                   </td>
                 </tr>
-              ) : teamMembers.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-gray-400">
-                    Aucun collaborateur interne configuré.
-                  </td>
-                </tr>
-              ) : (
-                teamMembers.map((member) => {
-                  const isMemberSuperAdmin = member.role?.toUpperCase().includes("SUPER");
-                  return (
-                    <tr key={member.id} className="hover:bg-white/5 transition-colors">
-                      <td className="px-6 py-4 font-medium text-white">
-                        <div className="flex items-center space-x-3">
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 ${
-                            isMemberSuperAdmin
-                              ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                              : member.role?.toUpperCase().includes("FINANCE")
-                              ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                              : member.role?.toUpperCase().includes("DB")
-                              ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
-                              : "bg-purple-500/20 text-purple-300 border border-purple-500/30"
-                          }`}>
-                            {isMemberSuperAdmin ? "👑" : member.name.charAt(0).toUpperCase()}
+              ) : activeTeamTab === "internal" ? (
+                teamMembers.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-12 text-center text-gray-400">
+                      Aucun collaborateur interne configuré.
+                    </td>
+                  </tr>
+                ) : (
+                  teamMembers.map((member) => {
+                    const isMemberSuperAdmin = member.role?.toUpperCase().includes("SUPER");
+                    return (
+                      <tr key={member.id} className="hover:bg-white/5 transition-colors">
+                        <td className="px-6 py-4 font-medium text-white">
+                          <div className="flex items-center space-x-3">
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 ${
+                              isMemberSuperAdmin
+                                ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                                : member.role?.toUpperCase().includes("FINANCE")
+                                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                                : member.role?.toUpperCase().includes("DB")
+                                ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
+                                : "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                            }`}>
+                              {isMemberSuperAdmin ? "👑" : member.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <p className="font-semibold text-white">{member.name}</p>
+                              <p className="text-xs text-gray-400">{member.email}</p>
+                              {member.phoneNumber && (
+                                <p className="text-[11px] text-gray-500 mt-0.5">{member.phoneNumber}</p>
+                              )}
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-semibold text-white">{member.name}</p>
-                            <p className="text-xs text-gray-400">{member.email}</p>
-                            {member.phoneNumber && (
-                              <p className="text-[11px] text-gray-500 mt-0.5">{member.phoneNumber}</p>
+                        </td>
+                        <td className="px-6 py-4">
+                          {getRoleBadge(member.role)}
+                        </td>
+                        <td className="px-6 py-4 text-xs text-gray-300">
+                          {isMemberSuperAdmin && "Tous les modules & privilèges système complets"}
+                          {member.role?.toUpperCase().includes("FINANCE") && "Caisse, Écritures comptables, Trésorerie, Factures & Dépôts"}
+                          {member.role?.toUpperCase().includes("DB") && "Santé de l'app, Audits des collections, Erreurs système & Données"}
+                          {member.role?.toUpperCase().includes("OPS") && "Flotte de livreurs, Attribution des courses & Suivi des commandes"}
+                          {!isMemberSuperAdmin && !member.role?.toUpperCase().includes("FINANCE") && !member.role?.toUpperCase().includes("DB") && !member.role?.toUpperCase().includes("OPS") && "Validation des biens/produits, Commandes & Modération"}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="inline-flex items-center gap-1 text-xs text-emerald-400 font-medium bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                            Actif
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-right whitespace-nowrap">
+                          {isSuper && !isMemberSuperAdmin ? (
+                            <div className="inline-flex items-center gap-2">
+                              {/* Role Switcher */}
+                              <select
+                                value={member.role}
+                                onChange={(e) => handleChangeRole(member.id, e.target.value)}
+                                disabled={isUpdating}
+                                className="text-xs bg-black/40 border border-white/10 rounded-lg px-2.5 py-1 text-gray-300 focus:outline-none focus:border-indigo-500 [&>option]:bg-[#140b2e]"
+                              >
+                                <option value="ADMIN_FINANCE">💼 Finance & Caisse</option>
+                                <option value="ADMIN_DB">🗄️ Base de Données</option>
+                                <option value="ADMIN_OPS">🚚 Opérations & Livreurs</option>
+                                <option value="SUB_ADMIN">📦 Modération Générale</option>
+                              </select>
+
+                              <button
+                                onClick={() => handleRevokeRole(member.id, member.name)}
+                                disabled={isUpdating}
+                                title="Révoquer tous les droits internes"
+                                className="text-xs text-red-400 hover:text-white hover:bg-red-500/20 px-2.5 py-1 rounded-lg border border-red-500/30 transition-all font-medium"
+                              >
+                                Révoquer
+                              </button>
+                            </div>
+                          ) : isMemberSuperAdmin ? (
+                            <span className="text-xs text-amber-400/80 italic font-medium">Propriétaire Système</span>
+                          ) : null}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )
+              ) : (
+                /* SUB-AGENTS TAB BODY */
+                subSuppliers.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-12 text-center text-gray-400">
+                      Aucun sous-agent ou délégué fournisseur enregistré pour l'instant.
+                    </td>
+                  </tr>
+                ) : (
+                  subSuppliers.map((sub) => {
+                    const isSubActive = sub.status === "active";
+                    return (
+                      <tr key={sub.id} className="hover:bg-white/5 transition-colors">
+                        <td className="px-6 py-4 font-medium text-white">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-300 border border-blue-500/30 flex items-center justify-center font-bold text-sm shrink-0">
+                              {(sub.name || "A").slice(0, 2).toUpperCase()}
+                            </div>
+                            <div>
+                              <p className="font-semibold text-white">{sub.name}</p>
+                              <p className="text-xs text-gray-400">{sub.email}</p>
+                              {sub.phone && (
+                                <p className="text-[11px] text-gray-500 mt-0.5">{sub.phone}</p>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex flex-col gap-1">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-500/10 text-blue-300 border border-blue-500/20 w-max">
+                              <span>🏠</span>
+                              <span className="capitalize">{sub.serviceAttached || "Immobilier"}</span>
+                            </span>
+                            <span className="text-[11px] text-gray-500">
+                              Rattaché à un fournisseur partenaire
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-xs text-gray-300">
+                          {sub.permissions && sub.permissions.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {sub.permissions.map((p: string) => (
+                                <span key={p} className="px-2 py-0.5 bg-white/5 border border-white/10 rounded text-[11px] text-gray-300">
+                                  {p.replace('/supplier/', '')}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-gray-500 italic">Accès standard délégué</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${
+                            isSubActive 
+                              ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                              : "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                          }`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${isSubActive ? "bg-emerald-400" : "bg-amber-400"}`} />
+                            {isSubActive ? "Actif" : "Suspendu"}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-right whitespace-nowrap">
+                          <div className="inline-flex items-center gap-2">
+                            <button
+                              onClick={async () => {
+                                setIsUpdating(true);
+                                try {
+                                  await updateDoc(doc(db, "users", sub.id), {
+                                    status: isSubActive ? "suspended" : "active"
+                                  });
+                                  setSuccessMessage("Statut du sous-agent mis à jour.");
+                                } catch (err) {
+                                  setErrorMessage("Erreur lors de la mise à jour.");
+                                } finally {
+                                  setIsUpdating(false);
+                                }
+                              }}
+                              disabled={isUpdating}
+                              className={`text-xs px-2.5 py-1 rounded-lg border font-medium transition-all ${
+                                isSubActive
+                                  ? "text-amber-400 border-amber-500/30 hover:bg-amber-500/10"
+                                  : "text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10"
+                              }`}
+                            >
+                              {isSubActive ? "Suspendre" : "Activer"}
+                            </button>
+
+                            {isSuper && (
+                              <button
+                                onClick={async () => {
+                                  if (!confirm(`Supprimer définitivement le sous-agent "${sub.name}" ?`)) return;
+                                  setIsUpdating(true);
+                                  try {
+                                    const token = await auth.currentUser?.getIdToken();
+                                    await fetch("/api/users/delete", {
+                                      method: "POST",
+                                      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                                      body: JSON.stringify({ uid: sub.id })
+                                    });
+                                    setSuccessMessage("Sous-agent supprimé avec succès.");
+                                  } catch (err: any) {
+                                    setErrorMessage("Erreur lors de la suppression.");
+                                  } finally {
+                                    setIsUpdating(false);
+                                  }
+                                }}
+                                disabled={isUpdating}
+                                className="text-xs text-red-400 hover:text-white hover:bg-red-500/20 px-2.5 py-1 rounded-lg border border-red-500/30 transition-all font-medium"
+                              >
+                                Supprimer
+                              </button>
                             )}
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        {getRoleBadge(member.role)}
-                      </td>
-                      <td className="px-6 py-4 text-xs text-gray-300">
-                        {isMemberSuperAdmin && "Tous les modules & privilèges système complets"}
-                        {member.role?.toUpperCase().includes("FINANCE") && "Caisse, Écritures comptables, Trésorerie, Factures & Dépôts"}
-                        {member.role?.toUpperCase().includes("DB") && "Santé de l'app, Audits des collections, Erreurs système & Données"}
-                        {member.role?.toUpperCase().includes("OPS") && "Flotte de livreurs, Attribution des courses & Suivi des commandes"}
-                        {!isMemberSuperAdmin && !member.role?.toUpperCase().includes("FINANCE") && !member.role?.toUpperCase().includes("DB") && !member.role?.toUpperCase().includes("OPS") && "Validation des biens/produits, Commandes & Modération"}
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="inline-flex items-center gap-1 text-xs text-emerald-400 font-medium bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                          Actif
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right whitespace-nowrap">
-                        {isSuper && !isMemberSuperAdmin ? (
-                          <div className="inline-flex items-center gap-2">
-                            {/* Role Switcher */}
-                            <select
-                              value={member.role}
-                              onChange={(e) => handleChangeRole(member.id, e.target.value)}
-                              disabled={isUpdating}
-                              className="text-xs bg-black/40 border border-white/10 rounded-lg px-2.5 py-1 text-gray-300 focus:outline-none focus:border-indigo-500 [&>option]:bg-[#140b2e]"
-                            >
-                              <option value="ADMIN_FINANCE">💼 Finance & Caisse</option>
-                              <option value="ADMIN_DB">🗄️ Base de Données</option>
-                              <option value="ADMIN_OPS">🚚 Opérations & Livreurs</option>
-                              <option value="SUB_ADMIN">📦 Modération Générale</option>
-                            </select>
-
-                            <button
-                              onClick={() => handleRevokeRole(member.id, member.name)}
-                              disabled={isUpdating}
-                              title="Révoquer tous les droits internes"
-                              className="text-xs text-red-400 hover:text-white hover:bg-red-500/20 px-2.5 py-1 rounded-lg border border-red-500/30 transition-all font-medium"
-                            >
-                              Révoquer
-                            </button>
-                          </div>
-                        ) : isMemberSuperAdmin ? (
-                          <span className="text-xs text-amber-400/80 italic font-medium">Propriétaire Système</span>
-                        ) : null}
-                      </td>
-                    </tr>
-                  );
-                })
+                        </td>
+                      </tr>
+                    );
+                  })
+                )
               )}
             </tbody>
           </table>

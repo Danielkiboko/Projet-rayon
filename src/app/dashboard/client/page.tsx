@@ -24,6 +24,7 @@ import { db } from "@/lib/firebase";
 import { generateOrderInvoicePDF, generateHotelBookingReceiptPDF } from "@/lib/invoiceGenerator";
 import { ClientChatsWidget } from "@/components/ClientChatsWidget";
 import NotificationBell from "@/components/notifications/NotificationBell";
+import ProfileUpdateModal from "@/components/ProfileUpdateModal";
 
 export default function ClientDashboard() {
   const { user, userData, signOut } = useAuth();
@@ -445,6 +446,13 @@ export default function ClientDashboard() {
 
         </div>
       </div>
+
+      {/* Non-blocking profile completion modal for phone / notifications */}
+      <ProfileUpdateModal 
+        user={user} 
+        userData={userData} 
+        onSuccess={() => {}} 
+      />
     </div>
   );
 }

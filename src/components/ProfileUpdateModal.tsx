@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { AlertCircle, Phone } from "lucide-react";
+import { AlertCircle, Phone, X, ArrowRight } from "lucide-react";
 import { db } from "@/lib/firebase";
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, setDoc } from "firebase/firestore";
 
 interface ProfileUpdateModalProps {
   user: any;
@@ -16,11 +16,28 @@ export default function ProfileUpdateModal({ user, userData, onSuccess }: Profil
   const [phone, setPhone] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [isDismissed, setIsDismissed] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const dismissed = sessionStorage.getItem("profile_update_dismissed");
+      if (dismissed === "true") {
+        setIsDismissed(true);
+      }
+    }
+  }, []);
 
   const needsPhone = !userData?.phone;
 
-  // Si tout est à jour, on ne retourne rien (la modale est invisible)
-  if (!needsPhone) return null;
+  // Si tout est à jour ou si l'utilisateur a reporté, on ne bloque pas
+  if (!needsPhone || isDismissed) return null;
+
+  const handleDismiss = () => {
+    setIsDismissed(true);
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("profile_update_dismissed", "true");
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,8 +51,11 @@ export default function ProfileUpdateModal({ user, userData, onSuccess }: Profil
 
     try {
       const userRef = doc(db, "users", user.uid);
-      await updateDoc(userRef, { phone: phone.trim() });
-      // Call success callback
+      await setDoc(userRef, { phone: phone.trim() }, { merge: true });
+      setIsDismissed(true);
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("profile_update_dismissed", "true");
+      }
       onSuccess();
     } catch (err: any) {
       console.error(err);
@@ -50,15 +70,24 @@ export default function ProfileUpdateModal({ user, userData, onSuccess }: Profil
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="w-full max-w-md bg-[#140b2e] border border-primary/30 rounded-2xl shadow-2xl overflow-hidden"
+        className="w-full max-w-md bg-[#140b2e] border border-primary/30 rounded-2xl shadow-2xl overflow-hidden relative"
       >
+        {/* Close Button */}
+        <button
+          onClick={handleDismiss}
+          className="absolute top-4 right-4 p-2 text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-full transition-colors z-10"
+          title="Fermer et compléter plus tard"
+        >
+          <X size={18} />
+        </button>
+
         <div className="p-6 text-center border-b border-white/10 bg-black/20">
           <div className="w-16 h-16 bg-primary/20 text-primary-light rounded-full flex items-center justify-center mx-auto mb-4">
             <AlertCircle size={32} />
           </div>
-          <h2 className="text-xl font-bold text-white mb-2">Mise à jour requise</h2>
+          <h2 className="text-xl font-bold text-white mb-2">Mise à jour du profil</h2>
           <p className="text-sm text-gray-300">
-            Suite à une mise à jour du système, de nouvelles informations sont obligatoires pour continuer à utiliser votre espace.
+            Afin de recevoir les notifications d'activités et alertes en temps réel, veuillez renseigner votre numéro de contact.
           </p>
         </div>
 
@@ -72,7 +101,7 @@ export default function ProfileUpdateModal({ user, userData, onSuccess }: Profil
           {needsPhone && (
             <div className="space-y-1">
               <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
-                <Phone size={14} /> Numéro de téléphone (SMS)
+                <Phone size={14} /> Numéro de téléphone (SMS / WhatsApp)
               </label>
               <input
                 type="tel"
@@ -83,20 +112,32 @@ export default function ProfileUpdateModal({ user, userData, onSuccess }: Profil
                 className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white transition-all"
               />
               <p className="text-xs text-gray-500 mt-1">
-                Ce numéro sera utilisé pour vous envoyer des notifications importantes concernant vos activités.
+                Ce numéro vous permettra de recevoir des notifications urgentes par SMS.
               </p>
             </div>
           )}
 
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full px-4 py-3 mt-4 bg-primary hover:bg-primary-light text-white font-semibold rounded-lg transition-colors flex items-center justify-center disabled:opacity-50"
-          >
-            {isSubmitting ? "Enregistrement en cours..." : "Mettre à jour et continuer"}
-          </button>
+          <div className="space-y-2 pt-2">
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full px-4 py-3 bg-primary hover:bg-primary-light text-white font-semibold rounded-xl transition-colors flex items-center justify-center disabled:opacity-50 shadow-md"
+            >
+              {isSubmitting ? "Enregistrement en cours..." : "Enregistrer et continuer"}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleDismiss}
+              className="w-full px-4 py-2.5 text-xs text-gray-400 hover:text-white transition-colors flex items-center justify-center gap-1"
+            >
+              <span>Accéder directement à mon tableau de bord</span>
+              <ArrowRight size={13} />
+            </button>
+          </div>
         </form>
       </motion.div>
     </div>
   );
 }
+

@@ -36,16 +36,26 @@ export async function POST(req: Request) {
     const normalizedRole = (callerRole || '').toString().toLowerCase();
     const isAuthorizedAdmin = isSuperAdmin || 
       ['superadmin', 'super_admin', 'admin', 'sub_admin'].includes(normalizedRole);
-
-    if (!isAuthorizedAdmin) {
-      return NextResponse.json({ error: 'Forbidden: Only admins can delete users' }, { status: 403 });
-    }
+    const isSupplierCaller = ['supplier', 'supplier_immo', 'sub_supplier'].includes(normalizedRole);
 
     const body = await req.json();
     const { uid, collectionName } = body;
 
     if (!uid) {
       return NextResponse.json({ error: 'Missing uid' }, { status: 400 });
+    }
+
+    if (!isAuthorizedAdmin) {
+      // Si ce n'est pas un admin, vérifier si le demandeur est le parentSupplier du compte à supprimer
+      if (isSupplierCaller) {
+        const targetDoc = await adminDb.collection('users').doc(uid).get();
+        const targetData = targetDoc.data();
+        if (!targetData || (targetData.parentSupplierId !== callerUid && targetData.createdBy !== callerUid)) {
+          return NextResponse.json({ error: 'Forbidden: You can only delete your own sub-agents' }, { status: 403 });
+        }
+      } else {
+        return NextResponse.json({ error: 'Forbidden: Insufficient permissions to delete users' }, { status: 403 });
+      }
     }
 
     // 1. Delete from Firebase Auth

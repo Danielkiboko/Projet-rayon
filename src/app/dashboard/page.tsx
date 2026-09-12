@@ -32,20 +32,26 @@ export default function DashboardRedirect() {
       case "FOURNISSEUR":
       case "SUB_SUPPLIER":
       case "SUPPLIER_IMMO":
+      case "SUPPLIER_MODE":
+      case "SUPPLIER_SAVEURS":
+      case "SUPPLIER_CONNECT":
         router.replace("/supplier")
         break
       case "SUB_ADMIN":
       case "SUPER_ADMIN":
       case "SUPERADMIN":
       case "ADMIN":
+      case "ADMIN_FINANCE":
+      case "ADMIN_DB":
+      case "ADMIN_OPS":
+      case "ADMIN_TECH":
         router.replace("/admin/dashboard")
         break
       case "CLIENT":
+      default:
+        // Par défaut pour tout utilisateur authentifié (client ou compte standard)
         router.replace("/dashboard/client")
         break
-      default:
-        console.warn("Rôle non reconnu ou manquant:", userData?.role);
-        router.replace("/")
     }
   }, [loading, user, userData, router])
 

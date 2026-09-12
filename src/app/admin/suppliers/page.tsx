@@ -25,6 +25,7 @@ interface Supplier {
   subscriptionEndDate?: any;
   role?: string;
   createdBy?: string;
+  parentSupplierId?: string;
   businessType?: string;
   serviceAttached?: string;
 }
@@ -113,6 +114,7 @@ export default function SuppliersPage() {
           subscriptionEndDate: data.subscriptionEndDate,
           role: data.role,
           createdBy: data.createdBy,
+          parentSupplierId: data.parentSupplierId || data.createdBy,
           businessType: data.businessType,
           serviceAttached: data.serviceAttached,
         });
@@ -368,6 +370,21 @@ export default function SuppliersPage() {
     }
     if (s.serviceAttached && typeof s.serviceAttached === "string") {
       set.add(s.serviceAttached.toLowerCase().trim());
+    }
+    // Si c'est un sous-agent, hériter des rayons du fournisseur parent
+    if (s.role === "SUB_SUPPLIER" || s.role === "sub_supplier") {
+      const parent = suppliers.find(p => p.id === s.parentSupplierId || p.id === s.createdBy);
+      if (parent) {
+        if (parent.rayon && typeof parent.rayon === "string" && parent.rayon !== "Non assigné") {
+          set.add(parent.rayon.toLowerCase().trim());
+        }
+        if (parent.role === "SUPPLIER_IMMO" || parent.businessType === "IMMOBILIER") {
+          set.add("immo");
+        }
+        if (Array.isArray(parent.assignedRayons)) {
+          parent.assignedRayons.forEach(r => set.add(r.toLowerCase().trim()));
+        }
+      }
     }
     return Array.from(set);
   };
@@ -721,11 +738,26 @@ export default function SuppliersPage() {
                               )}
                             </div>
 
-                            {(supplier.role === 'SUB_ADMIN' || supplier.role === 'SUB_SUPPLIER') && supplier.createdBy && (
-                              <span className="text-[11px] text-gray-500 mt-1">
-                                Créé par : {suppliers.find(s => s.id === supplier.createdBy)?.name || 'Parent inconnu'}
-                              </span>
-                            )}
+                            {supplier.role === 'SUB_SUPPLIER' ? (
+                              <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                                <span className="text-[10px] font-semibold bg-blue-500/15 text-blue-300 px-2 py-0.5 rounded border border-blue-500/25">
+                                  👤 Sous-Agent Délégué
+                                </span>
+                                {(supplier.parentSupplierId || supplier.createdBy) && (
+                                  <span className="text-[11px] text-gray-400">
+                                    de <strong>{suppliers.find(s => s.id === (supplier.parentSupplierId || supplier.createdBy))?.name || 'Agence partenaire'}</strong>
+                                  </span>
+                                )}
+                              </div>
+                            ) : (() => {
+                              const subCount = suppliers.filter(s => (s.parentSupplierId === supplier.id || (s.role === 'SUB_SUPPLIER' && s.createdBy === supplier.id))).length;
+                              return subCount > 0 ? (
+                                <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-medium bg-purple-500/15 text-purple-300 px-2 py-0.5 rounded border border-purple-500/25 w-max">
+                                  <span>👥</span>
+                                  <span>{subCount} sous-agent{subCount > 1 ? 's' : ''} rattaché{subCount > 1 ? 's' : ''}</span>
+                                </span>
+                              ) : null;
+                            })()}
                           </div>
                         </div>
                       </td>

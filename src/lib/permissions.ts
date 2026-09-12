@@ -61,7 +61,15 @@ export const getRoleTitle = (role?: string): string => {
  */
 export const isSupplier = (userData: any): boolean => {
   const role = userData?.role?.toUpperCase();
-  return role === "SUPPLIER" || role === "SUPPLIER_IMMO" || role === "SUB_SUPPLIER";
+  return [
+    "SUPPLIER", 
+    "SUPPLIER_IMMO", 
+    "SUB_SUPPLIER", 
+    "FOURNISSEUR",
+    "SUPPLIER_SAVEURS", 
+    "SUPPLIER_MODE", 
+    "SUPPLIER_CONNECT"
+  ].includes(role);
 };
 
 /**

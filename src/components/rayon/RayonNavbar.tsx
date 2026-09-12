@@ -5,6 +5,7 @@ import { Home as HomeIcon, Wifi, Building2, Globe, Shirt, User, UtensilsCrossed,
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 import { RayonsLogo } from "@/components/brand/RayonsLogo";
+import NotificationBell from "@/components/notifications/NotificationBell";
 
 interface RayonNavbarProps {
   category: "immo" | "mode" | "connect" | "saveurs";
@@ -83,6 +84,9 @@ export function RayonNavbar({ category, lang, setLang, t }: RayonNavbarProps) {
               <Globe size={14} className="mr-1" /> {lang.toUpperCase()}
             </button>
           </div>
+
+          {/* Real-time In-App Notification Bell */}
+          <NotificationBell />
 
           {/* Cart Button */}
           <button

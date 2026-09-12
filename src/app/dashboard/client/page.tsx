@@ -23,6 +23,7 @@ import Link from "next/link";
 import { db } from "@/lib/firebase";
 import { generateOrderInvoicePDF } from "@/lib/invoiceGenerator";
 import { ClientChatsWidget } from "@/components/ClientChatsWidget";
+import NotificationBell from "@/components/notifications/NotificationBell";
 
 export default function ClientDashboard() {
   const { user, userData, signOut } = useAuth();
@@ -136,13 +137,16 @@ export default function ClientDashboard() {
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mt-1">Bonjour, {clientDisplayName}</h1>
             <p className="text-sm text-gray-500">Suivez vos commandes, réservations d'hôtels, visites immobilières et discutez en direct.</p>
           </div>
-          <button 
-            onClick={handleLogout}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-red-600 hover:bg-red-50 transition-colors font-medium shadow-2xs text-sm"
-          >
-            <LogOut size={16} />
-            Se déconnecter
-          </button>
+          <div className="flex items-center gap-3">
+            <NotificationBell />
+            <button 
+              onClick={handleLogout}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-red-600 hover:bg-red-50 transition-colors font-medium shadow-2xs text-sm"
+            >
+              <LogOut size={16} />
+              Se déconnecter
+            </button>
+          </div>
         </div>
 
         {/* Navigation Tabs */}

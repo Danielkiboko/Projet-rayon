@@ -229,7 +229,7 @@ service cloud.firestore {
       allow read, update, delete: if isSuperAdmin() || isAdmin() || (
         ownsSupplierData(resource.data.supplierId)
       ) || (
-        request.auth != null && resource.data.userId == request.auth.uid
+        request.auth != null && (resource.data.userId == request.auth.uid || resource.data.clientId == request.auth.uid)
       );
     }
   }

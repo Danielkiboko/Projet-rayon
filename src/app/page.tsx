@@ -14,6 +14,7 @@ import { collection, query, getDocs, limit, where } from "firebase/firestore";
 import { CurrencySelector } from "@/components/CurrencySelector";
 import { RayonsLogo } from "@/components/brand/RayonsLogo";
 import { UniversalSearchBar } from "@/components/home/UniversalSearchBar";
+import NotificationBell from "@/components/notifications/NotificationBell";
 
 
 export default function Home() {
@@ -118,6 +119,9 @@ export default function Home() {
                 <span className="hidden sm:block">Se connecter</span>
               </Link>
             )}
+            {/* Real-time in-app notification bell */}
+            <NotificationBell />
+
             <button 
               onClick={openCart} 
               className="relative p-2.5 text-[#0F1D27] hover:bg-gray-100 rounded-full transition-colors group cursor-pointer" 

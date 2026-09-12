@@ -19,6 +19,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
 import { collection, doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { sendClientInAppNotification } from "@/lib/inAppNotification";
 
 interface DirectBuyModalProps {
   isOpen: boolean;
@@ -165,6 +166,17 @@ export function DirectBuyModal({ isOpen, onClose, product }: DirectBuyModalProps
       }
 
       setSuccessOrder(orderData);
+
+      if (user) {
+        await sendClientInAppNotification({
+          userId: user.uid,
+          clientId: user.uid,
+          type: "order",
+          title: "Commande Express validée 🎉",
+          message: `Votre commande #${orderId.slice(-6)} (${productTitle} x${quantity} - $${totalAmount.toFixed(2)}) a été enregistrée avec succès. Livraison à ${selectedCommune}.`,
+          link: "/dashboard/client",
+        });
+      }
     } catch (err: any) {
       console.error("Order creation error:", err);
       setError(err.message || "Impossible d'enregistrer la commande. Réessayez.");

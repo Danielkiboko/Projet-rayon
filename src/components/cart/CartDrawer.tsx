@@ -23,6 +23,7 @@ import { useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import Link from "next/link";
+import { sendClientInAppNotification } from "@/lib/inAppNotification";
 
 const KINSHASA_COMMUNES = [
   { name: "Gombe", fee: 3 },
@@ -180,6 +181,17 @@ export function CartDrawer() {
       // 3. Clear cart and set success
       clearCart();
       setCreatedOrder(orderData);
+
+      if (user) {
+        await sendClientInAppNotification({
+          userId: user.uid,
+          clientId: user.uid,
+          type: "order",
+          title: "Commande confirmée 🎉",
+          message: `Votre commande #${orderId.slice(-6)} (${items.length} article(s) - $${grandTotal.toFixed(2)}) a bien été validée. Livraison vers ${selectedCommune}.`,
+          link: "/dashboard/client",
+        });
+      }
     } catch (err: any) {
       console.error("Cart order error:", err);
       setError(err.message || "Erreur lors de la validation de la commande.");

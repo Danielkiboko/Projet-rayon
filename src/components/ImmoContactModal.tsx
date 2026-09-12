@@ -7,6 +7,7 @@ import { db } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp, setDoc, doc } from "firebase/firestore";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
+import { sendClientInAppNotification } from "@/lib/inAppNotification";
 
 type ImmoContactModalProps = {
   isOpen: boolean;
@@ -78,6 +79,26 @@ export function ImmoContactModal({ isOpen, onClose, property }: ImmoContactModal
           status: "PENDING",
           createdAt: serverTimestamp()
         });
+
+        if (user?.uid) {
+          await sendClientInAppNotification({
+            userId: user.uid,
+            clientId: user.uid,
+            type: "booking",
+            title: "Demande de séjour envoyée 🏨",
+            message: `Votre demande pour "${propertyTitle}" (du ${checkIn} au ${checkOut}) a été transmise à l'établissement.`,
+            link: "/dashboard/client",
+          });
+        }
+        if (property.supplierId) {
+          await sendClientInAppNotification({
+            supplierId: property.supplierId,
+            type: "booking",
+            title: "Nouvelle réservation d'hôtel 🏨",
+            message: `${name} (${phone}) a réservé "${propertyTitle}" (du ${checkIn} au ${checkOut}).`,
+            link: "/supplier/hotels",
+          });
+        }
       } else {
         await addDoc(collection(db, "visits"), {
           propertyId: property.id,
@@ -92,6 +113,26 @@ export function ImmoContactModal({ isOpen, onClose, property }: ImmoContactModal
           status: "PENDING",
           createdAt: serverTimestamp()
         });
+
+        if (user?.uid) {
+          await sendClientInAppNotification({
+            userId: user.uid,
+            clientId: user.uid,
+            type: "booking",
+            title: "Demande de visite enregistrée 🏠",
+            message: `Votre demande pour visiter "${propertyTitle}" le ${date} a bien été transmise à l'agent.`,
+            link: "/dashboard/client",
+          });
+        }
+        if (property.supplierId) {
+          await sendClientInAppNotification({
+            supplierId: property.supplierId,
+            type: "booking",
+            title: "Nouvelle demande de visite 🏠",
+            message: `${name} (${phone}) souhaite visiter "${propertyTitle}" le ${date}.`,
+            link: "/supplier/properties",
+          });
+        }
       }
 
       if (user?.uid && property.supplierId) {

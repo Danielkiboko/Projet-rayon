@@ -4,9 +4,11 @@ import { useState } from "react";
 import { 
   X, MapPin, Maximize, BedDouble, Bath, Hotel, 
   CalendarCheck, MessageSquare, Zap, Wifi, Waves, 
-  Shield, Sparkles, ChevronLeft, ChevronRight, CheckCircle2 
+  Shield, Sparkles, ChevronLeft, ChevronRight, CheckCircle2,
+  Star
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import ReviewsSection from "@/components/reviews/ReviewsSection";
 
 interface PropertyDetailModalProps {
   isOpen: boolean;
@@ -152,14 +154,27 @@ export default function PropertyDetailModal({
               )}
             </div>
 
-            {/* Title & Location */}
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight leading-snug">
-                {title}
-              </h1>
-              <div className="flex items-center text-gray-600 text-sm mt-2">
-                <MapPin size={18} className="text-emerald-600 mr-1.5 shrink-0" />
-                <span className="font-medium">{property.location || "Kinshasa, RDC"}</span>
+            {/* Title & Location & Rating */}
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight leading-snug">
+                  {title}
+                </h1>
+                <div className="flex items-center text-gray-600 text-sm mt-2">
+                  <MapPin size={18} className="text-emerald-600 mr-1.5 shrink-0" />
+                  <span className="font-medium">{property.location || "Kinshasa, RDC"}</span>
+                </div>
+              </div>
+
+              {/* Rating pill */}
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 border border-amber-200/80 rounded-2xl shrink-0 self-start">
+                <Star size={16} className="text-amber-500 fill-amber-400" />
+                <span className="text-sm font-extrabold text-amber-900">
+                  {property.averageRating ? property.averageRating.toFixed(1) : "5.0"}
+                </span>
+                <span className="text-xs text-amber-700 font-medium">
+                  ({property.ratingsCount || 0} avis)
+                </span>
               </div>
             </div>
 
@@ -269,6 +284,19 @@ export default function PropertyDetailModal({
                 {description}
               </p>
             </div>
+
+            {/* Reviews & Ratings Section */}
+            <ReviewsSection
+              targetType="property"
+              targetId={property.id}
+              targetTitle={title}
+              initialAverage={property.averageRating || 0}
+              initialCount={property.ratingsCount || 0}
+              onRatingUpdated={(newAvg, newCount) => {
+                property.averageRating = newAvg;
+                property.ratingsCount = newCount;
+              }}
+            />
           </div>
 
           {/* Bottom Action Footer */}

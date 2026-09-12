@@ -66,13 +66,24 @@ export default function ProductDetails({ params }: { params: { id: string } }) {
 
     setIsSubmittingReview(true);
     try {
-      await submitProductReview({
-        productId: params.id,
-        clientId: user.uid,
-        clientName: user.displayName || user.email?.split("@")[0] || "Client Rayons",
-        rating: selectedRating,
-        comment: reviewComment
+      const res = await fetch("/api/reviews/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          targetType: "product",
+          targetId: params.id,
+          clientId: user.uid,
+          clientName: user.displayName || user.email?.split("@")[0] || "Client Rayons",
+          clientEmail: user.email,
+          rating: selectedRating,
+          comment: reviewComment,
+        }),
       });
+
+      const data = await res.json();
+      if (!data.success) {
+        throw new Error(data.error || "Erreur lors de l'enregistrement de votre avis.");
+      }
 
       setReviewFeedback("Merci ! Votre évaluation a été prise en compte et met à jour la cote du produit.");
       setReviewComment("");

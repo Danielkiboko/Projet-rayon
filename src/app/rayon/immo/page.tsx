@@ -434,6 +434,14 @@ function ImmoContent() {
                         </span>
                       )}
                     </div>
+                    {/* Rating badge top right */}
+                    <div className="absolute top-4 right-4">
+                      <span className="px-2.5 py-1 text-xs font-bold tracking-wider rounded-xl bg-black/75 text-amber-400 border border-white/20 backdrop-blur-md shadow-lg flex items-center gap-1">
+                        <Star size={12} className="fill-amber-400 text-amber-400" />
+                        <span>{property.averageRating ? property.averageRating.toFixed(1) : "5.0"}</span>
+                        <span className="text-[10px] text-gray-300">({property.ratingsCount || 0})</span>
+                      </span>
+                    </div>
                     <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
                       <div className="text-2xl font-bold text-white drop-shadow-md flex items-baseline gap-1">
                         $ {property.price?.toLocaleString()}
@@ -458,9 +466,22 @@ function ImmoContent() {
                       {property.title?.[lang] || property.title?.fr || property.title}
                     </h3>
                     
-                    <div className="flex items-center text-gray-500 text-sm mb-4">
+                    <div className="flex items-center text-gray-500 text-sm mb-3">
                       <MapPin size={16} className="mr-1 text-green-600 shrink-0" />
                       <span className="truncate">{property.location}</span>
+                    </div>
+
+                    {/* Rating summary line */}
+                    <div className="flex items-center justify-between text-xs text-gray-500 mb-4 pb-2 border-b border-gray-100">
+                      <div className="flex items-center gap-1 text-amber-500 font-bold">
+                        <Star size={13} className="fill-amber-400 text-amber-400" />
+                        <span className="text-gray-900 font-extrabold">{property.averageRating ? property.averageRating.toFixed(1) : "5.0"}</span>
+                        <span className="text-gray-400 font-normal text-[11px]">({property.ratingsCount || 0} avis)</span>
+                      </div>
+                      <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-semibold text-[10px] border border-emerald-200/60 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        Certifié Rayons
+                      </span>
                     </div>
                     
                     {/* Features & Prestations */}

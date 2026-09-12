@@ -167,6 +167,12 @@ service cloud.firestore {
       allow create: if ownsSupplierData(request.resource.data.supplierId);
       allow update, delete: if ownsSupplierData(resource.data.supplierId);
       allow update, delete: if isSuperAdmin() || isAdmin();
+
+      match /reviews/{reviewId} {
+        allow read: if true;
+        allow create: if request.auth != null;
+        allow update, delete: if isSuperAdmin() || isAdmin();
+      }
     }
 
     match /tenants/{tenantId} {

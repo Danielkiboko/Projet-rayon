@@ -127,6 +127,8 @@ export default function AdminFinancePage() {
         entries.push({ id: docSnap.id, ...docSnap.data() } as AccountingEntry);
       });
       setLedgerEntries(entries);
+    }, (error) => {
+      console.warn("Accounting ledger listener warning:", error.message);
     });
 
     return () => {

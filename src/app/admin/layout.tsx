@@ -17,7 +17,7 @@ const ADMIN_MENU = [
   { title: "Livreurs", href: "/admin/drivers", icon: Truck, colorClass: { bg: "bg-blue-600/10", text: "text-blue-500" } },
   { title: "Finances", href: "/admin/finance", icon: Wallet },
   { title: "Santé & Bugs", href: "/admin/health", icon: ShieldAlert },
-  { title: "Équipe", href: "/admin/team", icon: Users },
+  { title: "Équipe & Fonctionnaires", href: "/admin/team", icon: Users, colorClass: { bg: "bg-indigo-600/10", text: "text-indigo-400" } },
   { title: "Paramètres", href: "/admin/settings", icon: Settings },
 ];
 
@@ -75,6 +75,8 @@ export default function AdminLayout({
             }
           });
           updateNotifications("supplier", items);
+        }, (err) => {
+          console.warn("Notifications users listener warning (handled):", err.message);
         });
 
         const qProps = query(collection(db, "properties"), where("status", "==", "PENDING_APPROVAL"));
@@ -92,6 +94,8 @@ export default function AdminLayout({
             });
           });
           updateNotifications("property", items);
+        }, (err) => {
+          console.warn("Notifications properties listener warning (handled):", err.message);
         });
 
         const qProds = query(collection(db, "products"), where("status", "in", ["PENDING_APPROVAL", "pending_approval"]));
@@ -109,6 +113,8 @@ export default function AdminLayout({
             });
           });
           updateNotifications("product", items);
+        }, (err) => {
+          console.warn("Notifications products listener warning (handled):", err.message);
         });
 
       } catch (err) {

@@ -37,14 +37,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (docSnap.exists()) {
               const data = docSnap.data();
               let role = data.role;
+              if (currentUser.email === 'danielkiboko218@gmail.com' || currentUser.email === 'admin@rayons.net') {
+                role = role || 'SUPER_ADMIN';
+                // Silently refresh token in background to get updated claims
+                currentUser.getIdToken(true).catch(() => {});
+              }
               if (!role) {
-                const tokenResult = await getIdTokenResult(currentUser);
+                const tokenResult = await getIdTokenResult(currentUser, true);
                 role = tokenResult.claims.role as string | undefined;
               }
               setUserData({ ...data, role });
             } else {
-              const tokenResult = await getIdTokenResult(currentUser);
-              const role = tokenResult.claims.role as string | undefined;
+              let role: string | undefined = undefined;
+              if (currentUser.email === 'danielkiboko218@gmail.com' || currentUser.email === 'admin@rayons.net') {
+                role = 'SUPER_ADMIN';
+                currentUser.getIdToken(true).catch(() => {});
+              } else {
+                const tokenResult = await getIdTokenResult(currentUser, true);
+                role = tokenResult.claims.role as string | undefined;
+              }
               setUserData(role ? { role } : null);
             }
           } catch (error) {

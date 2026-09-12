@@ -3,23 +3,55 @@ rules_version = '2';
 service cloud.firestore {
   // Helper to check role
   function isSuperAdmin() {
-    return request.auth.token.role == 'superAdmin' || request.auth.token.role == 'SUPER_ADMIN' || request.auth.token.email == 'danielkiboko218@gmail.com';
+    return request.auth != null && (
+      request.auth.token.email == 'danielkiboko218@gmail.com' ||
+      request.auth.token.email == 'admin@rayons.net' ||
+      request.auth.token.role == 'superAdmin' ||
+      request.auth.token.role == 'SUPER_ADMIN' ||
+      request.auth.token.role == 'SUPERADMIN' ||
+      (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+       (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'SUPER_ADMIN' ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'superAdmin'))
+    );
   }
+
   function isAdmin() {
-    return request.auth.token.role == 'admin' || request.auth.token.role == 'ADMIN' || request.auth.token.role == 'SUB_ADMIN' || isSuperAdmin();
+    return isSuperAdmin() || (
+      request.auth != null && (
+        request.auth.token.role in ['admin', 'ADMIN', 'SUB_ADMIN', 'sub_admin', 'ADMIN_FINANCE', 'ADMIN_DB', 'ADMIN_TECH', 'ADMIN_OPS'] ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'ADMIN', 'SUB_ADMIN', 'sub_admin', 'ADMIN_FINANCE', 'ADMIN_DB', 'ADMIN_TECH', 'ADMIN_OPS', 'SUPER_ADMIN']))
+      )
+    );
   }
+
   function isSupplier() {
-    return request.auth.token.role == 'supplier' || request.auth.token.role == 'SUPPLIER' || request.auth.token.role == 'SUPPLIER_IMMO';
+    return request.auth != null && (
+      request.auth.token.role in ['supplier', 'SUPPLIER', 'SUPPLIER_IMMO', 'SUPPLIER_SAVEURS'] ||
+      (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+       get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['supplier', 'SUPPLIER', 'SUPPLIER_IMMO', 'SUPPLIER_SAVEURS'])
+    );
   }
+
   function isSubSupplier() {
-    return request.auth.token.role == 'SUB_SUPPLIER' || request.auth.token.role == 'sub_supplier';
+    return request.auth != null && (
+      request.auth.token.role in ['SUB_SUPPLIER', 'sub_supplier'] ||
+      (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+       get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['SUB_SUPPLIER', 'sub_supplier'])
+    );
   }
+
   function ownsSupplierData(supplierId) {
     return (isSupplier() && request.auth.uid == supplierId) ||
            (isSubSupplier() && request.auth.token.parentSupplierId == supplierId);
   }
+
   function isDriver() {
-    return request.auth.token.role == 'driver' || request.auth.token.role == 'DRIVER';
+    return request.auth != null && (
+      request.auth.token.role in ['driver', 'DRIVER'] ||
+      (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+       get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['driver', 'DRIVER'])
+    );
   }
 
   match /databases/{database}/documents {
@@ -100,6 +132,12 @@ service cloud.firestore {
       allow create: if ownsSupplierData(request.resource.data.supplierId);
       allow update, delete: if ownsSupplierData(resource.data.supplierId);
       allow update, delete: if isSuperAdmin() || isAdmin();
+
+      match /reviews/{reviewId} {
+        allow read: if true;
+        allow create: if request.auth != null;
+        allow update, delete: if isSuperAdmin() || isAdmin();
+      }
     }
 
     match /invoices/{invoiceId} {
@@ -136,6 +174,18 @@ service cloud.firestore {
     match /error_logs/{logId} {
       allow create: if true; // Anyone can generate an error log
       allow read, update, delete: if isSuperAdmin() || isAdmin();
+    }
+
+    match /accounting_ledger/{entryId} {
+      allow read, write: if isSuperAdmin() || isAdmin();
+    }
+
+    match /hotel_bookings/{bookingId} {
+      allow create: if true;
+      allow read, update, delete: if ownsSupplierData(resource.data.supplierId) || 
+                                     isSuperAdmin() || 
+                                     isAdmin() || 
+                                     (request.auth != null && resource.data.clientId == request.auth.uid);
     }
 
     match /transactions/{transactionId} {

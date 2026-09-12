@@ -40,8 +40,8 @@ export default function SuppliersPage() {
   const [selectedSupplierForAccess, setSelectedSupplierForAccess] = useState<Supplier | null>(null);
   const [newSubDate, setNewSubDate] = useState("");
   
-  // Rayon tab filter state: 'all' | 'immo' | 'mode' | 'connect' | 'saveurs' | 'other'
-  const [selectedRayonFilter, setSelectedRayonFilter] = useState<"all" | "immo" | "mode" | "connect" | "saveurs" | "other">("all");
+  // Rayon tab filter state: 'all' | 'immo' | 'mode' | 'connect' | 'saveurs'
+  const [selectedRayonFilter, setSelectedRayonFilter] = useState<"all" | "immo" | "mode" | "connect" | "saveurs">("all");
 
   // Rayon selection state for access modal
   const [selectedRayons, setSelectedRayons] = useState<string[]>([]);
@@ -51,8 +51,8 @@ export default function SuppliersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [successMessage, setSuccessMessage] = useState("");
 
-  // Form states for creation
-  const [supplierCategory, setSupplierCategory] = useState<"immo" | "mode" | "connect" | "saveurs" | "sub_admin">("immo");
+  // Form states for creation (Strictly commercial vendors)
+  const [supplierCategory, setSupplierCategory] = useState<"immo" | "mode" | "connect" | "saveurs">("immo");
   const [name, setName] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -73,7 +73,7 @@ export default function SuppliersPage() {
     const isAdminUser = 
       user.email === "danielkiboko218@gmail.com" || 
       user.email === "admin@rayons.net" || 
-      ["admin", "superadmin", "super_admin", "sub_admin"].includes(userRole) ||
+      ["admin", "superadmin", "super_admin", "sub_admin", "admin_finance", "admin_db"].includes(userRole) ||
       hasAdminAccess(user, userData);
     
     if (!isAdminUser) {
@@ -81,14 +81,13 @@ export default function SuppliersPage() {
       return;
     }
 
-    // Fetch suppliers (including property agents, restaurants, and sub-admins)
+    // Fetch ONLY commercial suppliers (vendors who sell in rays and pay subscription)
     const q = query(
       collection(db, "users"), 
       where("role", "in", [
         "SUPPLIER", "supplier", "Supplier", 
         "SUPPLIER_IMMO", "supplier_immo",
         "SUPPLIER_SAVEURS", "supplier_saveurs",
-        "SUB_ADMIN", "sub_admin",
         "SUB_SUPPLIER", "sub_supplier"
       ])
     );
@@ -234,8 +233,8 @@ export default function SuppliersPage() {
     }
   };
 
-  const handleOpenCreateModal = (preselectedCategory?: "immo" | "mode" | "connect" | "saveurs" | "sub_admin") => {
-    const cat = preselectedCategory || (selectedRayonFilter !== "all" && selectedRayonFilter !== "other" ? selectedRayonFilter : "immo");
+  const handleOpenCreateModal = (preselectedCategory?: "immo" | "mode" | "connect" | "saveurs") => {
+    const cat = preselectedCategory || (selectedRayonFilter !== "all" ? selectedRayonFilter : "immo");
     setSupplierCategory(cat);
     if (cat === "immo") {
       setRole("SUPPLIER_IMMO");
@@ -249,9 +248,6 @@ export default function SuppliersPage() {
     } else if (cat === "saveurs") {
       setRole("supplier");
       setRayon("saveurs");
-    } else {
-      setRole("SUB_ADMIN");
-      setRayon("");
     }
     setError("");
     setSuccessMessage("");
@@ -274,8 +270,8 @@ export default function SuppliersPage() {
       const randomPassword = Math.random().toString(36).slice(-10) + "A1@";
       const displayName = name || `${firstName} ${lastName}`.trim();
 
-      const roleToCreate = supplierCategory === "sub_admin" ? "SUB_ADMIN" : (supplierCategory === "immo" ? "SUPPLIER_IMMO" : "supplier");
-      const primaryRayon = supplierCategory === "sub_admin" ? "" : supplierCategory;
+      const roleToCreate = supplierCategory === "immo" ? "SUPPLIER_IMMO" : (supplierCategory === "saveurs" ? "SUPPLIER_SAVEURS" : "supplier");
+      const primaryRayon = supplierCategory;
 
       // 1. Create the user account via API
       const response = await fetch("/api/users/create", {
@@ -293,9 +289,9 @@ export default function SuppliersPage() {
             rayon: primaryRayon, 
             firstName, 
             lastName,
-            assignedRayons: primaryRayon ? [primaryRayon] : [],
+            assignedRayons: [primaryRayon],
             serviceAttached: primaryRayon,
-            ...(supplierCategory === 'immo' ? { businessType: 'IMMOBILIER' } : {})
+            ...(supplierCategory === 'immo' ? { businessType: 'IMMOBILIER' } : (supplierCategory === 'saveurs' ? { businessType: 'RESTAURATION' } : {}))
           },
           notificationMethod,
           phoneNumber: notificationMethod === 'sms' ? phoneNumber : undefined
@@ -376,10 +372,6 @@ export default function SuppliersPage() {
   const modeSuppliersCount = suppliers.filter((s) => getSupplierRayons(s).includes("mode")).length;
   const connectSuppliersCount = suppliers.filter((s) => getSupplierRayons(s).includes("connect")).length;
   const saveursSuppliersCount = suppliers.filter((s) => getSupplierRayons(s).includes("saveurs")).length;
-  const otherSuppliersCount = suppliers.filter((s) => {
-    const r = getSupplierRayons(s);
-    return !r.includes("immo") && !r.includes("mode") && !r.includes("connect") && !r.includes("saveurs");
-  }).length;
 
   const filteredSuppliers = suppliers.filter((s) => {
     // 1. Rayon category filter
@@ -391,9 +383,6 @@ export default function SuppliersPage() {
       if (!getSupplierRayons(s).includes("connect")) return false;
     } else if (selectedRayonFilter === "saveurs") {
       if (!getSupplierRayons(s).includes("saveurs")) return false;
-    } else if (selectedRayonFilter === "other") {
-      const r = getSupplierRayons(s);
-      if (r.includes("immo") || r.includes("mode") || r.includes("connect") || r.includes("saveurs")) return false;
     }
 
     // 2. Text search query
@@ -553,24 +542,6 @@ export default function SuppliersPage() {
             {saveursSuppliersCount}
           </span>
         </button>
-
-        {otherSuppliersCount > 0 && (
-          <button
-            type="button"
-            onClick={() => setSelectedRayonFilter("other")}
-            className={`flex items-center space-x-2.5 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-              selectedRayonFilter === "other"
-                ? "bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-lg"
-                : "text-gray-400 hover:text-purple-300 hover:bg-purple-500/10"
-            }`}
-          >
-            <Shield size={15} />
-            <span>Autres & Sous-admins</span>
-            <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-white/10 text-gray-400">
-              {otherSuppliersCount}
-            </span>
-          </button>
-        )}
       </div>
 
       {/* Main Table Card */}
@@ -599,8 +570,6 @@ export default function SuppliersPage() {
                   ? "Fournisseurs Connect"
                   : selectedRayonFilter === "saveurs"
                   ? "Fournisseurs Saveurs & Resto"
-                  : selectedRayonFilter === "other"
-                  ? "Sous-admins & Autres"
                   : "Tous les Rayons"}
               </strong>{" "}
               ({filteredSuppliers.length} résultat{filteredSuppliers.length > 1 ? "s" : ""})
@@ -662,7 +631,7 @@ export default function SuppliersPage() {
                           : "Il n'y a actuellement aucun fournisseur configuré dans cette catégorie."}
                       </p>
                       <button
-                        onClick={() => handleOpenCreateModal(selectedRayonFilter !== "all" && selectedRayonFilter !== "other" ? selectedRayonFilter : "immo")}
+                        onClick={() => handleOpenCreateModal(selectedRayonFilter !== "all" ? selectedRayonFilter : "immo")}
                         className="flex items-center space-x-2 bg-primary hover:bg-primary-light text-white text-xs px-4 py-2 rounded-lg font-medium transition-colors"
                       >
                         <Plus size={16} />
@@ -1196,37 +1165,9 @@ export default function SuppliersPage() {
                       </div>
                     </div>
 
-                    {/* Sub Admin */}
-                    <div
-                      onClick={() => {
-                        setSupplierCategory("sub_admin");
-                        setRole("SUB_ADMIN");
-                        setRayon("");
-                      }}
-                      className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
-                        supplierCategory === "sub_admin"
-                          ? "bg-purple-500/15 border-purple-500 text-white shadow-md shadow-purple-500/10"
-                          : "bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:text-gray-200"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-1.5">
-                        <Shield size={20} className="text-purple-400" />
-                        {supplierCategory === "sub_admin" ? (
-                          <CheckCircle2 size={18} className="text-purple-400" />
-                        ) : (
-                          <span className="w-4 h-4 rounded-full border border-white/20" />
-                        )}
-                      </div>
-                      <div className="font-semibold text-sm text-white">Sous-administrateur</div>
-                      <div className="text-xs text-gray-400 mt-0.5 leading-relaxed">
-                        Délégation de gestion administrative plateforme
-                      </div>
-                    </div>
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
-                    {supplierCategory === "sub_admin"
-                      ? "Le sous-administrateur aura accès à la gestion administrative."
-                      : "Un abonnement d'essai de 30 jours sera automatiquement attribué au fournisseur."}
+                    Un abonnement d'essai de 30 jours sera automatiquement attribué au fournisseur pour commencer à vendre.
                   </p>
                 </div>
 

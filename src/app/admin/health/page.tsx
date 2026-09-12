@@ -21,6 +21,9 @@ export default function HealthDashboard() {
       }));
       setLogs(data);
       setLoading(false);
+    }, (err) => {
+      console.warn("Health error_logs listener warning:", err.message);
+      setLoading(false);
     });
 
     return () => unsubscribe();

@@ -70,7 +70,7 @@ export default function AdminDashboardPage() {
           where("role", "in", [
             "SUPPLIER", "supplier", "Supplier", 
             "SUPPLIER_IMMO", "supplier_immo",
-            "SUB_ADMIN", "sub_admin",
+            "SUB_SUPPLIER", "sub_supplier",
             "fournisseur", "Fournisseur", "FOURNISSEUR"
           ])
         );
@@ -83,6 +83,8 @@ export default function AdminDashboardPage() {
             else aSuppliers++;
           });
           setStats(prev => ({ ...prev, pendingSuppliers: pSuppliers, totalActiveSuppliers: aSuppliers }));
+        }, (err) => {
+          console.warn("Dashboard users listener warning:", err.message);
         });
 
         // 2. Pending & active properties (limited to 500 most recent)
@@ -96,6 +98,8 @@ export default function AdminDashboardPage() {
             else aProps++;
           });
           setStats(prev => ({ ...prev, pendingProperties: pProps, totalProperties: aProps }));
+        }, (err) => {
+          console.warn("Dashboard properties listener warning:", err.message);
         });
 
         // 3. Pending & active products (limited to 500 most recent)
@@ -109,6 +113,9 @@ export default function AdminDashboardPage() {
             else aProds++;
           });
           setStats(prev => ({ ...prev, pendingProducts: pProds, totalProducts: aProds }));
+          setDataLoading(false);
+        }, (err) => {
+          console.warn("Dashboard products listener warning:", err.message);
           setDataLoading(false);
         });
 

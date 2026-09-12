@@ -3,19 +3,42 @@
  * Super Admin has full control over the platform.
  */
 export const isSuperAdmin = (user: any, userData: any): boolean => {
-  return user?.email === "danielkiboko218@gmail.com" || userData?.role === "SUPER_ADMIN";
-};
-
-
-const isSubAdmin = (userData: any): boolean => {
-  return userData?.role === "SUB_ADMIN";
+  const email = (user?.email || "").toLowerCase().trim();
+  const role = (userData?.role || "").toUpperCase();
+  return email === "danielkiboko218@gmail.com" || email === "admin@rayons.net" || role === "SUPER_ADMIN" || role === "SUPERADMIN";
 };
 
 /**
- * Checks if the user has any admin access (Super Admin or Sub Admin).
+ * Checks if user is an internal team collaborator / fonctionnaire.
+ */
+export const isTeamMember = (userData: any): boolean => {
+  const role = (userData?.role || "").toUpperCase();
+  return ["SUB_ADMIN", "ADMIN_FINANCE", "ADMIN_DB", "ADMIN_TECH", "ADMIN_OPS", "SUPER_ADMIN", "ADMIN"].includes(role);
+};
+
+const isSubAdmin = (userData: any): boolean => {
+  const role = (userData?.role || "").toUpperCase();
+  return ["SUB_ADMIN", "ADMIN_FINANCE", "ADMIN_DB", "ADMIN_TECH", "ADMIN_OPS", "ADMIN"].includes(role);
+};
+
+/**
+ * Checks if the user has any admin access (Super Admin or Internal Staff Member).
  */
 export const hasAdminAccess = (user: any, userData: any): boolean => {
   return isSuperAdmin(user, userData) || isSubAdmin(userData);
+};
+
+/**
+ * Role-specific permissions for internal staff
+ */
+export const canAccessFinance = (user: any, userData: any): boolean => {
+  const role = (userData?.role || "").toUpperCase();
+  return isSuperAdmin(user, userData) || role === "ADMIN_FINANCE";
+};
+
+export const canAccessDatabase = (user: any, userData: any): boolean => {
+  const role = (userData?.role || "").toUpperCase();
+  return isSuperAdmin(user, userData) || role === "ADMIN_DB" || role === "ADMIN_TECH";
 };
 
 /**

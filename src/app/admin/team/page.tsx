@@ -2,105 +2,167 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { 
-  LayoutDashboard, 
   Users, 
-  Truck, 
-  Package, 
-  LogOut,
-  ShieldAlert,
-  Search,
-  CheckCircle2,
-  XCircle,
-  AlertTriangle,
-  Check,
-  X
+  ShieldAlert, 
+  Search, 
+  CheckCircle2, 
+  XCircle, 
+  AlertTriangle, 
+  Check, 
+  X, 
+  Plus, 
+  Wallet, 
+  Database, 
+  ShieldCheck, 
+  Sparkles, 
+  Trash2, 
+  UserCheck, 
+  Mail, 
+  Phone,
+  Crown
 } from "lucide-react";
-import { db } from "@/lib/firebase";
-import { collection, query, where, getDocs, doc, updateDoc } from "firebase/firestore";
+import { db, auth } from "@/lib/firebase";
+import { collection, query, where, getDocs, doc, updateDoc, onSnapshot, serverTimestamp } from "firebase/firestore";
+import { motion, AnimatePresence } from "framer-motion";
+import { isSuperAdmin, hasAdminAccess } from "@/lib/permissions";
+
+interface TeamMember {
+  id: string;
+  name: string;
+  displayName?: string;
+  email: string;
+  role: string;
+  phoneNumber?: string;
+  status?: string;
+  createdAt?: any;
+}
 
 export default function AdminTeamPage() {
-  const { user, userData, loading, signOut } = useAuth();
+  const { user, userData, loading } = useAuth();
   const router = useRouter();
 
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [pendingDrivers, setPendingDrivers] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+
+  // Modal creation states
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [newFirstName, setNewFirstName] = useState("");
+  const [newLastName, setNewLastName] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [newPhone, setNewPhone] = useState("");
+  const [newRole, setNewRole] = useState<"ADMIN_FINANCE" | "ADMIN_DB" | "SUB_ADMIN">("ADMIN_FINANCE");
+  const [isCreating, setIsCreating] = useState(false);
+
+  // Search & promote existing user
   const [searchEmail, setSearchEmail] = useState("");
   const [searchedUser, setSearchedUser] = useState<any>(null);
+  const [selectedPromoteRole, setSelectedPromoteRole] = useState<"ADMIN_FINANCE" | "ADMIN_DB" | "SUB_ADMIN">("ADMIN_FINANCE");
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState("");
-  
-  const [subAdmins, setSubAdmins] = useState<any[]>([]);
-  const [pendingDrivers, setPendingDrivers] = useState<any[]>([]);
-  const [isUpdating, setIsUpdating] = useState(false);
 
-  // Protect route strictly for Super Admin
-  const isSuperAdmin = user?.email === "danielkiboko218@gmail.com";
+  const isSuper = isSuperAdmin(user, userData);
+  const isAuthorized = hasAdminAccess(user, userData);
 
   useEffect(() => {
     if (!loading) {
       if (!user) {
         router.push("/login");
-      } else if (!isSuperAdmin) {
+      } else if (!isAuthorized) {
         router.push("/");
       }
     }
-  }, [user, isSuperAdmin, loading, router]);
+  }, [user, isAuthorized, loading, router]);
 
-  const fetchSubAdmins = async () => {
-    try {
-      const q = query(collection(db, "users"), where("role", "==", "SUB_ADMIN"));
-      const querySnapshot = await getDocs(q);
-      const admins: any[] = [];
-      querySnapshot.forEach((doc) => {
-        admins.push({ id: doc.id, ...doc.data() });
+  // Real-time listener for internal staff / fonctionnaires
+  useEffect(() => {
+    if (!user || !isAuthorized) return;
+
+    setIsLoading(true);
+    const staffRoles = [
+      "SUPER_ADMIN", "superAdmin", "SUPERADMIN",
+      "ADMIN_FINANCE", "admin_finance",
+      "ADMIN_DB", "admin_db", "ADMIN_TECH",
+      "SUB_ADMIN", "sub_admin", "ADMIN_OPS",
+      "ADMIN", "admin"
+    ];
+
+    const q = query(collection(db, "users"), where("role", "in", staffRoles));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const members: TeamMember[] = [];
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        members.push({
+          id: docSnap.id,
+          name: data.displayName || `${data.firstName || ''} ${data.lastName || ''}`.trim() || "Collaborateur",
+          email: data.email || "",
+          role: data.role || "SUB_ADMIN",
+          phoneNumber: data.phoneNumber,
+          status: data.status || "active",
+          createdAt: data.createdAt,
+        });
       });
-      setSubAdmins(admins);
-    } catch (error) {
-      console.error("Error fetching sub admins:", error);
-    }
-  };
+      // Sort: Super Admins first, then finance, then db, then sub_admins
+      members.sort((a, b) => {
+        const priority = (role: string) => {
+          const r = role.toUpperCase();
+          if (r.includes("SUPER")) return 1;
+          if (r.includes("FINANCE")) return 2;
+          if (r.includes("DB") || r.includes("TECH")) return 3;
+          return 4;
+        };
+        return priority(a.role) - priority(b.role);
+      });
 
-  const fetchPendingDrivers = async () => {
-    try {
-      const q = query(collection(db, "drivers"), where("status", "==", "pending_deletion"));
-      const querySnapshot = await getDocs(q);
+      setTeamMembers(members);
+      setIsLoading(false);
+    }, (err) => {
+      console.warn("Team listener warning:", err.message);
+      setIsLoading(false);
+    });
+
+    // Also fetch pending driver deletion requests
+    const qDrivers = query(collection(db, "drivers"), where("status", "==", "pending_deletion"));
+    const unsubDrivers = onSnapshot(qDrivers, (snapshot) => {
       const drivers: any[] = [];
-      querySnapshot.forEach((doc) => {
-        drivers.push({ id: doc.id, ...doc.data() });
+      snapshot.forEach((docSnap) => {
+        drivers.push({ id: docSnap.id, ...docSnap.data() });
       });
       setPendingDrivers(drivers);
-    } catch (error) {
-      console.error("Error fetching pending drivers:", error);
-    }
-  };
+    }, (err) => {
+      console.warn("Pending drivers listener warning:", err.message);
+    });
 
-  useEffect(() => {
-    if (isSuperAdmin) {
-      fetchSubAdmins();
-      fetchPendingDrivers();
-    }
-  }, [isSuperAdmin]);
+    return () => {
+      unsubscribe();
+      unsubDrivers();
+    };
+  }, [user, isAuthorized]);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!searchEmail) return;
+    if (!searchEmail.trim()) return;
     
     setIsSearching(true);
     setSearchError("");
     setSearchedUser(null);
     
     try {
-      const q = query(collection(db, "users"), where("email", "==", searchEmail.trim()));
+      const q = query(collection(db, "users"), where("email", "==", searchEmail.trim().toLowerCase()));
       const querySnapshot = await getDocs(q);
       
       if (querySnapshot.empty) {
-        setSearchError("Aucun utilisateur trouvé avec cette adresse email.");
+        setSearchError("Aucun compte utilisateur trouvé avec cette adresse email.");
       } else {
         const userDoc = querySnapshot.docs[0];
         setSearchedUser({ id: userDoc.id, ...userDoc.data() });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error searching user:", error);
       setSearchError("Une erreur s'est produite lors de la recherche.");
     } finally {
@@ -108,65 +170,124 @@ export default function AdminTeamPage() {
     }
   };
 
-  const promoteToSubAdmin = async (userId: string) => {
+  const handleCreateTeamMember = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newEmail.trim()) return;
+    setIsCreating(true);
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    try {
+      const token = await auth.currentUser?.getIdToken(true);
+      if (!token) throw new Error("Vous devez être connecté.");
+
+      const displayName = `${newFirstName} ${newLastName}`.trim() || newEmail.split("@")[0];
+      const randomPassword = Math.random().toString(36).slice(-10) + "A1@";
+
+      const res = await fetch("/api/users/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          email: newEmail.trim().toLowerCase(),
+          password: randomPassword,
+          displayName,
+          roleToCreate: newRole,
+          extraData: {
+            isInternalStaff: true,
+            roleTitle: getRoleLabel(newRole),
+            department: newRole === "ADMIN_FINANCE" ? "Finance" : newRole === "ADMIN_DB" ? "Technique & BDD" : "Opérations"
+          },
+          notificationMethod: "email",
+          phoneNumber: newPhone ? newPhone.trim() : undefined,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Erreur lors de la création du collaborateur.");
+      }
+
+      setSuccessMessage(`Le compte fonctionnaire "${displayName}" a été créé avec le rôle ${getRoleLabel(newRole)}. Les identifiants lui ont été transmis.`);
+      setIsCreateModalOpen(false);
+      setNewFirstName("");
+      setNewLastName("");
+      setNewEmail("");
+      setNewPhone("");
+      setNewRole("ADMIN_FINANCE");
+    } catch (err: any) {
+      console.error(err);
+      setErrorMessage(err.message || "Erreur lors de la création.");
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const handleChangeRole = async (userId: string, targetRole: string) => {
+    if (!isSuper) {
+      alert("Seul le Super Administrateur peut modifier les attributions de l'équipe.");
+      return;
+    }
     setIsUpdating(true);
+    setErrorMessage("");
+    setSuccessMessage("");
+
     try {
       await updateDoc(doc(db, "users", userId), {
-        role: "SUB_ADMIN",
-        permissions: {} // Clean up old permissions if any
+        role: targetRole,
+        isInternalStaff: true,
+        updatedAt: serverTimestamp(),
       });
-      
-      if (searchedUser && searchedUser.id === userId) {
-        setSearchedUser({
-          ...searchedUser,
-          role: "SUB_ADMIN",
-          permissions: {}
-        });
-      }
-      
-      fetchSubAdmins();
-    } catch (error) {
-      console.error("Error promoting user:", error);
-      alert("Erreur lors de la promotion.");
+      setSuccessMessage(`Attribution mise à jour avec succès : ${getRoleLabel(targetRole)}.`);
+    } catch (err: any) {
+      console.error("Error updating role:", err);
+      setErrorMessage("Erreur lors de la modification du rôle.");
     } finally {
       setIsUpdating(false);
     }
   };
-  
-  const revokeSubAdmin = async (userId: string) => {
-    if (!confirm("Voulez-vous vraiment révoquer tous les droits de cet utilisateur ?")) return;
-    
+
+  const handleRevokeRole = async (userId: string, userName: string) => {
+    if (!isSuper) {
+      alert("Seul le Super Administrateur peut révoquer un collaborateur.");
+      return;
+    }
+    if (!confirm(`Voulez-vous vraiment révoquer les accès internes de "${userName}" ? Il redeviendra un utilisateur standard sans droits d'administration.`)) {
+      return;
+    }
+
     setIsUpdating(true);
     try {
       await updateDoc(doc(db, "users", userId), {
         role: "CLIENT",
-        permissions: {}
+        isInternalStaff: false,
+        updatedAt: serverTimestamp(),
       });
-      
+      setSuccessMessage(`Les droits d'administration de "${userName}" ont été révoqués.`);
       if (searchedUser && searchedUser.id === userId) {
-        setSearchedUser({
-          ...searchedUser,
-          role: "CLIENT",
-          permissions: {}
-        });
+        setSearchedUser({ ...searchedUser, role: "CLIENT" });
       }
-      
-      fetchSubAdmins();
-    } catch (error) {
-      console.error("Error revoking user:", error);
+    } catch (err: any) {
+      console.error("Error revoking role:", err);
+      setErrorMessage("Erreur lors de la révocation.");
     } finally {
       setIsUpdating(false);
     }
+  };
+
+  const handlePromoteSearchedUser = async () => {
+    if (!searchedUser) return;
+    await handleChangeRole(searchedUser.id, selectedPromoteRole);
+    setSearchedUser({ ...searchedUser, role: selectedPromoteRole });
   };
 
   const handleApproveDeletion = async (driverId: string) => {
     if (!confirm("Voulez-vous vraiment supprimer définitivement ce livreur ?")) return;
     setIsUpdating(true);
     try {
-      const { getAuth } = await import("firebase/auth");
-      const auth = getAuth();
       const token = await auth.currentUser?.getIdToken();
-      
       const res = await fetch('/api/users/delete', {
         method: 'POST',
         headers: {
@@ -175,14 +296,11 @@ export default function AdminTeamPage() {
         },
         body: JSON.stringify({ uid: driverId, collectionName: 'drivers' })
       });
-      
       if (!res.ok) throw new Error("Erreur lors de la suppression backend");
-      
-      alert("Livreur supprimé avec succès.");
-      fetchPendingDrivers();
-    } catch (error) {
+      setSuccessMessage("Livreur supprimé avec succès.");
+    } catch (error: any) {
       console.error("Error deleting driver:", error);
-      alert("Erreur lors de la suppression.");
+      setErrorMessage(error.message || "Erreur lors de la suppression.");
     } finally {
       setIsUpdating(false);
     }
@@ -194,255 +312,560 @@ export default function AdminTeamPage() {
     try {
       await updateDoc(doc(db, "drivers", driverId), { status: "active" });
       await updateDoc(doc(db, "users", driverId), { status: "active" });
-      alert("Livreur réactivé avec succès.");
-      fetchPendingDrivers();
-    } catch (error) {
+      setSuccessMessage("Livreur réactivé avec succès.");
+    } catch (error: any) {
       console.error("Error rejecting deletion:", error);
-      alert("Erreur lors de l'annulation de la suppression.");
+      setErrorMessage("Erreur lors de la réactivation.");
     } finally {
       setIsUpdating(false);
     }
   };
 
-  if (loading || !user || !isSuperAdmin) {
+  const getRoleBadge = (role: string) => {
+    const r = (role || "").toUpperCase();
+    if (r.includes("SUPER")) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 uppercase tracking-wider">
+          <Crown size={14} className="text-amber-400" />
+          <span>Super Administrateur</span>
+        </span>
+      );
+    }
+    if (r.includes("FINANCE")) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 uppercase tracking-wider">
+          <Wallet size={14} className="text-emerald-400" />
+          <span>Gestionnaire Finance</span>
+        </span>
+      );
+    }
+    if (r.includes("DB") || r.includes("TECH")) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 uppercase tracking-wider">
+          <Database size={14} className="text-cyan-400" />
+          <span>Gestionnaire Données / BDD</span>
+        </span>
+      );
+    }
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="text-white flex flex-col items-center">
-          <ShieldAlert size={48} className="text-gray-500 mb-4 animate-pulse" />
-          <p>Vérification des accès sécurisés...</p>
-        </div>
-      </div>
+      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-purple-500/15 text-purple-300 border border-purple-500/30 uppercase tracking-wider">
+        <ShieldCheck size={14} className="text-purple-400" />
+        <span>Gestionnaire Opérations</span>
+      </span>
     );
-  }
+  };
+
+  const getRoleLabel = (role: string) => {
+    const r = (role || "").toUpperCase();
+    if (r.includes("SUPER")) return "Super Administrateur";
+    if (r.includes("FINANCE")) return "Gestionnaire Finance & Caisse";
+    if (r.includes("DB") || r.includes("TECH")) return "Gestionnaire Base de Données & Technique";
+    return "Gestionnaire Opérations & Modération";
+  };
+
+  const superAdminCount = teamMembers.filter(m => m.role?.toUpperCase().includes("SUPER")).length;
+  const financeCount = teamMembers.filter(m => m.role?.toUpperCase().includes("FINANCE")).length;
+  const dbCount = teamMembers.filter(m => m.role?.toUpperCase().includes("DB") || m.role?.toUpperCase().includes("TECH")).length;
+  const opsCount = teamMembers.filter(m => !m.role?.toUpperCase().includes("SUPER") && !m.role?.toUpperCase().includes("FINANCE") && !m.role?.toUpperCase().includes("DB") && !m.role?.toUpperCase().includes("TECH")).length;
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] flex flex-col md:flex-row font-sans text-gray-900">
-      
-      {/* Sidebar - Sleek Dark Mode */}
-      <div className="w-full md:w-72 bg-[#0A0A0A] text-white flex flex-col shadow-2xl z-10 relative">
-        <div className="p-8 border-b border-white/10">
-          <h1 className="text-3xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
-            RAYON<span className="text-blue-500">.</span>
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
+            <Users className="text-indigo-400" /> 
+            <span>Équipe Interne & Fonctionnaires</span>
           </h1>
-          <p className="text-xs text-gray-400 mt-2 font-medium uppercase tracking-widest">Admin Control</p>
+          <p className="text-sm text-gray-400 mt-1">
+            Gérez vos collaborateurs internes (Finance, Base de données, Modération). Ces membres sont des fonctionnaires de la plateforme : <strong>ils ne paient aucun abonnement et n'apparaissent pas dans les fournisseurs</strong>.
+          </p>
         </div>
-        
-        <nav className="p-6 flex-1 space-y-3">
-          {(isSuperAdmin || userData?.role === "SUB_ADMIN") && (
-            <Link href="/admin/dashboard" className="flex items-center px-4 py-3.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all font-medium group">
-              <LayoutDashboard size={20} className="mr-4 group-hover:scale-110 transition-transform" /> Dashboard
-            </Link>
-          )}
-          {(isSuperAdmin || userData?.role === "SUB_ADMIN") && (
-            <Link href="/admin/products" className="flex items-center px-4 py-3.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all font-medium group">
-              <Package size={20} className="mr-4 group-hover:scale-110 transition-transform" /> Produits
-            </Link>
-          )}
-          {(isSuperAdmin || userData?.role === "SUB_ADMIN") && (
-            <Link href="/admin/delivery/create" className="flex items-center px-4 py-3.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all font-medium group">
-              <Truck size={20} className="mr-4 group-hover:scale-110 transition-transform" /> Créer un Livreur
-            </Link>
-          )}
-          {isSuperAdmin && (
-            <Link href="/admin/team" className="flex items-center px-4 py-3.5 bg-blue-600/10 text-blue-500 rounded-xl font-bold border border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.1)] transition-all">
-              <ShieldAlert size={20} className="mr-4" /> Équipe (Sous-Admins)
-            </Link>
-          )}
-          <div className="flex items-center px-4 py-3.5 text-gray-600 rounded-xl font-medium cursor-not-allowed">
-            <Users size={20} className="mr-4" /> Fournisseurs (Bientôt)
-          </div>
-        </nav>
-
-        <div className="p-6 border-t border-white/10 bg-white/5">
-          <div className="flex items-center mb-6">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 flex items-center justify-center font-bold shadow-lg text-white mr-4">
-              D
-            </div>
-            <div>
-              <p className="text-sm font-bold text-white">{userData?.name || "Admin"}</p>
-              <p className="text-xs text-blue-400 font-medium">{isSuperAdmin ? "Super Admin" : "Sous-Admin"}</p>
-            </div>
-          </div>
-          <button 
-            onClick={() => signOut()}
-            className="w-full flex items-center justify-center px-4 py-3 text-sm font-bold text-gray-300 bg-white/5 hover:bg-red-500 hover:text-white rounded-xl transition-all border border-white/5 hover:border-red-500"
+        {isSuper && (
+          <button
+            onClick={() => setIsCreateModalOpen(true)}
+            className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:brightness-110 text-white px-5 py-2.5 rounded-xl font-medium shadow-lg shadow-indigo-600/25 transition-all text-sm shrink-0"
           >
-            <LogOut size={16} className="mr-2" /> Déconnexion
+            <Plus size={18} />
+            <span>Nouveau Collaborateur</span>
+          </button>
+        )}
+      </div>
+
+      {/* Success / Error Alerts */}
+      {successMessage && (
+        <div className="p-4 bg-green-500/20 border border-green-500/50 rounded-xl text-green-300 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 size={18} className="text-green-400 shrink-0" />
+            <span className="text-sm">{successMessage}</span>
+          </div>
+          <button onClick={() => setSuccessMessage("")} className="text-green-400 hover:text-white">
+            <X size={16} />
           </button>
         </div>
+      )}
+
+      {errorMessage && (
+        <div className="p-4 bg-red-500/20 border border-red-500/50 rounded-xl text-red-300 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <XCircle size={18} className="text-red-400 shrink-0" />
+            <span className="text-sm">{errorMessage}</span>
+          </div>
+          <button onClick={() => setErrorMessage("")} className="text-red-400 hover:text-white">
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
+      {/* KPI Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center justify-between">
+          <div>
+            <p className="text-xs text-gray-400 font-medium">Total Staff Interne</p>
+            <p className="text-2xl font-bold text-white mt-1">{teamMembers.length}</p>
+          </div>
+          <div className="p-3 bg-white/10 text-gray-300 rounded-xl">
+            <Users size={20} />
+          </div>
+        </div>
+
+        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-4 flex items-center justify-between">
+          <div>
+            <p className="text-xs text-emerald-300 font-medium">💼 Finance & Caisse</p>
+            <p className="text-2xl font-bold text-emerald-400 mt-1">{financeCount}</p>
+          </div>
+          <div className="p-3 bg-emerald-500/20 text-emerald-300 rounded-xl">
+            <Wallet size={20} />
+          </div>
+        </div>
+
+        <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-2xl p-4 flex items-center justify-between">
+          <div>
+            <p className="text-xs text-cyan-300 font-medium">🗄️ Base de Données & Logs</p>
+            <p className="text-2xl font-bold text-cyan-400 mt-1">{dbCount}</p>
+          </div>
+          <div className="p-3 bg-cyan-500/20 text-cyan-300 rounded-xl">
+            <Database size={20} />
+          </div>
+        </div>
+
+        <div className="bg-purple-500/10 border border-purple-500/20 rounded-2xl p-4 flex items-center justify-between">
+          <div>
+            <p className="text-xs text-purple-300 font-medium">📦 Modération & Opérations</p>
+            <p className="text-2xl font-bold text-purple-400 mt-1">{opsCount}</p>
+          </div>
+          <div className="p-3 bg-purple-500/20 text-purple-300 rounded-xl">
+            <ShieldCheck size={20} />
+          </div>
+        </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 overflow-auto bg-[#F8F9FA]">
-        <div className="p-6 md:p-10 max-w-4xl mx-auto">
-          
-          <div className="mb-10">
-            <h2 className="text-3xl font-black text-gray-900 tracking-tight">Équipe d'Administration</h2>
-            <p className="text-gray-500 mt-1">Gérez les sous-administrateurs et leurs accès spécifiques au C-Panel.</p>
+      {/* Main Staff Table */}
+      <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden shadow-xl">
+        <div className="p-4 border-b border-white/10 flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-bold text-white">Fonctionnaires & Collaborateurs Actifs</h2>
+            <p className="text-xs text-gray-400 mt-0.5">Membres ayant accès aux modules du panneau d'administration selon leur fonction.</p>
           </div>
+          <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-white/10 text-gray-300">
+            {teamMembers.length} membre{teamMembers.length > 1 ? "s" : ""}
+          </span>
+        </div>
 
-          {/* Search Box */}
-          <div className="bg-white p-6 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 mb-10">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Promouvoir un utilisateur</h3>
-            <form onSubmit={handleSearch} className="flex gap-4">
-              <div className="flex-1 relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Search className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  type="email"
-                  required
-                  value={searchEmail}
-                  onChange={(e) => setSearchEmail(e.target.value)}
-                  placeholder="Email de l'utilisateur (ex: employé@rayons.net)"
-                  className="block w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-sm font-medium"
-                />
-              </div>
-              <button 
-                type="submit" 
-                disabled={isSearching}
-                className="bg-gray-900 text-white px-8 py-3.5 rounded-2xl text-sm font-bold hover:bg-gray-800 transition-colors shadow-lg disabled:opacity-50"
-              >
-                {isSearching ? "Recherche..." : "Rechercher"}
-              </button>
-            </form>
-            
-            {searchError && (
-              <p className="mt-4 text-sm font-medium text-red-500 flex items-center">
-                <XCircle size={16} className="mr-2" /> {searchError}
-              </p>
-            )}
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm text-gray-300">
+            <thead className="text-xs uppercase bg-black/30 text-gray-400 tracking-wider">
+              <tr>
+                <th className="px-6 py-4 font-semibold">Collaborateur</th>
+                <th className="px-6 py-4 font-semibold">Attribution Interne</th>
+                <th className="px-6 py-4 font-semibold">Périmètre d'Accès</th>
+                <th className="px-6 py-4 font-semibold">Statut</th>
+                <th className="px-6 py-4 font-semibold text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {isLoading ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center text-gray-400">
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                      <span>Chargement des collaborateurs...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : teamMembers.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center text-gray-400">
+                    Aucun collaborateur interne configuré.
+                  </td>
+                </tr>
+              ) : (
+                teamMembers.map((member) => {
+                  const isMemberSuperAdmin = member.role?.toUpperCase().includes("SUPER");
+                  return (
+                    <tr key={member.id} className="hover:bg-white/5 transition-colors">
+                      <td className="px-6 py-4 font-medium text-white">
+                        <div className="flex items-center space-x-3">
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 ${
+                            isMemberSuperAdmin
+                              ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                              : member.role?.toUpperCase().includes("FINANCE")
+                              ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                              : member.role?.toUpperCase().includes("DB")
+                              ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
+                              : "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                          }`}>
+                            {isMemberSuperAdmin ? "👑" : member.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="font-semibold text-white">{member.name}</p>
+                            <p className="text-xs text-gray-400">{member.email}</p>
+                            {member.phoneNumber && (
+                              <p className="text-[11px] text-gray-500 mt-0.5">{member.phoneNumber}</p>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        {getRoleBadge(member.role)}
+                      </td>
+                      <td className="px-6 py-4 text-xs text-gray-300">
+                        {isMemberSuperAdmin && "Tous les modules & privilèges système complets"}
+                        {member.role?.toUpperCase().includes("FINANCE") && "Caisse, Écritures comptables, Trésorerie, Factures & Dépôts"}
+                        {member.role?.toUpperCase().includes("DB") && "Santé de l'app, Audits des collections, Erreurs système & Données"}
+                        {!isMemberSuperAdmin && !member.role?.toUpperCase().includes("FINANCE") && !member.role?.toUpperCase().includes("DB") && "Validation des biens/produits, Commandes & Livraisons"}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="inline-flex items-center gap-1 text-xs text-emerald-400 font-medium bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                          Actif
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right whitespace-nowrap">
+                        {isSuper && !isMemberSuperAdmin ? (
+                          <div className="inline-flex items-center gap-2">
+                            {/* Role Switcher */}
+                            <select
+                              value={member.role}
+                              onChange={(e) => handleChangeRole(member.id, e.target.value)}
+                              disabled={isUpdating}
+                              className="text-xs bg-black/40 border border-white/10 rounded-lg px-2.5 py-1 text-gray-300 focus:outline-none focus:border-indigo-500 [&>option]:bg-[#140b2e]"
+                            >
+                              <option value="ADMIN_FINANCE">💼 Finance & Caisse</option>
+                              <option value="ADMIN_DB">🗄️ Base de Données</option>
+                              <option value="SUB_ADMIN">📦 Opérations & Modération</option>
+                            </select>
 
-            {searchedUser && (
-              <div className="mt-6 p-5 border border-blue-100 bg-blue-50/50 rounded-2xl">
-                <div className="flex justify-between items-center mb-6">
-                  <div>
-                    <p className="font-bold text-gray-900 text-lg">{searchedUser.name}</p>
-                    <p className="text-sm text-gray-500">{searchedUser.email}</p>
-                  </div>
-                  <span className={`px-3 py-1 text-xs font-bold rounded-lg ${searchedUser.role === 'SUB_ADMIN' ? 'bg-purple-100 text-purple-700' : 'bg-gray-200 text-gray-700'}`}>
-                    Rôle actuel : {searchedUser.role || "CLIENT"}
-                  </span>
-                </div>
-                {searchedUser.role !== "SUB_ADMIN" && (
-                  <div className="mt-4">
-                    <button 
-                      onClick={() => promoteToSubAdmin(searchedUser.id)}
-                      disabled={isUpdating}
-                      className="bg-blue-600 text-white px-6 py-3 rounded-xl text-sm font-bold hover:bg-blue-700 transition-colors shadow-lg disabled:opacity-50"
-                    >
-                      {isUpdating ? "Mise à jour..." : "Promouvoir en Sous-Admin"}
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Pending Drivers Approvals */}
-          {pendingDrivers.length > 0 && (
-            <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-orange-200 overflow-hidden mb-10">
-              <div className="p-6 border-b border-orange-100 bg-orange-50 flex items-center">
-                <AlertTriangle className="text-orange-500 mr-3" />
-                <h3 className="text-lg font-black text-gray-900">Approbations de suppression en attente</h3>
-              </div>
-              
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-gray-50/50 text-xs uppercase tracking-wider text-gray-500 font-bold">
-                      <th className="p-5">Nom / Email du Livreur</th>
-                      <th className="p-5">Fournisseur (Demandeur)</th>
-                      <th className="p-5 text-right">Actions</th>
+                            <button
+                              onClick={() => handleRevokeRole(member.id, member.name)}
+                              disabled={isUpdating}
+                              title="Révoquer tous les droits internes"
+                              className="text-xs text-red-400 hover:text-white hover:bg-red-500/20 px-2.5 py-1 rounded-lg border border-red-500/30 transition-all font-medium"
+                            >
+                              Révoquer
+                            </button>
+                          </div>
+                        ) : isMemberSuperAdmin ? (
+                          <span className="text-xs text-amber-400/80 italic font-medium">Propriétaire Système</span>
+                        ) : null}
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="text-sm">
-                    {pendingDrivers.map((driver) => (
-                      <tr key={driver.id} className="border-b border-gray-50 hover:bg-gray-50/80 transition-colors">
-                        <td className="p-5">
-                          <p className="font-bold text-gray-900">{driver.displayName || "Sans nom"}</p>
-                          <p className="text-xs text-gray-500">{driver.email}</p>
-                        </td>
-                        <td className="p-5 text-gray-600 font-medium">
-                          {driver.supplierId === "admin" ? "Admin" : driver.supplierId}
-                        </td>
-                        <td className="p-5 text-right flex justify-end gap-2">
-                          <button 
-                            onClick={() => handleRejectDeletion(driver.id)}
-                            disabled={isUpdating}
-                            className="flex items-center text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded-lg transition-all"
-                          >
-                            <X size={14} className="mr-1" /> Refuser
-                          </button>
-                          <button 
-                            onClick={() => handleApproveDeletion(driver.id)}
-                            disabled={isUpdating}
-                            className="flex items-center text-xs font-bold text-white bg-red-500 hover:bg-red-600 px-3 py-2 rounded-lg transition-all"
-                          >
-                            <Check size={14} className="mr-1" /> Approuver et Supprimer
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Promote Existing User by Search */}
+      {isSuper && (
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-6 shadow-xl space-y-4">
+          <div>
+            <h2 className="text-base font-bold text-white flex items-center gap-2">
+              <UserCheck className="text-indigo-400" size={18} />
+              <span>Promouvoir un utilisateur existant en fonctionnaire interne</span>
+            </h2>
+            <p className="text-xs text-gray-400 mt-1">
+              Recherchez un compte déjà inscrit sur Rayon par son adresse email pour lui confier une fonction administrative (Finance, BDD, etc.).
+            </p>
+          </div>
+
+          <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              <input
+                type="email"
+                required
+                value={searchEmail}
+                onChange={(e) => setSearchEmail(e.target.value)}
+                placeholder="Email de l'utilisateur (ex: collaborateur@rayons.net)"
+                className="w-full pl-10 pr-4 py-2.5 bg-black/30 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-white text-sm"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={isSearching}
+              className="px-6 py-2.5 bg-white/10 hover:bg-white/20 text-white font-semibold text-sm rounded-xl transition-all disabled:opacity-50 shrink-0"
+            >
+              {isSearching ? "Recherche..." : "Rechercher"}
+            </button>
+          </form>
+
+          {searchError && (
+            <p className="text-xs text-red-400 flex items-center gap-1.5">
+              <XCircle size={14} /> {searchError}
+            </p>
+          )}
+
+          {searchedUser && (
+            <div className="p-4 bg-white/5 border border-white/15 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-3">
+              <div>
+                <p className="font-bold text-white text-sm">{searchedUser.displayName || searchedUser.email}</p>
+                <p className="text-xs text-gray-400">{searchedUser.email}</p>
+                <p className="text-xs text-indigo-300 mt-1">Rôle actuel : <strong>{searchedUser.role || "CLIENT"}</strong></p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <select
+                  value={selectedPromoteRole}
+                  onChange={(e: any) => setSelectedPromoteRole(e.target.value)}
+                  className="px-3 py-2 bg-black/40 border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-500 [&>option]:bg-[#140b2e]"
+                >
+                  <option value="ADMIN_FINANCE">💼 Nommer Gestionnaire Finance</option>
+                  <option value="ADMIN_DB">🗄️ Nommer Gestionnaire Base de Données</option>
+                  <option value="SUB_ADMIN">📦 Nommer Gestionnaire Opérations</option>
+                </select>
+                <button
+                  onClick={handlePromoteSearchedUser}
+                  disabled={isUpdating}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl transition-all shadow-md shrink-0"
+                >
+                  {isUpdating ? "Enregistrement..." : "Attribuer la fonction"}
+                </button>
               </div>
             </div>
           )}
-
-          {/* List of Sub-Admins */}
-          <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 overflow-hidden">
-            <div className="p-6 border-b border-gray-100 bg-white">
-              <h3 className="text-lg font-black text-gray-900">Sous-Administrateurs Actifs</h3>
-            </div>
-            
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-gray-50/50 text-xs uppercase tracking-wider text-gray-500 font-bold">
-                    <th className="p-5">Nom / Email</th>
-                    <th className="p-5">Accès Administratif</th>
-                    <th className="p-5 text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="text-sm">
-                  {subAdmins.length === 0 ? (
-                    <tr>
-                      <td colSpan={3} className="p-12 text-center text-gray-400 font-medium">
-                        Aucun sous-administrateur trouvé. Promouvez un utilisateur ci-dessus.
-                      </td>
-                    </tr>
-                  ) : (
-                    subAdmins.map((admin) => (
-                      <tr key={admin.id} className="border-b border-gray-50 hover:bg-gray-50/80 transition-colors">
-                        <td className="p-5">
-                          <p className="font-bold text-gray-900">{admin.name}</p>
-                          <p className="text-xs text-gray-500">{admin.email}</p>
-                        </td>
-                        <td className="p-5">
-                          <span className="flex items-center text-green-600 font-medium text-xs">
-                            <CheckCircle2 size={16} className="mr-1" /> Accès Complet
-                          </span>
-                        </td>
-                        <td className="p-5 text-right">
-                          <button 
-                            onClick={() => revokeSubAdmin(admin.id)}
-                            disabled={isUpdating}
-                            className="text-xs font-bold text-red-500 hover:text-white border border-red-200 hover:bg-red-500 px-3 py-1.5 rounded-lg transition-all"
-                          >
-                            Révoquer
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
         </div>
-      </div>
+      )}
+
+      {/* Pending Drivers Deletion Requests */}
+      {pendingDrivers.length > 0 && (
+        <div className="bg-orange-500/10 border border-orange-500/30 rounded-2xl overflow-hidden shadow-xl">
+          <div className="p-4 bg-orange-500/20 border-b border-orange-500/30 flex items-center gap-2 text-orange-300">
+            <AlertTriangle size={18} />
+            <h3 className="font-bold text-sm text-white">Demandes de suppression de livreurs en attente ({pendingDrivers.length})</h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm text-gray-300">
+              <thead className="text-xs uppercase bg-black/30 text-gray-400">
+                <tr>
+                  <th className="px-6 py-3 font-semibold">Livreur</th>
+                  <th className="px-6 py-3 font-semibold">Demandeur</th>
+                  <th className="px-6 py-3 font-semibold text-right">Décision</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {pendingDrivers.map((driver) => (
+                  <tr key={driver.id} className="hover:bg-white/5 transition-colors">
+                    <td className="px-6 py-3 font-medium text-white">
+                      <p>{driver.displayName || "Sans nom"}</p>
+                      <p className="text-xs text-gray-400">{driver.email}</p>
+                    </td>
+                    <td className="px-6 py-3 text-xs text-gray-400">
+                      {driver.supplierId === "admin" ? "Admin" : driver.supplierId}
+                    </td>
+                    <td className="px-6 py-3 text-right">
+                      <button
+                        onClick={() => handleRejectDeletion(driver.id)}
+                        disabled={isUpdating}
+                        className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-gray-300 rounded-lg text-xs font-bold mr-2"
+                      >
+                        Refuser
+                      </button>
+                      <button
+                        onClick={() => handleApproveDeletion(driver.id)}
+                        disabled={isUpdating}
+                        className="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded-lg text-xs font-bold"
+                      >
+                        Approuver la suppression
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Create New Collaborator */}
+      <AnimatePresence>
+        {isCreateModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-lg bg-[#140b2e] border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+            >
+              <div className="flex items-center justify-between p-6 border-b border-white/10 bg-[#140b2e]">
+                <div>
+                  <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                    <Users size={20} className="text-indigo-400" />
+                    <span>Créer un Fonctionnaire Interne</span>
+                  </h2>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Ce membre intégrera votre équipe administrative sans aucun abonnement commercial.
+                  </p>
+                </div>
+                <button onClick={() => setIsCreateModalOpen(false)} className="text-gray-400 hover:text-white">
+                  <X size={24} />
+                </button>
+              </div>
+
+              <form onSubmit={handleCreateTeamMember} className="p-6 space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-gray-300">Prénom</label>
+                    <input
+                      type="text"
+                      required
+                      value={newFirstName}
+                      onChange={(e) => setNewFirstName(e.target.value)}
+                      placeholder="Ex: Jean"
+                      className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-gray-300">Nom</label>
+                    <input
+                      type="text"
+                      required
+                      value={newLastName}
+                      onChange={(e) => setNewLastName(e.target.value)}
+                      placeholder="Ex: Kabeya"
+                      className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-gray-300">Email professionnel</label>
+                  <input
+                    type="email"
+                    required
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    placeholder="Ex: finance@rayons.net ou collaborateur@gmail.com"
+                    className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-gray-300">Téléphone (Optionnel)</label>
+                  <input
+                    type="tel"
+                    value={newPhone}
+                    onChange={(e) => setNewPhone(e.target.value)}
+                    placeholder="Ex: +243 81 000 0000"
+                    className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+
+                {/* Role selection cards */}
+                <div className="space-y-2 pt-2">
+                  <label className="text-xs font-bold text-gray-300 uppercase tracking-wider block">
+                    Attribution / Fonction dans l'application <span className="text-red-400">*</span>
+                  </label>
+                  <div className="grid grid-cols-1 gap-2.5">
+                    {/* Finance */}
+                    <div
+                      onClick={() => setNewRole("ADMIN_FINANCE")}
+                      className={`p-3.5 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${
+                        newRole === "ADMIN_FINANCE"
+                          ? "bg-emerald-500/15 border-emerald-500 text-white shadow-md shadow-emerald-500/10"
+                          : "bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:text-white"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="p-2.5 rounded-lg bg-emerald-500/20 text-emerald-400">
+                          <Wallet size={18} />
+                        </div>
+                        <div>
+                          <p className="font-bold text-sm text-white">Gestionnaire de Finance</p>
+                          <p className="text-xs text-gray-400">Comptabilité, écritures de caisse, trésorerie & garanties locatives</p>
+                        </div>
+                      </div>
+                      {newRole === "ADMIN_FINANCE" && <CheckCircle2 size={18} className="text-emerald-400 shrink-0" />}
+                    </div>
+
+                    {/* DB */}
+                    <div
+                      onClick={() => setNewRole("ADMIN_DB")}
+                      className={`p-3.5 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${
+                        newRole === "ADMIN_DB"
+                          ? "bg-cyan-500/15 border-cyan-500 text-white shadow-md shadow-cyan-500/10"
+                          : "bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:text-white"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="p-2.5 rounded-lg bg-cyan-500/20 text-cyan-400">
+                          <Database size={18} />
+                        </div>
+                        <div>
+                          <p className="font-bold text-sm text-white">Gestionnaire de Base de Données</p>
+                          <p className="text-xs text-gray-400">Santé de l'application, données utilisateurs, logs & maintenance technique</p>
+                        </div>
+                      </div>
+                      {newRole === "ADMIN_DB" && <CheckCircle2 size={18} className="text-cyan-400 shrink-0" />}
+                    </div>
+
+                    {/* Ops / Moderation */}
+                    <div
+                      onClick={() => setNewRole("SUB_ADMIN")}
+                      className={`p-3.5 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${
+                        newRole === "SUB_ADMIN"
+                          ? "bg-purple-500/15 border-purple-500 text-white shadow-md shadow-purple-500/10"
+                          : "bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:text-white"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="p-2.5 rounded-lg bg-purple-500/20 text-purple-400">
+                          <ShieldCheck size={18} />
+                        </div>
+                        <div>
+                          <p className="font-bold text-sm text-white">Gestionnaire Opérations & Modération</p>
+                          <p className="text-xs text-gray-400">Validation des annonces immo, produits des rayons & commandes</p>
+                        </div>
+                      </div>
+                      {newRole === "SUB_ADMIN" && <CheckCircle2 size={18} className="text-purple-400 shrink-0" />}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-4 flex justify-end gap-3 border-t border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => setIsCreateModalOpen(false)}
+                    disabled={isCreating}
+                    className="px-4 py-2 text-gray-400 hover:text-white transition-colors text-sm"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isCreating}
+                    className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm rounded-xl transition-all shadow-md disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {isCreating ? "Création en cours..." : "Créer le compte fonctionnaire"}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

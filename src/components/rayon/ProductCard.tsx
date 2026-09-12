@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ShieldCheck, Star, AlertTriangle } from "lucide-react";
+import { ShieldCheck, Star, AlertTriangle, ShoppingBag, MessageSquare } from "lucide-react";
 import { motion } from "framer-motion";
 import { evaluateProductVerification } from "@/lib/productVerification";
 
@@ -10,9 +10,10 @@ interface ProductCardProps {
   category: "mode" | "connect" | "saveurs";
   index: number;
   handleChat: (product: any) => void;
+  onBuy?: (product: any) => void;
 }
 
-export function ProductCard({ product, lang, t, category, index, handleChat }: ProductCardProps) {
+export function ProductCard({ product, lang, t, category, index, handleChat, onBuy }: ProductCardProps) {
   const isMode = category === "mode";
   const isSaveurs = category === "saveurs";
   const verification = evaluateProductVerification(product);
@@ -99,19 +100,34 @@ export function ProductCard({ product, lang, t, category, index, handleChat }: P
         </div>
       
         {/* Actions */}
-        <div className="grid grid-cols-2 gap-3 mt-auto">
-          <button 
-            onClick={() => handleChat(product)}
-            className={`py-2 ${bgClass} text-white text-sm font-semibold rounded-lg transition-colors text-center flex items-center justify-center space-x-1`}
-          >
-            <span>Contacter</span>
-          </button>
-          <Link 
-            href={`/product/${product.id}`}
-            className="py-2 bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 text-sm font-semibold rounded-lg transition-colors text-center flex items-center justify-center shadow-sm"
-          >
-            {t.details}
-          </Link>
+        <div className="flex flex-col gap-2 mt-auto">
+          {onBuy && (
+            <button 
+              type="button"
+              onClick={() => onBuy(product)}
+              className="w-full py-2.5 bg-[#0F1D27] hover:bg-[#1a2e3b] text-[#C7D300] text-xs font-heading font-bold rounded-xl transition-all text-center flex items-center justify-center gap-1.5 shadow-xs active:scale-98 cursor-pointer"
+            >
+              <ShoppingBag size={14} />
+              <span>Commander direct</span>
+            </button>
+          )}
+
+          <div className="grid grid-cols-2 gap-2">
+            <button 
+              type="button"
+              onClick={() => handleChat(product)}
+              className={`py-2 ${bgClass} text-xs font-semibold rounded-lg transition-colors text-center flex items-center justify-center space-x-1 cursor-pointer`}
+            >
+              <MessageSquare size={13} className="shrink-0" />
+              <span>Discuter</span>
+            </button>
+            <Link 
+              href={`/product/${product.id}`}
+              className="py-2 bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 text-xs font-semibold rounded-lg transition-colors text-center flex items-center justify-center shadow-2xs"
+            >
+              {t.details || "Détails"}
+            </Link>
+          </div>
         </div>
       </div>
     </motion.div>

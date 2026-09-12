@@ -12,6 +12,7 @@ import { db } from "@/lib/firebase";
 import { collection, query, getDocs, limit, where } from "firebase/firestore";
 import { CurrencySelector } from "@/components/CurrencySelector";
 import { RayonsLogo } from "@/components/brand/RayonsLogo";
+import { UniversalSearchBar } from "@/components/home/UniversalSearchBar";
 
 
 export default function Home() {
@@ -139,7 +140,7 @@ export default function Home() {
           {/* Gradient Bleu Rayons */}
           <div className="absolute inset-0 bg-gradient-to-r from-[#0F1D27] via-[#0F1D27]/85 to-transparent"></div>
           
-          <div className="relative z-10 p-8 sm:p-12 md:p-16 flex flex-col justify-center max-w-2xl">
+          <div className="relative z-10 p-8 sm:p-12 md:p-16 flex flex-col justify-center max-w-4xl w-full">
             {/* Tag Brand */}
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#C7D300]/15 border border-[#C7D300]/30 w-max mb-5">
               <Sparkles size={14} className="text-[#C7D300]" />
@@ -153,9 +154,14 @@ export default function Home() {
               Tout ce dont vous avez besoin, <span className="text-[#C7D300]">en un seul endroit.</span>
             </h1>
             
-            <p className="text-gray-300 text-sm sm:text-base md:text-lg mb-8 max-w-xl leading-relaxed font-sans">
+            <p className="text-gray-300 text-sm sm:text-base md:text-lg mb-6 max-w-2xl leading-relaxed font-sans">
               Rayons réunit quatre univers d'excellence complémentaires : technologies et objets connectés, immobilier et hôtellerie de prestige, prêt-à-porter de créateurs, et gastronomie avec ustensiles culinaires.
             </p>
+
+            {/* Barre de Recherche Universelle Globale */}
+            <div className="w-full mb-8">
+              <UniversalSearchBar products={dbProducts} properties={dbProperties} />
+            </div>
 
             <div className="flex flex-wrap items-center gap-4">
               <button 

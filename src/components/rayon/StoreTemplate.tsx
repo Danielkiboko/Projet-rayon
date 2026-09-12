@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { collection, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -8,6 +9,8 @@ import { ProductSkeleton } from "@/components/ui/Skeleton";
 import { useChat } from "@/context/ChatContext";
 import { RayonNavbar } from "./RayonNavbar";
 import { ProductCard } from "./ProductCard";
+import { Search, X, PackageSearch } from "lucide-react";
+import { DirectBuyModal } from "@/components/DirectBuyModal";
 
 interface StoreTemplateProps {
   category: "mode" | "connect" | "saveurs";
@@ -16,12 +19,24 @@ interface StoreTemplateProps {
   dict: any;
 }
 
-export function StoreTemplate({ category, heroImage, dummyProducts, dict }: StoreTemplateProps) {
+function StoreTemplateContent({ category, heroImage, dummyProducts, dict }: StoreTemplateProps) {
   const [lang, setLang] = useState<"fr" | "en">("fr");
   const t = dict[lang];
   const { openChatForProduct } = useChat();
+  const searchParams = useSearchParams();
+
   const [products, setProducts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedBuyProduct, setSelectedBuyProduct] = useState<any | null>(null);
+
+  // Sync with search parameter in URL
+  useEffect(() => {
+    const q = searchParams.get("search");
+    if (q) {
+      setSearchQuery(q);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const productsRef = collection(db, "products");
@@ -125,6 +140,17 @@ export function StoreTemplate({ category, heroImage, dummyProducts, dict }: Stor
     : "from-[#00B5A5]/90 via-[#0F1D27]/80";
   const heroTextColor = isMode ? "text-[#D4B08C]" : isSaveurs ? "text-[#FF6B35]" : "text-[#00B5A5]";
 
+  // Filter products by search query
+  const displayedProducts = products.filter(p => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase().trim();
+    const title = (p.title?.[lang] || p.title?.fr || p.title || "").toLowerCase();
+    const desc = (p.description?.[lang] || p.description?.fr || p.description || "").toLowerCase();
+    const brand = (p.brand || "").toLowerCase();
+    const tag = (p.tag?.[lang] || p.tag?.fr || p.tag || "").toLowerCase();
+    return title.includes(q) || desc.includes(q) || brand.includes(q) || tag.includes(q);
+  });
+
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
       <RayonNavbar 
@@ -138,7 +164,7 @@ export function StoreTemplate({ category, heroImage, dummyProducts, dict }: Stor
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
         {/* Hero Section */}
-        <div className="relative rounded-3xl overflow-hidden mb-12 shadow-xl h-[300px]">
+        <div className="relative rounded-3xl overflow-hidden mb-8 shadow-xl h-[280px] sm:h-[320px]">
           <img 
             src={heroImage} 
             alt={t[category] || category} 
@@ -153,7 +179,7 @@ export function StoreTemplate({ category, heroImage, dummyProducts, dict }: Stor
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
-              className="text-4xl md:text-5xl font-extrabold text-white tracking-tight leading-tight mb-4"
+              className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white tracking-tight leading-tight mb-3"
             >
               {t.title}
             </motion.h1>
@@ -162,7 +188,7 @@ export function StoreTemplate({ category, heroImage, dummyProducts, dict }: Stor
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.2 }}
-                className={`text-lg ${heroTextColor} max-w-lg hidden md:block`}
+                className={`text-base sm:text-lg ${heroTextColor} max-w-lg hidden sm:block`}
               >
                 {t.subtitle}
               </motion.p>
@@ -170,30 +196,89 @@ export function StoreTemplate({ category, heroImage, dummyProducts, dict }: Stor
           </div>
         </div>
 
-        {/* Products Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {isLoading ? (
-            <>
-              <ProductSkeleton />
-              <ProductSkeleton />
-              <ProductSkeleton />
-              <ProductSkeleton />
-            </>
-          ) : (
-            products.map((product, idx) => (
-              <ProductCard 
-                key={product.id}
-                product={product}
-                index={idx}
-                category={category}
-                lang={lang}
-                t={t}
-                handleChat={handleChat}
-              />
-            ))
-          )}
+        {/* Search & Filter Bar */}
+        <div className="bg-white p-4 rounded-2xl border border-gray-200/80 shadow-xs mb-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="relative w-full sm:max-w-md">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={`Rechercher dans Rayons ${t[category] || category}...`}
+              className="w-full pl-10 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+            />
+            {searchQuery && (
+              <button 
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1 rounded-full"
+                title="Effacer la recherche"
+              >
+                <X size={15} />
+              </button>
+            )}
+          </div>
+
+          <div className="text-xs text-gray-500 font-medium self-end sm:self-center">
+            {displayedProducts.length} article{displayedProducts.length > 1 ? "s" : ""} disponible{displayedProducts.length > 1 ? "s" : ""}
+          </div>
         </div>
+
+        {/* Products Grid */}
+        {displayedProducts.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center my-8">
+            <PackageSearch size={48} className="mx-auto text-gray-300 mb-3" />
+            <h3 className="text-base font-bold text-gray-800 mb-1">Aucun résultat trouvé</h3>
+            <p className="text-xs text-gray-400 max-w-md mx-auto mb-4">
+              Aucun article dans ce rayon ne correspond à votre recherche "{searchQuery}". Essayez un autre mot-clé ou réinitialisez le filtre.
+            </p>
+            <button
+              onClick={() => setSearchQuery("")}
+              className="px-4 py-2 bg-primary text-white text-xs font-semibold rounded-xl hover:bg-primary-dark transition-colors"
+            >
+              Afficher tous les articles
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {isLoading ? (
+              <>
+                <ProductSkeleton />
+                <ProductSkeleton />
+                <ProductSkeleton />
+                <ProductSkeleton />
+              </>
+            ) : (
+              displayedProducts.map((product, idx) => (
+                <ProductCard 
+                  key={product.id}
+                  product={product}
+                  index={idx}
+                  category={category}
+                  lang={lang}
+                  t={t}
+                  handleChat={handleChat}
+                  onBuy={(p) => setSelectedBuyProduct(p)}
+                />
+              ))
+            )}
+          </div>
+        )}
       </main>
+
+      {/* Direct Buy Express Modal */}
+      <DirectBuyModal 
+        isOpen={!!selectedBuyProduct}
+        onClose={() => setSelectedBuyProduct(null)}
+        product={selectedBuyProduct}
+      />
     </div>
+  );
+}
+
+export function StoreTemplate(props: StoreTemplateProps) {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center text-gray-500 font-medium">Chargement du rayon...</div>}>
+      <StoreTemplateContent {...props} />
+    </Suspense>
   );
 }

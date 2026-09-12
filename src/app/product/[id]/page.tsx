@@ -3,13 +3,14 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { OptimizedImage } from "@/components/OptimizedImage";
-import { ChevronLeft, ShoppingCart, ShieldCheck, Check, Truck, PackageOpen, Minus, Plus, MessageSquare, Star, AlertTriangle, Send } from "lucide-react";
+import { ChevronLeft, ShoppingCart, ShoppingBag, ShieldCheck, Check, Truck, PackageOpen, Minus, Plus, MessageSquare, Star, AlertTriangle, Send } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useChat } from "@/context/ChatContext";
 import { doc, getDoc, collection, getDocs, query, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { evaluateProductVerification, submitProductReview } from "@/lib/productVerification";
+import { DirectBuyModal } from "@/components/DirectBuyModal";
 
 export default function ProductDetails({ params }: { params: { id: string } }) {
   const [lang, setLang] = useState<"fr" | "en">("fr");
@@ -18,6 +19,7 @@ export default function ProductDetails({ params }: { params: { id: string } }) {
   const router = useRouter();
   
   const [productData, setProductData] = useState<any>(null);
+  const [isBuyModalOpen, setIsBuyModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [reviewsList, setReviewsList] = useState<any[]>([]);
   const [selectedRating, setSelectedRating] = useState(5);
@@ -265,15 +267,27 @@ export default function ProductDetails({ params }: { params: { id: string } }) {
               </div>
             </div>
 
-            {/* Main CTA */}
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-6 mb-8">
+            {/* Main CTAs */}
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-6 mb-8 space-y-3">
               <button 
-                onClick={handleOpenChat}
-                className="w-full py-4 bg-primary hover:bg-primary-light text-white font-bold rounded-xl transition-all shadow-lg shadow-primary/20 flex items-center justify-center space-x-2"
+                type="button"
+                onClick={() => setIsBuyModalOpen(true)}
+                className="w-full py-4 bg-[#C7D300] hover:bg-[#b5c000] text-[#0F1D27] font-heading font-extrabold rounded-xl transition-all shadow-lg shadow-[#C7D300]/20 flex items-center justify-center gap-2 cursor-pointer active:scale-98 text-base"
               >
-                <MessageSquare size={20} />
+                <ShoppingBag size={20} />
                 <span>
-                  {lang === "fr" ? "Contacter le fournisseur" : "Contact Supplier"} 
+                  {lang === "fr" ? "Commander maintenant avec livraison" : "Order Now with Delivery"} 
+                </span>
+              </button>
+
+              <button 
+                type="button"
+                onClick={handleOpenChat}
+                className="w-full py-3 bg-white/10 hover:bg-white/15 text-white font-semibold rounded-xl transition-all flex items-center justify-center space-x-2 border border-white/10 text-sm cursor-pointer"
+              >
+                <MessageSquare size={18} />
+                <span>
+                  {lang === "fr" ? "Discuter / Négocier avec le fournisseur" : "Contact Supplier"} 
                 </span>
               </button>
             </div>
@@ -370,6 +384,13 @@ export default function ProductDetails({ params }: { params: { id: string } }) {
           </div>
         </div>
       </main>
+
+      {/* Direct Express Order Modal */}
+      <DirectBuyModal 
+        isOpen={isBuyModalOpen}
+        onClose={() => setIsBuyModalOpen(false)}
+        product={productData}
+      />
     </div>
   );
 }

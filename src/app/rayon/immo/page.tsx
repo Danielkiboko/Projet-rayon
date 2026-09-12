@@ -17,6 +17,9 @@ import { useChat } from "@/context/ChatContext";
 import { ImmoContactModal } from "@/components/ImmoContactModal";
 import PropertyDetailModal from "@/components/properties/PropertyDetailModal";
 
+import { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+
 const DICT = {
   fr: {
     home: "Accueil",
@@ -48,7 +51,7 @@ const DICT = {
   }
 };
 
-export default function ImmoPage() {
+function ImmoContent() {
   const [lang, setLang] = useState<"fr" | "en">("fr");
   const t = DICT[lang];
   const { user, loading, signOut } = useAuth();
@@ -59,6 +62,16 @@ export default function ImmoPage() {
   
   // Recherche avancée et filtres multicritères
   const [searchQuery, setSearchQuery] = useState("");
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const s = searchParams.get("search");
+    const c = searchParams.get("category");
+    if (s) setSearchQuery(s);
+    if (c && ["all", "sale", "rent", "hotel"].includes(c)) {
+      setSelectedCategory(c as any);
+    }
+  }, [searchParams]);
   const [minPrice, setMinPrice] = useState<number | "">("");
   const [maxPrice, setMaxPrice] = useState<number | "">("");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -591,5 +604,13 @@ export default function ImmoPage() {
         property={contactProperty} 
       />
     </div>
+  );
+}
+
+export default function ImmoPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center text-gray-500 font-medium">Chargement Rayons Immo...</div>}>
+      <ImmoContent />
+    </Suspense>
   );
 }

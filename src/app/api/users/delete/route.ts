@@ -16,11 +16,28 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized: Invalid token' }, { status: 401 });
     }
 
-    const callerRole = decodedToken.role;
-    const callerEmail = decodedToken.email;
+    let callerRole = decodedToken.role;
+    const callerUid = decodedToken.uid;
+    const callerEmail = (decodedToken.email || '').toLowerCase().trim();
     const isSuperAdmin = callerEmail === "danielkiboko218@gmail.com" || callerEmail === "admin@rayons.net";
 
-    if (!isSuperAdmin && !['superAdmin', 'admin', 'SUB_ADMIN', 'ADMIN'].includes(callerRole?.toUpperCase() || callerRole)) {
+    // Fallback to Firestore if token has no role claim
+    if (!callerRole) {
+      try {
+        const userDoc = await adminDb.collection('users').doc(callerUid).get();
+        if (userDoc.exists) {
+          callerRole = userDoc.data()?.role;
+        }
+      } catch (dbErr) {
+        console.warn('Could not fetch caller doc from Firestore:', dbErr);
+      }
+    }
+
+    const normalizedRole = (callerRole || '').toString().toLowerCase();
+    const isAuthorizedAdmin = isSuperAdmin || 
+      ['superadmin', 'super_admin', 'admin', 'sub_admin'].includes(normalizedRole);
+
+    if (!isAuthorizedAdmin) {
       return NextResponse.json({ error: 'Forbidden: Only admins can delete users' }, { status: 403 });
     }
 
@@ -31,29 +48,42 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing uid' }, { status: 400 });
     }
 
-    // Delete from Auth
+    // 1. Delete from Firebase Auth
     try {
       await adminAuth.deleteUser(uid);
     } catch (authErr: any) {
-      // If user not found in Auth, we can still proceed to clean up DB
       if (authErr.code !== 'auth/user-not-found') {
-        throw authErr;
+        console.warn('Auth deletion error (non-fatal):', authErr.message);
       }
     }
 
-    // Delete from Firestore
+    // 2. Delete from Firestore (users, suppliers, drivers)
     const batch = adminDb.batch();
     batch.delete(adminDb.collection('users').doc(uid));
+    batch.delete(adminDb.collection('suppliers').doc(uid));
+    batch.delete(adminDb.collection('drivers').doc(uid));
     
     if (collectionName) {
       batch.delete(adminDb.collection(collectionName).doc(uid));
     }
 
-    // Effacer toutes les propriétés/produits créés par ce fournisseur
-    const productsSnapshot = await adminDb.collection('products').where('supplierId', '==', uid).get();
-    productsSnapshot.forEach((doc: any) => {
-      batch.delete(doc.ref);
-    });
+    // 3. Delete products and properties associated with this supplier
+    try {
+      const [productsSnapshot, propertiesSnapshot] = await Promise.all([
+        adminDb.collection('products').where('supplierId', '==', uid).get(),
+        adminDb.collection('properties').where('supplierId', '==', uid).get()
+      ]);
+
+      productsSnapshot.forEach((doc: any) => {
+        batch.delete(doc.ref);
+      });
+
+      propertiesSnapshot.forEach((doc: any) => {
+        batch.delete(doc.ref);
+      });
+    } catch (queryErr) {
+      console.warn('Could not fetch supplier products or properties:', queryErr);
+    }
 
     await batch.commit();
 

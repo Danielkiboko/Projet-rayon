@@ -24,24 +24,32 @@ export async function POST(req: Request) {
 
     let callerRole = decodedToken.role;
     const callerUid = decodedToken.uid;
-    const callerEmail = decodedToken.email;
+    const callerEmail = (decodedToken.email || '').toLowerCase().trim();
 
-    // Bootstrap rule: If the main admin hasn't got the custom claim yet, allow them as superAdmin
-    if (!callerRole && callerEmail === 'danielkiboko218@gmail.com') {
+    // Bootstrap rule: If the caller is a designated superAdmin
+    const isSuperAdminEmail = callerEmail === 'danielkiboko218@gmail.com' || callerEmail === 'admin@rayons.net';
+    if (!callerRole && isSuperAdminEmail) {
       callerRole = 'superAdmin';
     }
 
     // Fallback to Firestore if token has no role claim
     if (!callerRole) {
-      const userDoc = await adminDb.collection('users').doc(callerUid).get();
-      if (userDoc.exists) {
-        callerRole = userDoc.data()?.role;
+      try {
+        const userDoc = await adminDb.collection('users').doc(callerUid).get();
+        if (userDoc.exists) {
+          callerRole = userDoc.data()?.role;
+        }
+      } catch (dbErr) {
+        console.warn('Could not fetch caller doc from Firestore:', dbErr);
       }
     }
 
-    const isSupplierCaller = ['supplier', 'SUPPLIER', 'SUPPLIER_IMMO'].includes(callerRole);
-    
-    if (!['superAdmin', 'admin'].includes(callerRole) && !isSupplierCaller) {
+    const normalizedRole = (callerRole || '').toString().toLowerCase();
+    const isAdminCaller = isSuperAdminEmail || 
+      ['superadmin', 'super_admin', 'admin', 'sub_admin'].includes(normalizedRole);
+    const isSupplierCaller = ['supplier', 'supplier_immo', 'sub_supplier'].includes(normalizedRole);
+
+    if (!isAdminCaller && !isSupplierCaller) {
       return NextResponse.json({ error: 'Forbidden: Insufficient privileges to create users' }, { status: 403 });
     }
 
@@ -49,7 +57,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { email, password, displayName, roleToCreate, extraData = {}, notificationMethod, phoneNumber } = body;
 
-    if (!email || !password || !roleToCreate) {
+    if (!email || !roleToCreate) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
@@ -57,21 +65,37 @@ export async function POST(req: Request) {
     if (isSupplierCaller && !['driver', 'SUB_SUPPLIER'].includes(roleToCreate)) {
       return NextResponse.json({ error: 'Forbidden: Suppliers can only create drivers and sub-suppliers' }, { status: 403 });
     }
-    if (callerRole === 'admin' && roleToCreate === 'superAdmin') {
+    if (normalizedRole === 'admin' && roleToCreate === 'superAdmin') {
       return NextResponse.json({ error: 'Forbidden: Admins cannot create super admins' }, { status: 403 });
     }
 
-    // 4. Create the User in Firebase Auth
-    const userRecord = await adminAuth.createUser({
-      email,
-      password,
-      displayName,
-    });
+    // 4. Create or Retrieve the User in Firebase Auth
+    let userRecord;
+    try {
+      userRecord = await adminAuth.createUser({
+        email,
+        password: password || Math.random().toString(36).slice(-10) + "A1@",
+        displayName,
+      });
+    } catch (createErr: any) {
+      if (createErr.code === 'auth/email-already-exists') {
+        userRecord = await adminAuth.getUserByEmail(email);
+        if (password) {
+          try {
+            await adminAuth.updateUser(userRecord.uid, { password, displayName });
+          } catch (upErr) {
+            console.warn('Could not update existing user credentials:', upErr);
+          }
+        }
+      } else {
+        throw createErr;
+      }
+    }
 
     // 5. Set Custom Claims (Role & Creation lineage)
     const claims: any = {
       role: roleToCreate,
-      createdBy: isSupplierCaller ? callerUid : callerRole,
+      createdBy: isSupplierCaller ? callerUid : (callerRole || 'superAdmin'),
     };
     if (extraData?.parentSupplierId) {
       claims.parentSupplierId = extraData.parentSupplierId;
@@ -79,7 +103,7 @@ export async function POST(req: Request) {
     await adminAuth.setCustomUserClaims(userRecord.uid, claims);
 
     let additionalData = { ...extraData };
-    if (roleToCreate === 'supplier' || roleToCreate === 'SUPPLIER_IMMO') {
+    if (roleToCreate === 'supplier' || roleToCreate === 'SUPPLIER_IMMO' || roleToCreate === 'SUPPLIER_SAVEURS') {
       // Read trial duration from platform settings (default: 30 days)
       let trialDays = 30;
       try {
@@ -107,20 +131,20 @@ export async function POST(req: Request) {
       displayName,
       role: roleToCreate,
       createdBy: claims.createdBy,
-      creatorRole: callerRole,
+      creatorRole: callerRole || 'superAdmin',
       createdAt: new Date(),
       status: 'active',
       ...additionalData
-    });
+    }, { merge: true });
 
     // 7. Route to specific collections (drivers, suppliers) if needed
-    if (roleToCreate === 'supplier' || roleToCreate === 'SUPPLIER' || roleToCreate === 'SUPPLIER_IMMO') {
+    if (['supplier', 'SUPPLIER', 'SUPPLIER_IMMO', 'SUPPLIER_SAVEURS'].includes(roleToCreate)) {
       await adminDb.collection('suppliers').doc(userRecord.uid).set({
         email,
         displayName,
         createdAt: new Date(),
         status: 'active'
-      });
+      }, { merge: true });
     } else if (roleToCreate === 'driver') {
       await adminDb.collection('drivers').doc(userRecord.uid).set({
         supplierId: isSupplierCaller ? callerUid : 'admin',
@@ -128,10 +152,18 @@ export async function POST(req: Request) {
         displayName,
         createdAt: new Date(),
         status: 'active'
-      });
+      }, { merge: true });
     }
 
-    // 8. Send SMS if requested
+    // 8. Generate Password Reset Link for convenient onboarding
+    let resetLink: string | null = null;
+    try {
+      resetLink = await adminAuth.generatePasswordResetLink(email);
+    } catch (resetErr) {
+      console.warn('Could not generate reset link:', resetErr);
+    }
+
+    // 9. Send SMS if requested
     if (notificationMethod === 'sms' && phoneNumber) {
       try {
         let customSenderId = undefined;
@@ -143,18 +175,18 @@ export async function POST(req: Request) {
           }
         }
 
-        const message = `Bonjour ${displayName || ''}, votre compte Rayons a été créé. \nEmail: ${email}\nMot de passe: ${password}\nLien: https://rayons.net`;
+        const message = `Bonjour ${displayName || ''}, votre compte Rayons a été créé. \nEmail: ${email}\n${resetLink ? `Activez votre compte ici: ${resetLink}` : `Mot de passe temporaire: ${password}`}\nLien: https://rayons.net`;
         await sendMobiShastraSMS({ mobileNo: phoneNumber, message, customSenderId });
         console.log(`SMS sent successfully to ${phoneNumber} with senderId ${customSenderId || 'default'}`);
       } catch (smsError) {
         console.error('Failed to send SMS:', smsError);
-        // We still return success but maybe with a warning, or we can just ignore
       }
     }
 
     return NextResponse.json({ 
       message: 'User created successfully', 
-      uid: userRecord.uid 
+      uid: userRecord.uid,
+      resetLink
     }, { status: 201 });
 
   } catch (error: any) {

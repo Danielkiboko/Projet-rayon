@@ -10,6 +10,7 @@ import { auth, db } from "@/lib/firebase";
 import { collection, getDocs, query, where, doc, updateDoc, onSnapshot, orderBy } from "firebase/firestore";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { useAuth } from "@/context/AuthContext";
+import { hasAdminAccess } from "@/lib/permissions";
 
 interface Supplier {
   id: string;
@@ -67,21 +68,26 @@ export default function SuppliersPage() {
   const fetchSuppliers = () => {};
 
   useEffect(() => {
-    if (!user || !userData) return;
-    const isSuperAdmin = user.email === "danielkiboko218@gmail.com";
-    const isAuthorizedSubAdmin = userData?.role === "SUB_ADMIN";
+    if (!user) return;
+    const userRole = (userData?.role || "").toString().toLowerCase();
+    const isAdminUser = 
+      user.email === "danielkiboko218@gmail.com" || 
+      user.email === "admin@rayons.net" || 
+      ["admin", "superadmin", "super_admin", "sub_admin"].includes(userRole) ||
+      hasAdminAccess(user, userData);
     
-    if (!isSuperAdmin && !isAuthorizedSubAdmin) {
+    if (!isAdminUser) {
       setIsLoading(false);
       return;
     }
 
-    // Fetch suppliers (including property agents and sub-admins)
+    // Fetch suppliers (including property agents, restaurants, and sub-admins)
     const q = query(
       collection(db, "users"), 
       where("role", "in", [
         "SUPPLIER", "supplier", "Supplier", 
         "SUPPLIER_IMMO", "supplier_immo",
+        "SUPPLIER_SAVEURS", "supplier_saveurs",
         "SUB_ADMIN", "sub_admin",
         "SUB_SUPPLIER", "sub_supplier"
       ])
@@ -193,11 +199,13 @@ export default function SuppliersPage() {
   };
 
   const handleDeleteSupplier = async (supplierId: string) => {
-    if (!confirm("Voulez-vous vraiment supprimer ce fournisseur ? Cette action effacera toutes ses données (et propriétés).")) {
+    if (!confirm("Voulez-vous vraiment supprimer ce fournisseur ? Cette action effacera toutes ses données (produits, propriétés, accès).")) {
       return;
     }
     
     setIsLoading(true);
+    setError("");
+    setSuccessMessage("");
     try {
       const token = await auth.currentUser?.getIdToken(true);
       if (!token) throw new Error("Vous devez être connecté.");
@@ -216,11 +224,12 @@ export default function SuppliersPage() {
         throw new Error(data.error || "Erreur lors de la suppression");
       }
 
-      setSuccessMessage("Fournisseur supprimé avec succès.");
-      fetchSuppliers();
+      setSuppliers(prev => prev.filter(s => s.id !== supplierId));
+      setSuccessMessage("Fournisseur et données associées supprimés avec succès.");
     } catch (err: any) {
-      console.error(err);
+      console.error("Delete supplier error:", err);
       setError(err.message || "Erreur lors de la suppression");
+    } finally {
       setIsLoading(false);
     }
   };
@@ -300,8 +309,12 @@ export default function SuppliersPage() {
       }
 
       if (notificationMethod === 'email') {
-        // 2. Send the password reset email so they can choose their own password
-        await sendPasswordResetEmail(auth, email);
+        // 2. Send password reset email non-blockingly so client-side issues don't abort creation
+        try {
+          await sendPasswordResetEmail(auth, email);
+        } catch (emailErr: any) {
+          console.warn("Client sendPasswordResetEmail warning (non-fatal):", emailErr);
+        }
       }
 
       // Reset form and close modal
@@ -314,13 +327,11 @@ export default function SuppliersPage() {
       setRole("SUPPLIER_IMMO");
       setSupplierCategory("immo");
       setIsModalOpen(false);
+
       const methodMsg = notificationMethod === 'email' 
         ? `Un e-mail a été envoyé à ${email} pour qu'il configure son mot de passe.` 
         : `Un SMS a été envoyé au ${phoneNumber} avec le mot de passe.`;
-      setSuccessMessage(`Le compte fournisseur (${supplierCategory === 'immo' ? 'Immobilier & Hôtels' : supplierCategory === 'mode' ? 'Mode' : supplierCategory === 'connect' ? 'Connect' : supplierCategory === 'saveurs' ? 'Saveurs & Resto' : 'Sous-Admin'}) a été créé. ${methodMsg}`);
-      
-      // Refresh list
-      fetchSuppliers();
+      setSuccessMessage(`Le compte fournisseur (${supplierCategory === 'immo' ? 'Immobilier & Hôtels' : supplierCategory === 'mode' ? 'Mode' : supplierCategory === 'connect' ? 'Connect' : supplierCategory === 'saveurs' ? 'Saveurs & Resto' : 'Sous-Admin'}) a été créé avec succès. ${methodMsg}`);
     } catch (err: any) {
       console.error(err);
       setError(err.message || "Une erreur est survenue.");

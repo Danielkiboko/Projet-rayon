@@ -2,7 +2,7 @@ import React from "react";
 import Link from "next/link";
 import { RayonsMark } from "./RayonsMark";
 
-export type RayonUniverse = "connect" | "immo" | "mode";
+export type RayonUniverse = "connect" | "immo" | "mode" | "saveurs";
 
 interface RayonsLogoProps {
   variant?: "dark" | "light" | "monochrome-white" | "monochrome-dark";
@@ -49,6 +49,7 @@ export function RayonsLogo({
     connect: { label: ".CONNECT", colorClass: "text-[#00B5A5] border-[#00B5A5]/30 bg-[#00B5A5]/10", hex: "#00B5A5" },
     immo: { label: ".IMMO", colorClass: "text-[#4C6EF5] border-[#4C6EF5]/30 bg-[#4C6EF5]/10", hex: "#4C6EF5" },
     mode: { label: ".MODE", colorClass: "text-[#D4B08C] border-[#D4B08C]/30 bg-[#D4B08C]/10", hex: "#D4B08C" },
+    saveurs: { label: ".SAVEURS", colorClass: "text-[#FF6B35] border-[#FF6B35]/30 bg-[#FF6B35]/10", hex: "#FF6B35" },
   };
 
   const currentUniverse = rayon ? universeConfig[rayon] : null;

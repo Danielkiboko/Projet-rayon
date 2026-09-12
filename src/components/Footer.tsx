@@ -21,13 +21,14 @@ export function Footer() {
               <RayonsLogo variant="dark" size="md" href="/" />
             </div>
             <p className="text-gray-300 text-sm max-w-md leading-relaxed">
-              Rayons.net, une identité unifiée, trois expertises complémentaires.
+              Rayons.net, une identité unifiée, quatre expertises complémentaires.
               Tout ce dont vous avez besoin, en un seul endroit.
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               <span className="text-xs px-2.5 py-1 rounded-full bg-white/10 text-gray-300 border border-white/10 font-medium">Rayons Connect</span>
               <span className="text-xs px-2.5 py-1 rounded-full bg-white/10 text-gray-300 border border-white/10 font-medium">Rayons Immo</span>
               <span className="text-xs px-2.5 py-1 rounded-full bg-white/10 text-gray-300 border border-white/10 font-medium">Rayons Mode</span>
+              <span className="text-xs px-2.5 py-1 rounded-full bg-white/10 text-gray-300 border border-white/10 font-medium">Rayons Saveurs</span>
             </div>
           </div>
 
@@ -67,6 +68,7 @@ export function Footer() {
             <Link href="/rayon/connect" className="hover:text-[#00B5A5] transition-colors">Connect</Link>
             <Link href="/rayon/immo" className="hover:text-[#4C6EF5] transition-colors">Immo & Hôtels</Link>
             <Link href="/rayon/mode" className="hover:text-[#D4B08C] transition-colors">Mode</Link>
+            <Link href="/rayon/saveurs" className="hover:text-[#FF6B35] transition-colors">Saveurs</Link>
           </div>
         </div>
       </footer>

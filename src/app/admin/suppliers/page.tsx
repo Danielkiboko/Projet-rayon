@@ -39,8 +39,8 @@ export default function SuppliersPage() {
   const [selectedSupplierForAccess, setSelectedSupplierForAccess] = useState<Supplier | null>(null);
   const [newSubDate, setNewSubDate] = useState("");
   
-  // Rayon tab filter state: 'all' | 'immo' | 'mode' | 'connect' | 'other'
-  const [selectedRayonFilter, setSelectedRayonFilter] = useState<"all" | "immo" | "mode" | "connect" | "other">("all");
+  // Rayon tab filter state: 'all' | 'immo' | 'mode' | 'connect' | 'saveurs' | 'other'
+  const [selectedRayonFilter, setSelectedRayonFilter] = useState<"all" | "immo" | "mode" | "connect" | "saveurs" | "other">("all");
 
   // Rayon selection state for access modal
   const [selectedRayons, setSelectedRayons] = useState<string[]>([]);
@@ -51,7 +51,7 @@ export default function SuppliersPage() {
   const [successMessage, setSuccessMessage] = useState("");
 
   // Form states for creation
-  const [supplierCategory, setSupplierCategory] = useState<"immo" | "mode" | "connect" | "sub_admin">("immo");
+  const [supplierCategory, setSupplierCategory] = useState<"immo" | "mode" | "connect" | "saveurs" | "sub_admin">("immo");
   const [name, setName] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -225,7 +225,7 @@ export default function SuppliersPage() {
     }
   };
 
-  const handleOpenCreateModal = (preselectedCategory?: "immo" | "mode" | "connect" | "sub_admin") => {
+  const handleOpenCreateModal = (preselectedCategory?: "immo" | "mode" | "connect" | "saveurs" | "sub_admin") => {
     const cat = preselectedCategory || (selectedRayonFilter !== "all" && selectedRayonFilter !== "other" ? selectedRayonFilter : "immo");
     setSupplierCategory(cat);
     if (cat === "immo") {
@@ -237,6 +237,9 @@ export default function SuppliersPage() {
     } else if (cat === "connect") {
       setRole("supplier");
       setRayon("connect");
+    } else if (cat === "saveurs") {
+      setRole("supplier");
+      setRayon("saveurs");
     } else {
       setRole("SUB_ADMIN");
       setRayon("");
@@ -314,7 +317,7 @@ export default function SuppliersPage() {
       const methodMsg = notificationMethod === 'email' 
         ? `Un e-mail a été envoyé à ${email} pour qu'il configure son mot de passe.` 
         : `Un SMS a été envoyé au ${phoneNumber} avec le mot de passe.`;
-      setSuccessMessage(`Le compte fournisseur (${supplierCategory === 'immo' ? 'Immobilier & Hôtels' : supplierCategory === 'mode' ? 'Mode' : supplierCategory === 'connect' ? 'Connect' : 'Sous-Admin'}) a été créé. ${methodMsg}`);
+      setSuccessMessage(`Le compte fournisseur (${supplierCategory === 'immo' ? 'Immobilier & Hôtels' : supplierCategory === 'mode' ? 'Mode' : supplierCategory === 'connect' ? 'Connect' : supplierCategory === 'saveurs' ? 'Saveurs & Resto' : 'Sous-Admin'}) a été créé. ${methodMsg}`);
       
       // Refresh list
       fetchSuppliers();
@@ -344,6 +347,14 @@ export default function SuppliersPage() {
     ) {
       set.add("immo");
     }
+    if (
+      s.role === "SUPPLIER_SAVEURS" ||
+      s.role === "supplier_saveurs" ||
+      s.businessType === "RESTAURATION" ||
+      (typeof s.rayon === "string" && (s.rayon.toLowerCase().includes("saveur") || s.rayon.toLowerCase().includes("resto") || s.rayon.toLowerCase().includes("cuisine")))
+    ) {
+      set.add("saveurs");
+    }
     if (s.serviceAttached && typeof s.serviceAttached === "string") {
       set.add(s.serviceAttached.toLowerCase().trim());
     }
@@ -353,9 +364,10 @@ export default function SuppliersPage() {
   const immoSuppliersCount = suppliers.filter((s) => getSupplierRayons(s).includes("immo")).length;
   const modeSuppliersCount = suppliers.filter((s) => getSupplierRayons(s).includes("mode")).length;
   const connectSuppliersCount = suppliers.filter((s) => getSupplierRayons(s).includes("connect")).length;
+  const saveursSuppliersCount = suppliers.filter((s) => getSupplierRayons(s).includes("saveurs")).length;
   const otherSuppliersCount = suppliers.filter((s) => {
     const r = getSupplierRayons(s);
-    return !r.includes("immo") && !r.includes("mode") && !r.includes("connect");
+    return !r.includes("immo") && !r.includes("mode") && !r.includes("connect") && !r.includes("saveurs");
   }).length;
 
   const filteredSuppliers = suppliers.filter((s) => {
@@ -366,9 +378,11 @@ export default function SuppliersPage() {
       if (!getSupplierRayons(s).includes("mode")) return false;
     } else if (selectedRayonFilter === "connect") {
       if (!getSupplierRayons(s).includes("connect")) return false;
+    } else if (selectedRayonFilter === "saveurs") {
+      if (!getSupplierRayons(s).includes("saveurs")) return false;
     } else if (selectedRayonFilter === "other") {
       const r = getSupplierRayons(s);
-      if (r.includes("immo") || r.includes("mode") || r.includes("connect")) return false;
+      if (r.includes("immo") || r.includes("mode") || r.includes("connect") || r.includes("saveurs")) return false;
     }
 
     // 2. Text search query
@@ -385,7 +399,8 @@ export default function SuppliersPage() {
   const availableRayons = [
     { id: "immo", label: "Immobilier & Hôtellerie", icon: "🏠", desc: "Appartements, villas & hôtels" },
     { id: "mode", label: "Vêtements & Mode", icon: "👗", desc: "Vêtements, chaussures & accessoires" },
-    { id: "connect", label: "Matériel & Réseau (Connect)", icon: "⚡", desc: "Électronique, télécoms & connectique" }
+    { id: "connect", label: "Matériel & Réseau (Connect)", icon: "⚡", desc: "Électronique, télécoms & connectique" },
+    { id: "saveurs", label: "Gastronomie & Cuisine (Saveurs)", icon: "🍽️", desc: "Restaurants, traiteurs & ustensiles" }
   ];
 
   return (
@@ -400,7 +415,7 @@ export default function SuppliersPage() {
             </span>
           </h1>
           <p className="text-sm text-gray-400">
-            Gestion compartimentée des fournisseurs par rayon (Immobilier, Hôtellerie, Mode, Connect).
+            Gestion compartimentée des fournisseurs par rayon (Immobilier, Mode, Connect, Saveurs).
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -416,6 +431,8 @@ export default function SuppliersPage() {
                 ? "Nouveau Fournisseur Mode"
                 : selectedRayonFilter === "connect"
                 ? "Nouveau Fournisseur Connect"
+                : selectedRayonFilter === "saveurs"
+                ? "Nouveau Fournisseur Saveurs"
                 : "Nouveau Fournisseur"}
             </span>
           </button>
@@ -508,6 +525,24 @@ export default function SuppliersPage() {
           </span>
         </button>
 
+        <button
+          type="button"
+          onClick={() => setSelectedRayonFilter("saveurs")}
+          className={`flex items-center space-x-2.5 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+            selectedRayonFilter === "saveurs"
+              ? "bg-[#FF6B35]/20 text-[#FF6B35] border border-[#FF6B35]/40 shadow-lg shadow-[#FF6B35]/10"
+              : "text-gray-400 hover:text-[#FF6B35] hover:bg-[#FF6B35]/10"
+          }`}
+        >
+          <span className="text-base">🍽️</span>
+          <span>Fournisseurs Saveurs & Resto</span>
+          <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+            selectedRayonFilter === "saveurs" ? "bg-[#FF6B35]/30 text-[#FF6B35]" : "bg-white/10 text-gray-400"
+          }`}>
+            {saveursSuppliersCount}
+          </span>
+        </button>
+
         {otherSuppliersCount > 0 && (
           <button
             type="button"
@@ -551,6 +586,8 @@ export default function SuppliersPage() {
                   ? "Fournisseurs Mode"
                   : selectedRayonFilter === "connect"
                   ? "Fournisseurs Connect"
+                  : selectedRayonFilter === "saveurs"
+                  ? "Fournisseurs Saveurs & Resto"
                   : selectedRayonFilter === "other"
                   ? "Sous-admins & Autres"
                   : "Tous les Rayons"}
@@ -595,7 +632,7 @@ export default function SuppliersPage() {
                   <td colSpan={6} className="px-6 py-12 text-center">
                     <div className="max-w-md mx-auto flex flex-col items-center">
                       <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 mb-3 text-2xl">
-                        {selectedRayonFilter === "immo" ? "🏠" : selectedRayonFilter === "mode" ? "👗" : selectedRayonFilter === "connect" ? "⚡" : "🔍"}
+                        {selectedRayonFilter === "immo" ? "🏠" : selectedRayonFilter === "mode" ? "👗" : selectedRayonFilter === "connect" ? "⚡" : selectedRayonFilter === "saveurs" ? "🍽️" : "🔍"}
                       </div>
                       <h3 className="text-base font-semibold text-white mb-1">
                         {selectedRayonFilter === "immo"
@@ -604,6 +641,8 @@ export default function SuppliersPage() {
                           ? "Aucun fournisseur Mode & Vêtements"
                           : selectedRayonFilter === "connect"
                           ? "Aucun fournisseur Matériel & Connect"
+                          : selectedRayonFilter === "saveurs"
+                          ? "Aucun fournisseur Gastronomie & Saveurs"
                           : "Aucun fournisseur trouvé"}
                       </h3>
                       <p className="text-xs text-gray-400 mb-4">
@@ -623,6 +662,8 @@ export default function SuppliersPage() {
                             ? "Créer un Fournisseur Mode"
                             : selectedRayonFilter === "connect"
                             ? "Créer un Fournisseur Connect"
+                            : selectedRayonFilter === "saveurs"
+                            ? "Créer un Fournisseur Saveurs"
                             : "Créer un Fournisseur"}
                         </span>
                       </button>
@@ -752,6 +793,20 @@ export default function SuppliersPage() {
                                       >
                                         <span>⚡</span>
                                         <span>Connect</span>
+                                      </button>
+                                    );
+                                  }
+                                  if (r === "saveurs") {
+                                    return (
+                                      <button
+                                        key={r}
+                                        type="button"
+                                        onClick={() => setSelectedRayonFilter("saveurs")}
+                                        className="px-2.5 py-0.5 bg-[#FF6B35]/15 hover:bg-[#FF6B35]/25 border border-[#FF6B35]/30 text-[#FF6B35] rounded-lg text-xs font-medium flex items-center gap-1 transition-all"
+                                        title="Filtrer par Gastronomie & Saveurs"
+                                      >
+                                        <span>🍽️</span>
+                                        <span>Saveurs</span>
                                       </button>
                                     );
                                   }
@@ -1100,6 +1155,33 @@ export default function SuppliersPage() {
                       <div className="font-semibold text-sm text-white">Matériel & Connect</div>
                       <div className="text-xs text-gray-400 mt-0.5 leading-relaxed">
                         Smartphones, matériel informatique & réseaux
+                      </div>
+                    </div>
+
+                    {/* Saveurs */}
+                    <div
+                      onClick={() => {
+                        setSupplierCategory("saveurs");
+                        setRole("supplier");
+                        setRayon("saveurs");
+                      }}
+                      className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
+                        supplierCategory === "saveurs"
+                          ? "bg-[#FF6B35]/15 border-[#FF6B35] text-white shadow-md shadow-[#FF6B35]/10"
+                          : "bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:text-gray-200"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-xl">🍽️</span>
+                        {supplierCategory === "saveurs" ? (
+                          <CheckCircle2 size={18} className="text-[#FF6B35]" />
+                        ) : (
+                          <span className="w-4 h-4 rounded-full border border-white/20" />
+                        )}
+                      </div>
+                      <div className="font-semibold text-sm text-white">Saveurs & Gastronomie</div>
+                      <div className="text-xs text-gray-400 mt-0.5 leading-relaxed">
+                        Restaurants, plats cuisinés & ustensiles de cuisine
                       </div>
                     </div>
 

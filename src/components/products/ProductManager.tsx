@@ -175,6 +175,7 @@ export default function ProductManager({ isAdmin }: ProductManagerProps) {
       const c = (productCategory || "").toLowerCase().trim();
       if (c.includes("mode") || c.includes("vetement") || c.includes("vêtement") || c.includes("habit") || c.includes("chaussure") || c.includes("accessoire")) return "mode";
       if (c.includes("connect") || c.includes("electr") || c.includes("électr") || c.includes("tech") || c.includes("telecom") || c.includes("télécom") || c.includes("phone")) return "connect";
+      if (c.includes("saveur") || c.includes("resto") || c.includes("cuisine") || c.includes("ustensil") || c.includes("repas") || c.includes("food") || c.includes("plat")) return "saveurs";
       if (c.includes("immo")) return "immo";
       return c || "general";
     })();
@@ -359,6 +360,9 @@ export default function ProductManager({ isAdmin }: ProductManagerProps) {
     if (selectedRayonFilter === "connect") {
       return cat === "connect" || ray === "connect" || cat.includes("connect") || cat.includes("electr") || cat.includes("tech");
     }
+    if (selectedRayonFilter === "saveurs") {
+      return cat === "saveurs" || ray === "saveurs" || cat.includes("saveur") || cat.includes("resto") || cat.includes("cuisine") || cat.includes("ustensil") || cat.includes("food");
+    }
     if (selectedRayonFilter === "immo") {
       return cat === "immo" || ray === "immo";
     }
@@ -470,6 +474,19 @@ export default function ProductManager({ isAdmin }: ProductManagerProps) {
                 }`}
               >
                 <span>📡</span> Rayon Connect
+              </button>
+            )}
+
+            {(isAdmin || assignedRayons.includes("saveurs") || assignedRayons.length === 0) && (
+              <button
+                onClick={() => setSelectedRayonFilter("saveurs")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shrink-0 flex items-center gap-1.5 ${
+                  selectedRayonFilter === "saveurs"
+                    ? "bg-[#FF6B35] text-white shadow-sm"
+                    : "bg-white/5 text-gray-400 hover:text-[#FF6B35] hover:bg-[#FF6B35]/10"
+                }`}
+              >
+                <span>🍽️</span> Rayon Saveurs
               </button>
             )}
 
@@ -702,6 +719,7 @@ export default function ProductManager({ isAdmin }: ProductManagerProps) {
                     <option className="bg-[#1a1a1a]" value="">Sélectionner un rayon</option>
                     <option className="bg-[#1a1a1a]" value="mode">👗 Rayon Mode (Vêtements, Chaussures & Accessoires)</option>
                     <option className="bg-[#1a1a1a]" value="connect">📡 Rayon Connect (Électronique, Starlink, Télécom)</option>
+                    <option className="bg-[#1a1a1a]" value="saveurs">🍽️ Rayon Saveurs (Restaurants, Plats de chef & Ustensiles)</option>
                     <option className="bg-[#1a1a1a]" value="immo">🏢 Rayon Immo (Immobilier & Résidences)</option>
                     <option className="bg-[#1a1a1a]" value="general">📦 Général (Divers)</option>
                   </select>

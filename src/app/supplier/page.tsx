@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import ImmoDashboard from "@/components/dashboards/ImmoDashboard";
 import ModeDashboard from "@/components/dashboards/ModeDashboard";
 import ConnectDashboard from "@/components/dashboards/ConnectDashboard";
+import SaveursDashboard from "@/components/dashboards/SaveursDashboard";
 import { ShieldAlert } from "lucide-react";
 
 export default function SupplierDashboardRouter() {
@@ -60,6 +61,8 @@ export default function SupplierDashboardRouter() {
       return <ModeDashboard />;
     case "connect":
       return <ConnectDashboard />;
+    case "saveurs":
+      return <SaveursDashboard />;
     default:
       // Vue par défaut générique
       return (

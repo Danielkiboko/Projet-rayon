@@ -30,11 +30,11 @@ export const isSupplier = (userData: any): boolean => {
  * Determines the specific supplier service type (immo, mode, connect, or default).
  * Centralizes the logic to avoid duplicated checks across the app.
  */
-export const getSupplierType = (userData: any): "immo" | "mode" | "connect" | "default" => {
+export const getSupplierType = (userData: any): "immo" | "mode" | "connect" | "saveurs" | "default" => {
   // If running in browser and user has a saved active rayon from assigned rayons, respect it
   if (typeof window !== "undefined") {
     const active = localStorage.getItem("activeSupplierRayon");
-    if (active && (active === "immo" || active === "mode" || active === "connect")) {
+    if (active && (active === "immo" || active === "mode" || active === "connect" || active === "saveurs")) {
       const assigned = userData?.assignedRayons;
       if (!assigned || (Array.isArray(assigned) && assigned.includes(active))) {
         return active;
@@ -45,7 +45,7 @@ export const getSupplierType = (userData: any): "immo" | "mode" | "connect" | "d
   // If user has specific assignedRayons array, use the first one
   if (Array.isArray(userData?.assignedRayons) && userData.assignedRayons.length > 0) {
     const first = userData.assignedRayons[0];
-    if (first === "immo" || first === "mode" || first === "connect") {
+    if (first === "immo" || first === "mode" || first === "connect" || first === "saveurs") {
       return first;
     }
   }
@@ -60,8 +60,8 @@ export const getSupplierType = (userData: any): "immo" | "mode" | "connect" | "d
   if (isImmo) return "immo";
 
   const service = userData?.serviceAttached || userData?.rayon;
-  if (service === "mode" || service === "connect") {
-    return service as "mode" | "connect";
+  if (service === "mode" || service === "connect" || service === "saveurs") {
+    return service as "mode" | "connect" | "saveurs";
   }
 
   // Otherwise, fallback to default

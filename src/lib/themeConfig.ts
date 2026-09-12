@@ -11,7 +11,7 @@ import {
   MessageSquare
 } from "lucide-react";
 
-export type ServiceType = "mode" | "immo" | "connect" | "default";
+export type ServiceType = "mode" | "immo" | "connect" | "saveurs" | "default";
 
 export interface MenuItem {
   title: string;
@@ -107,6 +107,19 @@ export const themeConfig: Record<ServiceType, ServiceTheme> = {
       accentText: "text-[#00B5A5]",
       activeMenuBg: "bg-[#00B5A5]/15",
       activeMenuText: "text-[#00B5A5]",
+    },
+    menu: standardProductMenu
+  },
+  saveurs: {
+    name: "Rayon Saveurs",
+    colors: {
+      sidebarBg: "bg-[#0F1D27]",
+      sidebarText: "text-white",
+      primaryBtn: "bg-[#FF6B35] text-white hover:bg-[#e85d04] font-bold",
+      primaryBtnHover: "hover:bg-[#e85d04]",
+      accentText: "text-[#FF6B35]",
+      activeMenuBg: "bg-[#FF6B35]/15",
+      activeMenuText: "text-[#FF6B35]",
     },
     menu: standardProductMenu
   }

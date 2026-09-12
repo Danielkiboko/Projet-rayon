@@ -10,6 +10,7 @@
   --color-rayon-connect: #00B5A5;
   --color-rayon-immo: #4C6EF5;
   --color-rayon-mode: #D4B08C;
+  --color-rayon-saveurs: #FF6B35;
   
   --color-primary: #C7D300;
   --color-primary-dark: #0F1D27;
@@ -53,3 +54,8 @@ h1, h2, h3, h4, h5, h6, .font-heading {
 .bg-rayon-mode { background-color: #D4B08C; }
 .text-rayon-mode { color: #D4B08C; }
 .border-rayon-mode { border-color: #D4B08C; }
+
+.bg-rayon-saveurs { background-color: #FF6B35; }
+.text-rayon-saveurs { color: #FF6B35; }
+.border-rayon-saveurs { border-color: #FF6B35; }
+

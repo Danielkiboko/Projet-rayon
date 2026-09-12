@@ -6,16 +6,28 @@ interface ProductCardProps {
   product: any;
   lang: "fr" | "en";
   t: any;
-  category: "mode" | "connect";
+  category: "mode" | "connect" | "saveurs";
   index: number;
   handleChat: (product: any) => void;
 }
 
 export function ProductCard({ product, lang, t, category, index, handleChat }: ProductCardProps) {
   const isMode = category === "mode";
+  const isSaveurs = category === "saveurs";
   
-  const bgClass = isMode ? "bg-purple-600 hover:bg-purple-700" : "bg-blue-600 hover:bg-blue-700";
-  const tagTextClass = isMode ? "text-purple-600" : "text-blue-600";
+  const bgClass = isMode 
+    ? "bg-[#D4B08C] hover:bg-[#c49f7b] text-[#0F1D27] font-bold" 
+    : isSaveurs
+    ? "bg-[#FF6B35] hover:bg-[#e85d04] text-white font-bold"
+    : "bg-[#00B5A5] hover:bg-[#009e90] text-white font-bold";
+
+  const tagTextClass = isMode 
+    ? "text-[#9C764D]" 
+    : isSaveurs 
+    ? "text-[#FF6B35]" 
+    : "text-[#00B5A5]";
+
+  const defaultTag = isMode ? "Mode" : isSaveurs ? "Saveurs" : "Connect";
 
   return (
     <motion.div
@@ -35,7 +47,7 @@ export function ProductCard({ product, lang, t, category, index, handleChat }: P
         />
         <div className="absolute top-3 left-3">
           <span className={`px-2.5 py-1 bg-white/90 backdrop-blur-md ${tagTextClass} text-[10px] font-bold tracking-wider rounded border border-gray-200 shadow-sm uppercase`}>
-            {product.tag?.[lang] || (isMode ? "Mode" : "Connect")}
+            {product.tag?.[lang] || defaultTag}
           </span>
         </div>
       </div>

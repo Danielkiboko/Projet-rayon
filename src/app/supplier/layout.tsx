@@ -185,6 +185,7 @@ export default function SupplierLayout({
       case 'immo': return '🏢 Immobilier';
       case 'mode': return '👗 Rayon Mode';
       case 'connect': return '📡 Rayon Connect';
+      case 'saveurs': return '🍽️ Rayon Saveurs';
       default: return r;
     }
   };

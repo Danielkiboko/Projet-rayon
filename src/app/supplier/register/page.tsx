@@ -52,14 +52,26 @@ export default function SupplierRegisterPage() {
       endDate.setDate(endDate.getDate() + 30);
 
       // 4. Create the supplier profile in Firestore
+      const assigned = businessType === "IMMOBILIER" 
+        ? ["immo"] 
+        : businessType === "RESTAURATION" 
+        ? ["saveurs"] 
+        : businessType === "CONNECT"
+        ? ["connect"]
+        : ["mode"];
+
+      const primaryRayon = assigned[0];
+
       await setDoc(doc(db, "users", user.uid), {
         uid: user.uid,
         name: name,
         company: company,
         email: email,
         phone: phone,
-        role: businessType === "IMMOBILIER" ? "SUPPLIER_IMMO" : "SUPPLIER", 
+        role: businessType === "IMMOBILIER" ? "SUPPLIER_IMMO" : (businessType === "RESTAURATION" ? "SUPPLIER_SAVEURS" : "SUPPLIER"), 
         businessType: businessType,
+        rayon: primaryRayon,
+        assignedRayons: assigned,
         status: "PENDING_APPROVAL", // Maybe requires admin validation?
         subscriptionStatus: "TRIAL",
         subscriptionEndDate: endDate,
@@ -221,8 +233,10 @@ export default function SupplierRegisterPage() {
                 onChange={(e) => setBusinessType(e.target.value)}
                 className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-gray-900 transition-all shadow-sm"
               >
-                <option value="COMMERCE">Commerce (Produits, Vêtements, etc.)</option>
-                <option value="IMMOBILIER">Agence Immobilière / Bailleur</option>
+                <option value="COMMERCE">Commerce & Mode (Vêtements, Accessoires, Cosmétiques)</option>
+                <option value="CONNECT">Technologies & Objets Connectés (Starlink, Électronique)</option>
+                <option value="RESTAURATION">Restauration & Cuisine (Rayons Saveurs, Plats & Ustensiles)</option>
+                <option value="IMMOBILIER">Agence Immobilière / Bailleur / Résidences & Hôtels</option>
               </select>
             </div>
 

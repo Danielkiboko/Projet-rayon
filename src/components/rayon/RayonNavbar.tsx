@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { Home as HomeIcon, Wifi, Building2, Globe, Shirt, User } from "lucide-react";
+import { Home as HomeIcon, Wifi, Building2, Globe, Shirt, User, UtensilsCrossed } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { RayonsLogo } from "@/components/brand/RayonsLogo";
 
 interface RayonNavbarProps {
-  category: "immo" | "mode" | "connect";
+  category: "immo" | "mode" | "connect" | "saveurs";
   lang: "fr" | "en";
   setLang: (lang: "fr" | "en") => void;
   t: any;
@@ -58,6 +58,17 @@ export function RayonNavbar({ category, lang, setLang, t }: RayonNavbarProps) {
             }`}
           >
             <Shirt size={16} className="mr-2 text-[#D4B08C]" /> {t.mode || 'Mode'}
+          </Link>
+
+          <Link 
+            href="/rayon/saveurs" 
+            className={`flex items-center px-4 py-2 rounded-full text-sm font-semibold transition-all ${
+              category === 'saveurs' 
+                ? 'bg-white text-[#FF6B35] shadow-xs' 
+                : 'text-gray-600 hover:text-[#FF6B35] hover:bg-white/60'
+            }`}
+          >
+            <UtensilsCrossed size={16} className="mr-2 text-[#FF6B35]" /> {t.saveurs || 'Saveurs'}
           </Link>
         </div>
         

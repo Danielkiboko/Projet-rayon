@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { OptimizedImage } from "@/components/OptimizedImage";
 import Link from "next/link";
-import { Search, User, Menu, MapPin, ChevronRight, Star, Heart, TrendingUp, Home as HomeIcon, Wifi, Building, Globe, ArrowRight, Shirt, MessageCircle, Sparkles } from "lucide-react";
+import { Search, User, Menu, MapPin, ChevronRight, Star, Heart, TrendingUp, Home as HomeIcon, Wifi, Building, Globe, ArrowRight, Shirt, MessageCircle, Sparkles, UtensilsCrossed } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Footer } from "@/components/Footer";
 import { useChat } from "@/context/ChatContext";
@@ -87,6 +87,10 @@ export default function Home() {
               <Shirt size={16} className="text-[#D4B08C]" />
               Rayons Mode
             </Link>
+            <Link href="/rayon/saveurs" className="flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-[#FF6B35] hover:bg-white/60 px-4 py-1.5 rounded-full transition-colors">
+              <UtensilsCrossed size={16} className="text-[#FF6B35]" />
+              Rayons Saveurs
+            </Link>
           </nav>
 
           <div className="flex items-center gap-3 sm:gap-4">
@@ -150,7 +154,7 @@ export default function Home() {
             </h1>
             
             <p className="text-gray-300 text-sm sm:text-base md:text-lg mb-8 max-w-xl leading-relaxed font-sans">
-              Rayons réunit trois univers d'excellence complémentaires : technologies et objets connectés, immobilier en ligne et hôtels de prestige, et prêt-à-porter de créateurs.
+              Rayons réunit quatre univers d'excellence complémentaires : technologies et objets connectés, immobilier et hôtellerie de prestige, prêt-à-porter de créateurs, et gastronomie avec ustensiles culinaires.
             </p>
 
             <div className="flex flex-wrap items-center gap-4">
@@ -172,12 +176,12 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Nos Rayons - Les 3 Activités de la Charte */}
+        {/* Nos Rayons - Les 4 Activités de la Charte */}
         <section id="rayons" className="mt-14 scroll-mt-20">
           <div className="mb-8 px-1 flex flex-col md:flex-row md:items-end justify-between gap-2">
             <div>
               <span className="text-xs font-heading font-bold text-gray-400 uppercase tracking-widest">
-                Une identité unifiée, trois expertises
+                Une identité unifiée, quatre expertises
               </span>
               <h2 className="text-2xl sm:text-3xl font-heading font-extrabold text-[#0F1D27] tracking-tight mt-1">
                 Les Rayons Officiels
@@ -188,7 +192,7 @@ export default function Home() {
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
 
             {/* Rayon Connect */}
             <Link 
@@ -259,6 +263,29 @@ export default function Home() {
               </div>
             </Link>
 
+            {/* Rayon Saveurs */}
+            <Link 
+              href="/rayon/saveurs" 
+              className="bg-white rounded-3xl p-7 shadow-sm border border-gray-100 hover:border-[#FF6B35]/70 hover:shadow-xl transition-all duration-300 group flex flex-col justify-between min-h-[200px] relative overflow-hidden"
+            >
+              <div className="absolute top-0 right-0 w-32 h-32 bg-[#FF6B35]/10 rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform"></div>
+              <div className="relative z-10">
+                <div className="w-14 h-14 bg-[#FF6B35]/10 text-[#FF6B35] rounded-2xl flex items-center justify-center mb-5 group-hover:scale-110 group-hover:bg-[#FF6B35] group-hover:text-white transition-all shadow-xs">
+                  <UtensilsCrossed size={26} />
+                </div>
+                <div className="inline-block text-[11px] font-heading font-bold uppercase tracking-wider text-[#FF6B35] bg-[#FF6B35]/10 px-2.5 py-0.5 rounded-md mb-2">
+                  Gastronomie & Cuisine
+                </div>
+                <h3 className="text-xl font-heading font-extrabold text-[#0F1D27] mb-1.5 flex items-center">
+                  Rayons Saveurs
+                  <ChevronRight size={18} className="ml-1 text-[#FF6B35] opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                </h3>
+                <p className="text-sm text-gray-500 font-medium leading-relaxed">
+                  Restaurants, plats de chefs en livraison rapide et vente d&apos;ustensiles & équipements de cuisine.
+                </p>
+              </div>
+            </Link>
+
           </div>
         </section>
 
@@ -268,16 +295,25 @@ export default function Home() {
             const isImmoSection = categoryFilter.toLowerCase() === "immo";
             const isConnectSection = categoryFilter.toLowerCase() === "connect";
             const isModeSection = categoryFilter.toLowerCase() === "mode";
+            const isSaveursSection = categoryFilter.toLowerCase() === "saveurs";
 
             const badgeStyles = isModeSection 
               ? "bg-[#D4B08C]/20 text-[#8C6438] border-[#D4B08C]/35" 
               : isConnectSection 
               ? "bg-[#00B5A5]/20 text-[#007D72] border-[#00B5A5]/35"
+              : isSaveursSection
+              ? "bg-[#FF6B35]/20 text-[#E0531D] border-[#FF6B35]/35"
               : "bg-[#4C6EF5]/20 text-[#3B5BDB] border-[#4C6EF5]/35";
 
             const items = isImmoSection
               ? dbProperties.slice(0, 4)
-              : allProducts.filter(p => p.category?.toLowerCase().includes(categoryFilter.toLowerCase())).slice(0, 4);
+              : allProducts.filter(p => {
+                  const cat = (p.category || "").toLowerCase();
+                  if (isSaveursSection) {
+                    return cat.includes("saveurs") || cat.includes("resto") || cat.includes("cuisine") || cat.includes("repas") || cat.includes("food");
+                  }
+                  return cat.includes(categoryFilter.toLowerCase());
+                }).slice(0, 4);
             
             return (
               <section className="mt-12">
@@ -343,10 +379,10 @@ export default function Home() {
                               </span>
                               <button 
                                 onClick={() => openChatForProduct({
-                                  id: item.id,
-                                  supplierId: item.supplierId || "admin",
-                                  name: itemName
-                                })}
+                                   id: item.id,
+                                   supplierId: item.supplierId || "admin",
+                                   name: itemName
+                                 })}
                                 className="w-8 h-8 rounded-full bg-gray-100 text-gray-900 flex items-center justify-center hover:bg-gray-900 hover:text-white transition-colors active:scale-90 shadow-sm"
                                 title="Poser une question"
                               >
@@ -367,6 +403,7 @@ export default function Home() {
             <>
               {renderProductGrid("Populaire en Rayon Mode", "Mode & Accessoires", "Mode", "/rayon/mode")}
               {renderProductGrid("Nouveautés Rayon Connect", "Tech & Services", "Connect", "/rayon/connect")}
+              {renderProductGrid("Délices & Cuisine en Rayon Saveurs", "Gastronomie & Cuisine", "Saveurs", "/rayon/saveurs")}
               {renderProductGrid("Exclusivités Rayon Immo & Hôtels", "Immobilier & Hôtellerie", "Immo", "/rayon/immo")}
             </>
           );

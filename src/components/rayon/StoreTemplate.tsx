@@ -10,7 +10,7 @@ import { RayonNavbar } from "./RayonNavbar";
 import { ProductCard } from "./ProductCard";
 
 interface StoreTemplateProps {
-  category: "mode" | "connect";
+  category: "mode" | "connect" | "saveurs";
   heroImage: string;
   dummyProducts: any[];
   dict: any;
@@ -70,6 +70,21 @@ export function StoreTemplate({ category, heroImage, dummyProducts, dict }: Stor
               cat.includes("ordi") ||
               cat.includes("phone")
             );
+          } else if (category === "saveurs") {
+            return (
+              cat === "saveurs" ||
+              ray === "saveurs" ||
+              cat.includes("saveur") ||
+              cat.includes("resto") ||
+              cat.includes("restaurant") ||
+              cat.includes("plat") ||
+              cat.includes("cuisine") ||
+              cat.includes("ustensile") ||
+              cat.includes("repas") ||
+              cat.includes("food") ||
+              cat.includes("boisson") ||
+              cat.includes("traiteur")
+            );
           }
           return cat === category || ray === category;
         };
@@ -102,10 +117,13 @@ export function StoreTemplate({ category, heroImage, dummyProducts, dict }: Stor
   };
 
   const isMode = category === "mode";
+  const isSaveurs = category === "saveurs";
   const bgGradient = isMode 
-    ? "from-purple-900/90 via-purple-900/60" 
-    : "from-blue-900/90 via-blue-900/60";
-  const heroTextColor = isMode ? "text-purple-50" : "text-blue-50";
+    ? "from-[#D4B08C]/90 via-[#0F1D27]/80" 
+    : isSaveurs
+    ? "from-[#FF6B35]/90 via-[#0F1D27]/80"
+    : "from-[#00B5A5]/90 via-[#0F1D27]/80";
+  const heroTextColor = isMode ? "text-[#D4B08C]" : isSaveurs ? "text-[#FF6B35]" : "text-[#00B5A5]";
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">

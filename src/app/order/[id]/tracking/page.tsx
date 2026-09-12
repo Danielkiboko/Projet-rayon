@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
 import { doc, onSnapshot } from "firebase/firestore";
-import { ArrowLeft, MapPin, Package, CheckCircle, Truck, Phone } from "lucide-react";
+import { ArrowLeft, MapPin, Package, CheckCircle, Truck, Phone, Download, FileText } from "lucide-react";
 import dynamic from "next/dynamic";
 import "leaflet/dist/leaflet.css";
+import { generateOrderInvoicePDF } from "@/lib/invoiceGenerator";
 
 // Dynamically import the map component so it doesn't break SSR
 const TrackingMap = dynamic(() => import("@/components/TrackingMap"), {
@@ -151,8 +152,16 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
           </div>
 
           <button 
+            onClick={() => generateOrderInvoicePDF(order, null, "$")}
+            className="w-full flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-900 py-3 rounded-xl font-bold text-sm mt-3 transition-colors border border-gray-200 shadow-xs"
+          >
+            <Download size={16} />
+            <span>Télécharger la Facture / Reçu officiel</span>
+          </button>
+
+          <button 
             onClick={handlePayRemaining}
-            className="w-full bg-primary text-white py-4 rounded-xl font-bold text-lg mt-6 hover:bg-primary-light transition-colors shadow-lg"
+            className="w-full bg-primary text-white py-4 rounded-xl font-bold text-lg mt-3 hover:bg-primary-light transition-colors shadow-lg"
           >
             Payer à la livraison ({order.totalAmount} $)
           </button>

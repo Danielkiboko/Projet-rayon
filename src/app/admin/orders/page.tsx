@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Package, Clock, CheckCircle, Truck, XCircle, ShoppingBag } from "lucide-react";
+import { Search, Package, Clock, CheckCircle, Truck, XCircle, ShoppingBag, Download } from "lucide-react";
 import { motion } from "framer-motion";
 import { db } from "@/lib/firebase";
 import { collection, query, onSnapshot, orderBy } from "firebase/firestore";
+import { generateOrderInvoicePDF } from "@/lib/invoiceGenerator";
 
 interface Order {
   id: string;
@@ -121,18 +122,19 @@ export default function AdminOrdersPage() {
                 <th className="px-6 py-4">Détail des Articles</th>
                 <th className="px-6 py-4">Total Payé</th>
                 <th className="px-6 py-4">Statut</th>
+                <th className="px-6 py-4 text-right">Facturation</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-gray-400">
+                  <td colSpan={7} className="px-6 py-8 text-center text-gray-400">
                     Chargement des commandes...
                   </td>
                 </tr>
               ) : filteredOrders.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-gray-400 flex flex-col items-center">
+                  <td colSpan={7} className="px-6 py-8 text-center text-gray-400 flex flex-col items-center">
                     <ShoppingBag size={48} className="mb-4 text-gray-600 opacity-50" />
                     Aucune commande sur la plateforme.
                   </td>
@@ -162,13 +164,23 @@ export default function AdminOrdersPage() {
                         </div>
                         {order.items?.map((item, idx) => (
                           <span key={idx} className="text-xs text-gray-500 truncate max-w-[150px]">
-                            {item.quantity}x {item.name}
+                            {item.quantity}x {item.name || item.productName}
                           </span>
                         ))}
                       </td>
-                      <td className="px-6 py-4 font-medium text-white">{total.toLocaleString()} FC</td>
+                      <td className="px-6 py-4 font-medium text-white">{total.toLocaleString()} $</td>
                       <td className="px-6 py-4">
                         {getStatusBadge(order.status)}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <button
+                          onClick={() => generateOrderInvoicePDF(order, null, "$")}
+                          title="Télécharger la Facture Client Officielle"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-[#C7D300] hover:text-[#0F1D27] text-white rounded-lg text-xs font-bold transition-all shadow-xs active:scale-95"
+                        >
+                          <Download size={13} />
+                          <span>Facture</span>
+                        </button>
                       </td>
                     </motion.tr>
                   );

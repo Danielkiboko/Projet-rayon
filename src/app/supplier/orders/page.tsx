@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Package, Clock, CheckCircle, Truck, XCircle, ShoppingBag } from "lucide-react";
+import { Search, Package, Clock, CheckCircle, Truck, XCircle, ShoppingBag, Download, FileText } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
 import { collection, query, where, onSnapshot, orderBy } from "firebase/firestore";
+import { generateOrderInvoicePDF } from "@/lib/invoiceGenerator";
 
 interface Order {
   id: string;
@@ -140,19 +141,20 @@ export default function SupplierOrdersPage() {
                 <th className="px-6 py-4">Articles (Produits)</th>
                 <th className="px-6 py-4">Prix à payer (Solde)</th>
                 <th className="px-6 py-4">Statut</th>
+                <th className="px-6 py-4 text-right">Facturation</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
+                  <td colSpan={7} className="px-6 py-12 text-center text-gray-400">
                     <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
                     Chargement des commandes...
                   </td>
                 </tr>
               ) : filteredOrders.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-400 flex flex-col items-center">
+                  <td colSpan={7} className="px-6 py-12 text-center text-gray-400 flex flex-col items-center">
                     <ShoppingBag size={48} className="mb-4 text-gray-600 opacity-50" />
                     Aucune commande ne correspond à ces filtres.
                   </td>
@@ -200,6 +202,16 @@ export default function SupplierOrdersPage() {
                       </td>
                       <td className="px-6 py-4">
                         {getStatusBadge(order.status)}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <button
+                          onClick={() => generateOrderInvoicePDF(order, userData, "$")}
+                          title="Télécharger la Facture Officielle de la Commande"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-[#C7D300] hover:text-[#0F1D27] text-white rounded-lg text-xs font-bold transition-all shadow-xs active:scale-95"
+                        >
+                          <Download size={13} />
+                          <span>Facture</span>
+                        </button>
                       </td>
                     </motion.tr>
                   );

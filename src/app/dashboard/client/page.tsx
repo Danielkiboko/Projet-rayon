@@ -5,9 +5,10 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { collection, query, where, onSnapshot, orderBy } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { Package, Calendar, MessageSquare, LogOut } from "lucide-react";
+import { Package, Calendar, MessageSquare, LogOut, Download, FileText } from "lucide-react";
 import Link from "next/link";
+import { db } from "@/lib/firebase";
+import { generateOrderInvoicePDF } from "@/lib/invoiceGenerator";
 
 export default function ClientDashboard() {
   const { user, userData, signOut } = useAuth();
@@ -125,14 +126,38 @@ export default function ClientDashboard() {
                   <ul className="divide-y divide-gray-200">
                     {orders.map(order => (
                       <li key={order.id} className="p-6 hover:bg-gray-50 transition-colors">
-                        <div className="flex justify-between items-start mb-2">
-                          <span className="font-semibold text-gray-900">Commande #{order.id.slice(-6)}</span>
-                          <span className="text-sm font-medium px-2 py-1 bg-gray-100 text-gray-700 rounded-md">
+                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-3">
+                          <div>
+                            <span className="font-semibold text-gray-900">Commande #{order.id.slice(-6)}</span>
+                            <div className="text-xs text-gray-400 mt-0.5">
+                              {order.createdAt?.toDate ? order.createdAt.toDate().toLocaleDateString("fr-FR") : "Date récente"}
+                            </div>
+                          </div>
+                          <span className="text-xs font-semibold px-2.5 py-1 bg-gray-100 text-gray-700 rounded-full w-fit">
                             {order.status || "En cours"}
                           </span>
                         </div>
-                        <div className="text-sm text-gray-500">
-                          Total : <span className="font-medium text-gray-900">${order.totalAmount}</span>
+                        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-gray-100">
+                          <div className="text-sm text-gray-500">
+                            Total TTC : <span className="font-bold text-gray-900">${order.totalAmount}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => generateOrderInvoicePDF(order, null, "$")}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors"
+                              title="Télécharger la facture officielle PDF"
+                            >
+                              <FileText className="w-3.5 h-3.5" />
+                              Facture PDF
+                            </button>
+                            <Link
+                              href={`/order/${order.id}/tracking`}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                            >
+                              Suivi
+                            </Link>
+                          </div>
                         </div>
                       </li>
                     ))}

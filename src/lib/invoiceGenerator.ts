@@ -412,6 +412,13 @@ export async function generateOrderInvoicePDF(order: any, supplier?: any, curren
   const total = order.totalAmount || order.total || subtotal;
   const deliveryFee = order.deliveryFee || 0;
 
+  const clientAddress = order.deliveryDetails?.address
+    ? `${order.deliveryDetails.address}, ${order.deliveryDetails.commune || ""}, Kinshasa`
+    : order.clientAddress || (order.clientLocation?.commune ? `${order.clientLocation.commune}, Kinshasa` : "Kinshasa, RDC");
+
+  const clientName = order.deliveryDetails?.recipientName || order.clientName || order.guestName || "Client Rayons";
+  const clientPhone = order.deliveryDetails?.recipientPhone || order.clientPhone || "";
+
   await generateFormalInvoicePDF({
     invoiceNumber: `RAY-CMD-${order.id ? order.id.slice(0, 8).toUpperCase() : Math.floor(10000 + Math.random() * 90000)}`,
     type: "ORDER",
@@ -422,14 +429,67 @@ export async function generateOrderInvoicePDF(order: any, supplier?: any, curren
     supplierPhone: supplier?.phone || supplier?.phoneNumber,
     supplierEmail: supplier?.email,
     supplierAddress: supplier?.address,
-    clientName: order.clientName || order.clientPhone || "Client Rayons",
-    clientPhone: order.clientPhone,
-    clientAddress: order.clientAddress,
+    clientName,
+    clientPhone,
+    clientAddress,
     items,
     subtotal,
     deliveryFee,
     total,
     currency,
     paymentMethod: order.paymentMethod || "Paiement sécurisé Rayons"
+  });
+}
+
+/**
+ * Generate formal voucher / stay receipt specifically for hotel bookings
+ */
+export async function generateHotelBookingReceiptPDF(booking: any, currency = "USD") {
+  const checkIn = booking.checkInDate || "Date d'arrivée";
+  const checkOut = booking.checkOutDate || "Date de départ";
+  
+  let nights = 1;
+  if (booking.checkInDate && booking.checkOutDate) {
+    const diffMs = new Date(booking.checkOutDate).getTime() - new Date(booking.checkInDate).getTime();
+    if (!isNaN(diffMs) && diffMs > 0) {
+      nights = Math.max(1, Math.round(diffMs / (1000 * 3600 * 24)));
+    }
+  }
+
+  const total = booking.totalPrice || (booking.price ? booking.price * nights : 100);
+  const nightlyRate = Math.round((total / nights) * 100) / 100;
+
+  const items: InvoiceItem[] = [
+    {
+      description: `Séjour : ${booking.propertyTitle || "Chambre d'Hôtel"} (${booking.roomType || "Standard"}) - Du ${checkIn} au ${checkOut} (${booking.guestsCount || 1} personne(s))`,
+      quantity: nights,
+      unitPrice: nightlyRate,
+      total: total
+    }
+  ];
+
+  await generateFormalInvoicePDF({
+    invoiceNumber: `RAY-HOTEL-${booking.id ? booking.id.slice(0, 8).toUpperCase() : Math.floor(10000 + Math.random() * 90000)}`,
+    type: "RECEIPT",
+    rayon: "immo",
+    immoBranch: "hotel",
+    createdAt: booking.createdAt,
+    status: booking.status === "CONFIRMED" || booking.status === "CHECKED_OUT" ? "PAID" : "UNPAID",
+    supplierName: booking.propertyTitle || "Établissement Hôtelier Partenaire",
+    supplierAddress: booking.propertyLocation || "Kinshasa, RDC",
+    clientName: booking.guestName || "Client Voyageur",
+    clientPhone: booking.guestPhone || "",
+    stayDetails: {
+      room: booking.roomType || "Chambre Standard",
+      checkIn: checkIn,
+      checkOut: checkOut,
+      nights: nights
+    },
+    items,
+    subtotal: total,
+    total: total,
+    currency,
+    paymentMethod: booking.paymentMethod || "Règlement Caisse / Réception",
+    notes: "Document officiel Rayons.net à présenter lors du Check-in à la réception de l'établissement."
   });
 }

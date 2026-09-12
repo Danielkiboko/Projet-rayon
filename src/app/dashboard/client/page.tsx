@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { db } from "@/lib/firebase";
-import { generateOrderInvoicePDF } from "@/lib/invoiceGenerator";
+import { generateOrderInvoicePDF, generateHotelBookingReceiptPDF } from "@/lib/invoiceGenerator";
 import { ClientChatsWidget } from "@/components/ClientChatsWidget";
 import NotificationBell from "@/components/notifications/NotificationBell";
 
@@ -352,6 +352,16 @@ export default function ClientDashboard() {
                               Bénéficiaire : <span className="font-medium text-gray-800">{booking.guestName || clientDisplayName}</span> ({booking.guestPhone || "Téléphone non spécifié"})
                             </div>
                             <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => generateHotelBookingReceiptPDF(booking)}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200/80 rounded-lg transition-colors cursor-pointer"
+                                title="Télécharger le bon de réservation / reçu officiel PDF"
+                              >
+                                <FileText size={13} />
+                                Bon de séjour PDF
+                              </button>
+
                               {booking.supplierId && (
                                 <Link
                                   href={`/dashboard/client/chats?supplierId=${booking.supplierId}`}

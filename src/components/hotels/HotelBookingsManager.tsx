@@ -13,6 +13,7 @@ import {
 } from "firebase/firestore";
 import { useAuth } from "@/context/AuthContext";
 import { useCurrency } from "@/context/CurrencyContext";
+import { generateHotelBookingReceiptPDF } from "@/lib/invoiceGenerator";
 
 interface HotelBooking {
   id: string;
@@ -353,6 +354,15 @@ export default function HotelBookingsManager() {
                             <span>Encaissé {b.totalPrice ? `(${b.totalPrice} $)` : ""}</span>
                           </span>
                         )}
+
+                        <button
+                          type="button"
+                          onClick={() => generateHotelBookingReceiptPDF(b)}
+                          title="Télécharger le bon de réservation / reçu officiel PDF"
+                          className="p-1.5 text-gray-400 hover:text-amber-400 hover:bg-white/10 rounded-lg transition-colors ml-1"
+                        >
+                          <FileText size={15} />
+                        </button>
                       </div>
                     </td>
                   </tr>

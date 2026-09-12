@@ -1,6 +1,11 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { 
+  getFirestore, 
+  initializeFirestore, 
+  persistentLocalCache, 
+  persistentMultipleTabManager 
+} from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -13,8 +18,22 @@ const firebaseConfig = {
 
 // Initialize Firebase (Singleton pattern to prevent re-initialization in Next.js)
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-
 const auth = getAuth(app);
-const db = getFirestore(app, "default");
+
+// Enable persistent multi-tab cache in browser to dramatically cut reads and avoid quota exhaustion
+let db: any;
+try {
+  if (typeof window !== "undefined") {
+    db = initializeFirestore(app, {
+      localCache: persistentLocalCache({
+        tabManager: persistentMultipleTabManager(),
+      }),
+    });
+  } else {
+    db = getFirestore(app);
+  }
+} catch (e) {
+  db = getFirestore(app);
+}
 
 export { auth, db };

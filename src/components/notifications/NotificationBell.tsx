@@ -8,7 +8,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   collection, query, where, onSnapshot, 
-  doc, updateDoc, writeBatch 
+  doc, updateDoc, writeBatch, limit 
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
@@ -60,10 +60,11 @@ export default function NotificationBell({ variant = "light" }: NotificationBell
       return;
     }
 
-    // Query notifications for this user
+    // Query notifications for this user with limit(25) to preserve Firestore quota
     const q = query(
       collection(db, "inapp_notifications"),
-      where("userId", "==", user.uid)
+      where("userId", "==", user.uid),
+      limit(25)
     );
 
     const unsubscribe = onSnapshot(

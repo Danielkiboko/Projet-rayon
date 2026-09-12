@@ -58,19 +58,19 @@
         <div class="dashboard">
           <div class="stat-card stat-blue">
             <h3>Total Files</h3>
-            <div class="val">98</div>
+            <div class="val">123</div>
           </div>
           <div class="stat-card stat-green">
             <h3>Total Lines of Code</h3>
-            <div class="val">17127</div>
+            <div class="val">28768</div>
           </div>
           <div class="stat-card stat-yellow">
             <h3>Number of Clones</h3>
-            <div class="val">84</div>
+            <div class="val">86</div>
           </div>
           <div class="stat-card stat-red">
             <h3>Duplicated Lines</h3>
-            <div class="val">1066 (6.22%)</div>
+            <div class="val">1068 (3.71%)</div>
           </div>
         </div>
       </section>
@@ -95,7 +95,7 @@
             <tr>
               <td><a href="#css-clones">css</a></td>
               <td>1</td>
-              <td>21</td>
+              <td>60</td>
               <td>0</td>
               <td>0 (0.00%)</td>
               <td>0 (0.00%)</td>
@@ -103,29 +103,29 @@
             
             <tr>
               <td><a href="#tsx-clones">tsx</a></td>
-              <td>77</td>
-              <td>15517</td>
-              <td>84</td>
-              <td>1066 (6.87%)</td>
-              <td>7078 (7.42%)</td>
+              <td>89</td>
+              <td>25105</td>
+              <td>82</td>
+              <td>1029 (4.10%)</td>
+              <td>6366 (4.11%)</td>
             </tr>
             
             <tr>
               <td><a href="#typescript-clones">typescript</a></td>
-              <td>20</td>
-              <td>1589</td>
-              <td>0</td>
-              <td>0 (0.00%)</td>
-              <td>0 (0.00%)</td>
+              <td>33</td>
+              <td>3603</td>
+              <td>4</td>
+              <td>39 (1.08%)</td>
+              <td>244 (1.14%)</td>
             </tr>
             
             <tr style="font-weight: 700;">
               <td>Total</td>
-              <td>98</td>
-              <td>17127</td>
-              <td>84</td>
-              <td>1066 (6.22%)</td>
-              <td>7078 (6.78%)</td>
+              <td>123</td>
+              <td>28768</td>
+              <td>86</td>
+              <td>1068 (3.71%)</td>
+              <td>6610 (3.73%)</td>
             </tr>
           </tbody>
         </table>
@@ -143,7 +143,7 @@
           <div class="clone-item">
             <div class="clone-info">
               /Users/danielkiboko/Projet Rayon/src/app/admin/clients/page.tsx (Line 134:15 - Line 145:43),
-              /Users/danielkiboko/Projet Rayon/src/app/admin/drivers/page.tsx (Line 154:15 - Line 165:43)
+              /Users/danielkiboko/Projet Rayon/src/app/admin/drivers/page.tsx (Line 164:15 - Line 175:43)
             </div>
             <div>
               <button class="toggle-btn" onclick="toggle('code-tsx-1')">Show code</button>
@@ -164,8 +164,8 @@
           
           <div class="clone-item">
             <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/admin/clients/page.tsx (Line 134:15 - Line 145:43),
-              /Users/danielkiboko/Projet Rayon/src/app/admin/suppliers/page.tsx (Line 324:15 - Line 335:43)
+              /Users/danielkiboko/Projet Rayon/src/app/admin/clients/page.tsx (Line 134:15 - Line 145:31),
+              /Users/danielkiboko/Projet Rayon/src/app/supplier/tenants/page.tsx (Line 545:15 - Line 556:31)
             </div>
             <div>
               <button class="toggle-btn" onclick="toggle('code-tsx-2')">Show code</button>
@@ -186,39 +186,37 @@
           
           <div class="clone-item">
             <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/admin/clients/page.tsx (Line 134:15 - Line 146:43),
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/tenants/page.tsx (Line 348:15 - Line 360:43)
+              /Users/danielkiboko/Projet Rayon/src/app/admin/dashboard/page.tsx (Line 35:54 - Line 46:55),
+              /Users/danielkiboko/Projet Rayon/src/app/admin/products/page.tsx (Line 13:53 - Line 24:55)
             </div>
             <div>
               <button class="toggle-btn" onclick="toggle('code-tsx-3')">Show code</button>
             </div>
-            <pre id="code-tsx-3" class="code-block">              value={search}
-              onChange={(e) =&#62; setSearch(e.target.value)}
-              className=&#34;w-full pl-10 pr-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white text-sm transition-all&#34;
-            /&#62;
-          &#60;/div&#62;
-        &#60;/div&#62;
+            <pre id="code-tsx-3" class="code-block">  const [dataLoading, setDataLoading] = useState(true);
 
-        &#60;div className=&#34;overflow-x-auto&#34;&#62;
-          &#60;table className=&#34;w-full text-left text-sm text-gray-300&#34;&#62;
-            &#60;thead className=&#34;text-xs uppercase bg-black/20 text-gray-400&#34;&#62;
-              &#60;tr&#62;
-                &#60;th className=&#34;px-6 py-4&#34;&#62;Client&#60;/th&#62;
-                &#60;th className=&#34;px-6 py-4&#34;&#62;Contact&#60;/th&#62;</pre>
+  // Protect route
+  useEffect(() =&#62; {
+    if (!loading) {
+      if (!user) {
+        router.push(&#34;/login&#34;);
+      } else if (!isAuthorized) {
+        router.push(&#34;/&#34;);
+      }
+    }
+  }, [user, userData, loading, router, isAuthorized]);</pre>
           </div>
           
           <div class="clone-item">
             <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/admin/dashboard/page.tsx (Line 130:103 - Line 144:9),
-              /Users/danielkiboko/Projet Rayon/src/app/admin/products/page.tsx (Line 29:67 - Line 43:9)
+              /Users/danielkiboko/Projet Rayon/src/app/admin/dashboard/page.tsx (Line 129:21 - Line 142:9),
+              /Users/danielkiboko/Projet Rayon/src/app/admin/products/page.tsx (Line 24:38 - Line 37:9)
             </div>
             <div>
               <button class="toggle-btn" onclick="toggle('code-tsx-4')">Show code</button>
             </div>
-            <pre id="code-tsx-4" class="code-block">  const isSuperAdmin = user?.email === &#34;danielkiboko218@gmail.com&#34; || userData?.role === &#34;SUPER_ADMIN&#34;;
-  const isAuthorizedSubAdmin = userData?.role === &#34;SUB_ADMIN&#34;;
+            <pre id="code-tsx-4" class="code-block">  }, [user, userData, isAuthorized]);
 
-  if (loading || !user || (!isSuperAdmin &#38;&#38; !isAuthorizedSubAdmin)) {
+  if (loading || !user || !isAuthorized) {
     return (
       &#60;div className=&#34;min-h-[60vh] flex items-center justify-center&#34;&#62;
         &#60;div className=&#34;text-white flex flex-col items-center&#34;&#62;
@@ -257,7 +255,7 @@ export default function AdminCreateDeliveryDriverPage() {</pre>
           <div class="clone-item">
             <div class="clone-info">
               /Users/danielkiboko/Projet Rayon/src/app/admin/delivery/create/page.tsx (Line 91:37 - Line 102:65),
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/register/page.tsx (Line 100:16 - Line 111:65)
+              /Users/danielkiboko/Projet Rayon/src/app/supplier/register/page.tsx (Line 129:16 - Line 140:65)
             </div>
             <div>
               <button class="toggle-btn" onclick="toggle('code-tsx-6')">Show code</button>
@@ -278,8 +276,8 @@ export default function AdminCreateDeliveryDriverPage() {</pre>
           
           <div class="clone-item">
             <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/admin/drivers/page.tsx (Line 60:28 - Line 76:12),
-              /Users/danielkiboko/Projet Rayon/src/app/admin/suppliers/page.tsx (Line 211:30 - Line 226:12)
+              /Users/danielkiboko/Projet Rayon/src/app/admin/drivers/page.tsx (Line 62:28 - Line 78:12),
+              /Users/danielkiboko/Projet Rayon/src/app/admin/suppliers/page.tsx (Line 263:30 - Line 277:12)
             </div>
             <div>
               <button class="toggle-btn" onclick="toggle('code-tsx-7')">Show code</button>
@@ -305,8 +303,8 @@ export default function AdminCreateDeliveryDriverPage() {</pre>
           
           <div class="clone-item">
             <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/admin/drivers/page.tsx (Line 73:28 - Line 83:16),
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/drivers/page.tsx (Line 69:26 - Line 78:16)
+              /Users/danielkiboko/Projet Rayon/src/app/admin/drivers/page.tsx (Line 75:28 - Line 85:16),
+              /Users/danielkiboko/Projet Rayon/src/app/supplier/drivers/page.tsx (Line 71:26 - Line 80:16)
             </div>
             <div>
               <button class="toggle-btn" onclick="toggle('code-tsx-8')">Show code</button>
@@ -326,80 +324,13 @@ export default function AdminCreateDeliveryDriverPage() {</pre>
           
           <div class="clone-item">
             <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/admin/drivers/page.tsx (Line 126:105 - Line 137:17),
-              /Users/danielkiboko/Projet Rayon/src/app/admin/suppliers/page.tsx (Line 296:106 - Line 307:17)
+              /Users/danielkiboko/Projet Rayon/src/app/admin/drivers/page.tsx (Line 228:111 - Line 241:26),
+              /Users/danielkiboko/Projet Rayon/src/app/supplier/tenants/page.tsx (Line 684:28 - Line 697:26)
             </div>
             <div>
               <button class="toggle-btn" onclick="toggle('code-tsx-9')">Show code</button>
             </div>
-            <pre id="code-tsx-9" class="code-block">          &#60;p className=&#34;text-sm text-gray-400&#34;&#62;Gérez les comptes de tous les livreurs de la plateforme.&#60;/p&#62;
-        &#60;/div&#62;
-        &#60;button
-          onClick={() =&#62; {
-            setIsModalOpen(true);
-            setSuccessMessage(&#34;&#34;);
-            setError(&#34;&#34;);
-          }}
-          className=&#34;flex items-center space-x-2 bg-primary hover:bg-primary-light text-white px-4 py-2 rounded-lg transition-colors&#34;
-        &#62;
-          &#60;Plus size={20} /&#62;
-          &#60;span&#62;Nouveau Livreur Indépendant&#60;/span&#62;</pre>
-          </div>
-          
-          <div class="clone-item">
-            <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/admin/drivers/page.tsx (Line 137:45 - Line 153:27),
-              /Users/danielkiboko/Projet Rayon/src/app/admin/suppliers/page.tsx (Line 307:36 - Line 323:27)
-            </div>
-            <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-10')">Show code</button>
-            </div>
-            <pre id="code-tsx-10" class="code-block">          &#60;span&#62;Nouveau Livreur Indépendant&#60;/span&#62;
-        &#60;/button&#62;
-      &#60;/div&#62;
-      
-      {successMessage &#38;&#38; (
-        &#60;div className=&#34;p-4 bg-green-500/20 border border-green-500/50 rounded-xl text-green-400&#34;&#62;
-          {successMessage}
-        &#60;/div&#62;
-      )}
-
-      &#60;div className=&#34;bg-white/5 border border-white/10 rounded-2xl overflow-hidden&#34;&#62;
-        &#60;div className=&#34;p-4 border-b border-white/10&#34;&#62;
-          &#60;div className=&#34;relative max-w-sm&#34;&#62;
-            &#60;Search className=&#34;absolute left-3 top-1/2 -translate-y-1/2 text-gray-400&#34; size={18} /&#62;
-            &#60;input
-              type=&#34;text&#34;
-              placeholder=&#34;Rechercher un livreur...&#34;</pre>
-          </div>
-          
-          <div class="clone-item">
-            <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/admin/drivers/page.tsx (Line 167:54 - Line 174:21),
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/tenants/page.tsx (Line 363:60 - Line 370:21)
-            </div>
-            <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-11')">Show code</button>
-            </div>
-            <pre id="code-tsx-11" class="code-block">                &#60;th className=&#34;px-6 py-4&#34;&#62;Affiliation&#60;/th&#62;
-                &#60;th className=&#34;px-6 py-4&#34;&#62;Statut&#60;/th&#62;
-                &#60;th className=&#34;px-6 py-4 text-right&#34;&#62;Actions&#60;/th&#62;
-              &#60;/tr&#62;
-            &#60;/thead&#62;
-            &#60;tbody&#62;
-              {isLoading ? (
-                &#60;tr&#62;</pre>
-          </div>
-          
-          <div class="clone-item">
-            <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/admin/drivers/page.tsx (Line 218:112 - Line 236:25),
-              /Users/danielkiboko/Projet Rayon/src/app/admin/finance/page.tsx (Line 331:113 - Line 349:25)
-            </div>
-            <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-12')">Show code</button>
-            </div>
-            <pre id="code-tsx-12" class="code-block">                      &#60;button className=&#34;text-primary-light hover:text-white transition-colors&#34;&#62;Gérer&#60;/button&#62;
+            <pre id="code-tsx-9" class="code-block">                      &#60;button className=&#34;text-primary-light hover:text-white transition-colors&#34;&#62;Gérer&#60;/button&#62;
                     &#60;/td&#62;
                   &#60;/tr&#62;
                 ))
@@ -412,26 +343,42 @@ export default function AdminCreateDeliveryDriverPage() {</pre>
       {/* Create Driver Modal */}
       &#60;AnimatePresence&#62;
         {isModalOpen &#38;&#38; (
-          &#60;div className=&#34;fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm&#34;&#62;
-            &#60;motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className=&#34;w-full max-w-lg bg-[#140b2e] border border-white/10 rounded-2xl shadow-2xl overflow-hidden&#34;</pre>
+          &#60;div className=&#34;fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm&#34;&#62;</pre>
           </div>
           
           <div class="clone-item">
             <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/admin/drivers/page.tsx (Line 218:111 - Line 239:66),
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/tenants/page.tsx (Line 421:28 - Line 442:66)
+              /Users/danielkiboko/Projet Rayon/src/app/admin/drivers/page.tsx (Line 228:103 - Line 241:26),
+              /Users/danielkiboko/Projet Rayon/src/components/products/ProductManager.tsx (Line 629:23 - Line 642:26)
             </div>
             <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-13')">Show code</button>
+              <button class="toggle-btn" onclick="toggle('code-tsx-10')">Show code</button>
             </div>
-            <pre id="code-tsx-13" class="code-block">                      &#60;button className=&#34;text-primary-light hover:text-white transition-colors&#34;&#62;Gérer&#60;/button&#62;
+            <pre id="code-tsx-10" class="code-block">                      &#60;button className=&#34;text-primary-light hover:text-white transition-colors&#34;&#62;Gérer&#60;/button&#62;
                     &#60;/td&#62;
                   &#60;/tr&#62;
                 ))
+              )}
+            &#60;/tbody&#62;
+          &#60;/table&#62;
+        &#60;/div&#62;
+      &#60;/div&#62;
+
+      {/* Create Driver Modal */}
+      &#60;AnimatePresence&#62;
+        {isModalOpen &#38;&#38; (
+          &#60;div className=&#34;fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm&#34;&#62;</pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              /Users/danielkiboko/Projet Rayon/src/app/admin/drivers/page.tsx (Line 231:18 - Line 249:66),
+              /Users/danielkiboko/Projet Rayon/src/app/supplier/finance/page.tsx (Line 687:18 - Line 705:66)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-11')">Show code</button>
+            </div>
+            <pre id="code-tsx-11" class="code-block">                ))
               )}
             &#60;/tbody&#62;
           &#60;/table&#62;
@@ -454,37 +401,13 @@ export default function AdminCreateDeliveryDriverPage() {</pre>
           
           <div class="clone-item">
             <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/admin/drivers/page.tsx (Line 218:103 - Line 231:26),
-              /Users/danielkiboko/Projet Rayon/src/components/products/ProductManager.tsx (Line 470:23 - Line 483:26)
+              /Users/danielkiboko/Projet Rayon/src/app/admin/drivers/page.tsx (Line 236:12 - Line 246:25),
+              /Users/danielkiboko/Projet Rayon/src/app/admin/suppliers/page.tsx (Line 974:24 - Line 984:25)
             </div>
             <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-14')">Show code</button>
+              <button class="toggle-btn" onclick="toggle('code-tsx-12')">Show code</button>
             </div>
-            <pre id="code-tsx-14" class="code-block">                      &#60;button className=&#34;text-primary-light hover:text-white transition-colors&#34;&#62;Gérer&#60;/button&#62;
-                    &#60;/td&#62;
-                  &#60;/tr&#62;
-                ))
-              )}
-            &#60;/tbody&#62;
-          &#60;/table&#62;
-        &#60;/div&#62;
-      &#60;/div&#62;
-
-      {/* Create Driver Modal */}
-      &#60;AnimatePresence&#62;
-        {isModalOpen &#38;&#38; (
-          &#60;div className=&#34;fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm&#34;&#62;</pre>
-          </div>
-          
-          <div class="clone-item">
-            <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/admin/drivers/page.tsx (Line 226:12 - Line 236:25),
-              /Users/danielkiboko/Projet Rayon/src/app/admin/suppliers/page.tsx (Line 510:24 - Line 520:25)
-            </div>
-            <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-15')">Show code</button>
-            </div>
-            <pre id="code-tsx-15" class="code-block">      &#60;/div&#62;
+            <pre id="code-tsx-12" class="code-block">      &#60;/div&#62;
 
       {/* Create Driver Modal */}
       &#60;AnimatePresence&#62;
@@ -499,8 +422,59 @@ export default function AdminCreateDeliveryDriverPage() {</pre>
           
           <div class="clone-item">
             <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/admin/drivers/page.tsx (Line 230:22 - Line 239:66),
-              /Users/danielkiboko/Projet Rayon/src/app/admin/suppliers/page.tsx (Line 456:57 - Line 465:66)
+              /Users/danielkiboko/Projet Rayon/src/app/admin/drivers/page.tsx (Line 240:22 - Line 246:25),
+              /Users/danielkiboko/Projet Rayon/src/app/admin/suppliers/page.tsx (Line 920:57 - Line 926:25)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-13')">Show code</button>
+            </div>
+            <pre id="code-tsx-13" class="code-block">        {isModalOpen &#38;&#38; (
+          &#60;div className=&#34;fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm&#34;&#62;
+            &#60;motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className=&#34;w-full max-w-lg bg-[#140b2e] border border-white/10 rounded-2xl shadow-2xl overflow-hidden&#34;</pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              /Users/danielkiboko/Projet Rayon/src/app/admin/drivers/page.tsx (Line 240:22 - Line 246:25),
+              /Users/danielkiboko/Projet Rayon/src/app/admin/suppliers/page.tsx (Line 1235:25 - Line 1241:25)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-14')">Show code</button>
+            </div>
+            <pre id="code-tsx-14" class="code-block">        {isModalOpen &#38;&#38; (
+          &#60;div className=&#34;fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm&#34;&#62;
+            &#60;motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className=&#34;w-full max-w-lg bg-[#140b2e] border border-white/10 rounded-2xl shadow-2xl overflow-hidden&#34;</pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              /Users/danielkiboko/Projet Rayon/src/app/admin/drivers/page.tsx (Line 240:22 - Line 246:25),
+              /Users/danielkiboko/Projet Rayon/src/app/admin/suppliers/page.tsx (Line 1278:57 - Line 1284:25)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-15')">Show code</button>
+            </div>
+            <pre id="code-tsx-15" class="code-block">        {isModalOpen &#38;&#38; (
+          &#60;div className=&#34;fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm&#34;&#62;
+            &#60;motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className=&#34;w-full max-w-lg bg-[#140b2e] border border-white/10 rounded-2xl shadow-2xl overflow-hidden&#34;</pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              /Users/danielkiboko/Projet Rayon/src/app/admin/drivers/page.tsx (Line 240:22 - Line 249:66),
+              /Users/danielkiboko/Projet Rayon/src/app/supplier/drivers/page.tsx (Line 231:25 - Line 240:66)
             </div>
             <div>
               <button class="toggle-btn" onclick="toggle('code-tsx-16')">Show code</button>
@@ -519,68 +493,13 @@ export default function AdminCreateDeliveryDriverPage() {</pre>
           
           <div class="clone-item">
             <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/admin/drivers/page.tsx (Line 230:22 - Line 236:25),
-              /Users/danielkiboko/Projet Rayon/src/app/admin/suppliers/page.tsx (Line 640:25 - Line 646:25)
+              /Users/danielkiboko/Projet Rayon/src/app/admin/drivers/page.tsx (Line 241:112 - Line 248:30),
+              /Users/danielkiboko/Projet Rayon/src/app/admin/team/page.tsx (Line 907:128 - Line 914:30)
             </div>
             <div>
               <button class="toggle-btn" onclick="toggle('code-tsx-17')">Show code</button>
             </div>
-            <pre id="code-tsx-17" class="code-block">        {isModalOpen &#38;&#38; (
-          &#60;div className=&#34;fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm&#34;&#62;
-            &#60;motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className=&#34;w-full max-w-lg bg-[#140b2e] border border-white/10 rounded-2xl shadow-2xl overflow-hidden&#34;</pre>
-          </div>
-          
-          <div class="clone-item">
-            <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/admin/drivers/page.tsx (Line 230:22 - Line 236:25),
-              /Users/danielkiboko/Projet Rayon/src/app/admin/suppliers/page.tsx (Line 683:57 - Line 689:25)
-            </div>
-            <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-18')">Show code</button>
-            </div>
-            <pre id="code-tsx-18" class="code-block">        {isModalOpen &#38;&#38; (
-          &#60;div className=&#34;fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm&#34;&#62;
-            &#60;motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className=&#34;w-full max-w-lg bg-[#140b2e] border border-white/10 rounded-2xl shadow-2xl overflow-hidden&#34;</pre>
-          </div>
-          
-          <div class="clone-item">
-            <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/admin/drivers/page.tsx (Line 230:22 - Line 239:66),
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/drivers/page.tsx (Line 224:25 - Line 233:66)
-            </div>
-            <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-19')">Show code</button>
-            </div>
-            <pre id="code-tsx-19" class="code-block">        {isModalOpen &#38;&#38; (
-          &#60;div className=&#34;fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm&#34;&#62;
-            &#60;motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className=&#34;w-full max-w-lg bg-[#140b2e] border border-white/10 rounded-2xl shadow-2xl overflow-hidden&#34;
-            &#62;
-              &#60;div className=&#34;flex items-center justify-between p-6 border-b border-white/10&#34;&#62;
-                &#60;h2 className=&#34;text-xl font-semibold text-white&#34;&#62;Créer un Livreur Indépendant&#60;/h2&#62;</pre>
-          </div>
-          
-          <div class="clone-item">
-            <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/admin/drivers/page.tsx (Line 230:22 - Line 238:30),
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/tenants/page.tsx (Line 535:31 - Line 543:30)
-            </div>
-            <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-20')">Show code</button>
-            </div>
-            <pre id="code-tsx-20" class="code-block">        {isModalOpen &#38;&#38; (
-          &#60;div className=&#34;fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm&#34;&#62;
+            <pre id="code-tsx-17" class="code-block">          &#60;div className=&#34;fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm&#34;&#62;
             &#60;motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -592,13 +511,118 @@ export default function AdminCreateDeliveryDriverPage() {</pre>
           
           <div class="clone-item">
             <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/admin/drivers/page.tsx (Line 262:21 - Line 279:32),
-              /Users/danielkiboko/Projet Rayon/src/app/admin/suppliers/page.tsx (Line 567:21 - Line 584:32)
+              /Users/danielkiboko/Projet Rayon/src/app/admin/drivers/page.tsx (Line 264:17 - Line 308:17),
+              /Users/danielkiboko/Projet Rayon/src/app/admin/suppliers/page.tsx (Line 1046:17 - Line 1090:17)
             </div>
             <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-21')">Show code</button>
+              <button class="toggle-btn" onclick="toggle('code-tsx-18')">Show code</button>
             </div>
-            <pre id="code-tsx-21" class="code-block">                    value={name}
+            <pre id="code-tsx-18" class="code-block">                &#60;/div&#62;
+
+                &#60;div className=&#34;space-y-2&#34;&#62;
+                  &#60;label className=&#34;text-sm font-medium text-gray-300&#34;&#62;Méthode de notification&#60;/label&#62;
+                  &#60;div className=&#34;flex space-x-4&#34;&#62;
+                    &#60;label className=&#34;flex items-center space-x-2 text-white cursor-pointer&#34;&#62;
+                      &#60;input 
+                        type=&#34;radio&#34; 
+                        name=&#34;notificationMethod&#34; 
+                        value=&#34;email&#34; 
+                        checked={notificationMethod === &#39;email&#39;} 
+                        onChange={() =&#62; setNotificationMethod(&#39;email&#39;)}
+                        className=&#34;text-primary focus:ring-primary bg-black/20 border-white/10&#34;
+                      /&#62;
+                      &#60;span&#62;Email&#60;/span&#62;
+                    &#60;/label&#62;
+                    &#60;label className=&#34;flex items-center space-x-2 text-white cursor-pointer&#34;&#62;
+                      &#60;input 
+                        type=&#34;radio&#34; 
+                        name=&#34;notificationMethod&#34; 
+                        value=&#34;sms&#34; 
+                        checked={notificationMethod === &#39;sms&#39;} 
+                        onChange={() =&#62; setNotificationMethod(&#39;sms&#39;)}
+                        className=&#34;text-primary focus:ring-primary bg-black/20 border-white/10&#34;
+                      /&#62;
+                      &#60;span&#62;SMS&#60;/span&#62;
+                    &#60;/label&#62;
+                  &#60;/div&#62;
+                &#60;/div&#62;
+
+                {notificationMethod === &#39;sms&#39; &#38;&#38; (
+                  &#60;div className=&#34;space-y-1&#34;&#62;
+                    &#60;label className=&#34;text-sm font-medium text-gray-300&#34;&#62;Numéro de téléphone&#60;/label&#62;
+                    &#60;input
+                      type=&#34;tel&#34;
+                      required
+                      value={phoneNumber}
+                      onChange={(e) =&#62; setPhoneNumber(e.target.value)}
+                      placeholder=&#34;+243...&#34;
+                      className=&#34;w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white&#34;
+                    /&#62;
+                  &#60;/div&#62;
+                )}
+
+                &#60;div className=&#34;space-y-1&#34;&#62;</pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              /Users/danielkiboko/Projet Rayon/src/app/admin/drivers/page.tsx (Line 264:17 - Line 303:33),
+              /Users/danielkiboko/Projet Rayon/src/app/supplier/drivers/page.tsx (Line 255:17 - Line 294:33)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-19')">Show code</button>
+            </div>
+            <pre id="code-tsx-19" class="code-block">                &#60;/div&#62;
+
+                &#60;div className=&#34;space-y-2&#34;&#62;
+                  &#60;label className=&#34;text-sm font-medium text-gray-300&#34;&#62;Méthode de notification&#60;/label&#62;
+                  &#60;div className=&#34;flex space-x-4&#34;&#62;
+                    &#60;label className=&#34;flex items-center space-x-2 text-white cursor-pointer&#34;&#62;
+                      &#60;input 
+                        type=&#34;radio&#34; 
+                        name=&#34;notificationMethod&#34; 
+                        value=&#34;email&#34; 
+                        checked={notificationMethod === &#39;email&#39;} 
+                        onChange={() =&#62; setNotificationMethod(&#39;email&#39;)}
+                        className=&#34;text-primary focus:ring-primary bg-black/20 border-white/10&#34;
+                      /&#62;
+                      &#60;span&#62;Email&#60;/span&#62;
+                    &#60;/label&#62;
+                    &#60;label className=&#34;flex items-center space-x-2 text-white cursor-pointer&#34;&#62;
+                      &#60;input 
+                        type=&#34;radio&#34; 
+                        name=&#34;notificationMethod&#34; 
+                        value=&#34;sms&#34; 
+                        checked={notificationMethod === &#39;sms&#39;} 
+                        onChange={() =&#62; setNotificationMethod(&#39;sms&#39;)}
+                        className=&#34;text-primary focus:ring-primary bg-black/20 border-white/10&#34;
+                      /&#62;
+                      &#60;span&#62;SMS&#60;/span&#62;
+                    &#60;/label&#62;
+                  &#60;/div&#62;
+                &#60;/div&#62;
+
+                {notificationMethod === &#39;sms&#39; &#38;&#38; (
+                  &#60;div className=&#34;space-y-1&#34;&#62;
+                    &#60;label className=&#34;text-sm font-medium text-gray-300&#34;&#62;Numéro de téléphone&#60;/label&#62;
+                    &#60;input
+                      type=&#34;tel&#34;
+                      required
+                      value={phoneNumber}
+                      onChange={(e) =&#62; setPhoneNumber(e.target.value)}
+                      placeholder=&#34;+243...&#34;
+                      className=&#34;w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white&#34;</pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              /Users/danielkiboko/Projet Rayon/src/app/admin/drivers/page.tsx (Line 313:21 - Line 330:32),
+              /Users/danielkiboko/Projet Rayon/src/app/admin/suppliers/page.tsx (Line 1031:21 - Line 1048:32)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-20')">Show code</button>
+            </div>
+            <pre id="code-tsx-20" class="code-block">                    value={name}
                     onChange={(e) =&#62; setName(e.target.value)}
                     className=&#34;w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white&#34;
                   /&#62;
@@ -620,13 +644,14 @@ export default function AdminCreateDeliveryDriverPage() {</pre>
           
           <div class="clone-item">
             <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/admin/drivers/page.tsx (Line 277:23 - Line 300:25),
-              /Users/danielkiboko/Projet Rayon/src/app/admin/suppliers/page.tsx (Line 613:19 - Line 636:25)
+              /Users/danielkiboko/Projet Rayon/src/app/admin/drivers/page.tsx (Line 327:20 - Line 351:25),
+              /Users/danielkiboko/Projet Rayon/src/app/admin/suppliers/page.tsx (Line 1207:22 - Line 1231:25)
             </div>
             <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-22')">Show code</button>
+              <button class="toggle-btn" onclick="toggle('code-tsx-21')">Show code</button>
             </div>
-            <pre id="code-tsx-22" class="code-block">                &#60;/div&#62;
+            <pre id="code-tsx-21" class="code-block">                  /&#62;
+                &#60;/div&#62;
 
                 &#60;div className=&#34;pt-4 flex justify-end space-x-3&#34;&#62;
                   &#60;button
@@ -654,470 +679,317 @@ export default function AdminCreateDeliveryDriverPage() {</pre>
           
           <div class="clone-item">
             <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/admin/drivers/page.tsx (Line 279:65 - Line 293:36),
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/tenants/page.tsx (Line 519:90 - Line 524:36)
+              /Users/danielkiboko/Projet Rayon/src/app/admin/finance/page.tsx (Line 76:39 - Line 87:10),
+              /Users/danielkiboko/Projet Rayon/src/app/supplier/finance/page.tsx (Line 59:57 - Line 66:10)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-22')">Show code</button>
+            </div>
+            <pre id="code-tsx-22" class="code-block">  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Form states: Cash Adjustment
+  const [adjAmount, setAdjAmount] = useState(&#34;&#34;);
+  const [adjType, setAdjType] = useState&#60;&#34;ADD&#34; | &#34;SUBTRACT&#34;&#62;(&#34;ADD&#34;);
+  const [adjReason, setAdjReason] = useState&#60;string&#62;(ADJUSTMENT_REASONS[0]);
+  const [adjLabel, setAdjLabel] = useState(&#34;&#34;);
+  const [adjRef, setAdjRef] = useState(&#34;&#34;);
+  const [isSubmittingAdj, setIsSubmittingAdj] = useState(false);
+
+  // Action feedback
+  const [actionNotice, setActionNotice] = useState(&#34;&#34;);</pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              /Users/danielkiboko/Projet Rayon/src/app/admin/finance/page.tsx (Line 191:71 - Line 213:19),
+              /Users/danielkiboko/Projet Rayon/src/app/supplier/finance/page.tsx (Line 293:28 - Line 312:19)
             </div>
             <div>
               <button class="toggle-btn" onclick="toggle('code-tsx-23')">Show code</button>
             </div>
-            <pre id="code-tsx-23" class="code-block">                &#60;div className=&#34;pt-4 flex justify-end space-x-3&#34;&#62;
-                  &#60;button
-                    type=&#34;button&#34;
-                    onClick={() =&#62; setIsModalOpen(false)}
-                    disabled={isSubmitting}
-                    className=&#34;px-4 py-2 text-gray-400 hover:text-white transition-colors disabled:opacity-50&#34;
-                  &#62;
-                    Annuler
-                  &#60;/button&#62;
-                  &#60;button
-                    type=&#34;submit&#34;
-                    disabled={isSubmitting}
-                    className=&#34;px-6 py-2 bg-primary hover:bg-primary-light text-white font-semibold rounded-lg transition-colors flex items-center disabled:opacity-50&#34;
-                  &#62;
-                    {isSubmitting ? &#34;Création en cours...&#34; : &#34;Créer le compte&#34;}</pre>
+            <pre id="code-tsx-23" class="code-block">      alert(err.message || &#34;Erreur lors de l&#39;encaissement du dépôt.&#34;);
+    }
+  };
+
+  // Submit Cash Adjustment
+  const handleSaveAdjustment = async (e: React.FormEvent) =&#62; {
+    e.preventDefault();
+    const val = parseFloat(adjAmount);
+    if (isNaN(val) || val &#60;= 0) {
+      alert(&#34;Veuillez saisir un montant valide.&#34;);
+      return;
+    }
+
+    const finalAmount = adjType === &#34;ADD&#34; ? val : -val;
+    setIsSubmittingAdj(true);
+
+    try {
+      await recordCashAdjustment({
+        amount: finalAmount,
+        reason: adjReason,
+        label: adjLabel,
+        referencePiece: adjRef,
+        actorType: &#34;ADMIN&#34;,</pre>
           </div>
           
           <div class="clone-item">
             <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/admin/finance/page.tsx (Line 34:48 - Line 42:10),
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/finance/page.tsx (Line 25:67 - Line 35:10)
+              /Users/danielkiboko/Projet Rayon/src/app/admin/finance/page.tsx (Line 735:9 - Line 750:69),
+              /Users/danielkiboko/Projet Rayon/src/app/supplier/finance/page.tsx (Line 902:25 - Line 917:69)
             </div>
             <div>
               <button class="toggle-btn" onclick="toggle('code-tsx-24')">Show code</button>
             </div>
-            <pre id="code-tsx-24" class="code-block">  const { user, userData, loading } = useAuth();
-  const router = useRouter();
-  
-  const [transactions, setTransactions] = useState&#60;Transaction[]&#62;([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [filter, setFilter] = useState(&#34;ALL&#34;);
-  const [search, setSearch] = useState(&#34;&#34;);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [suppliers, setSuppliers] = useState&#60;User[]&#62;([]);</pre>
-          </div>
-          
-          <div class="clone-item">
-            <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/admin/finance/page.tsx (Line 157:31 - Line 184:34),
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/finance/page.tsx (Line 173:25 - Line 200:34)
-            </div>
-            <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-25')">Show code</button>
-            </div>
-            <pre id="code-tsx-25" class="code-block">      setTxType(&#34;SUBSCRIPTION&#34;);
-    } catch (error) {
-      console.error(&#34;Error adding transaction:&#34;, error);
-      alert(&#34;Erreur lors de l&#39;ajout de la transaction&#34;);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+            <pre id="code-tsx-24" class="code-block">      )}
 
-  const downloadCSV = () =&#62; {
-    const headers = [&#34;Date&#34;, &#34;Type&#34;, &#34;Montant (USD)&#34;, &#34;Description&#34;, &#34;Reference&#34;, &#34;Statut&#34;];
-    const rows = filteredTransactions.map(t =&#62; [
-      t.createdAt?.toDate ? t.createdAt.toDate().toLocaleDateString(&#39;fr-FR&#39;) : &#39;N/A&#39;,
-      t.type,
-      t.amount.toString(),
-      `&#34;${t.description}&#34;`,
-      t.referenceId || &#34;N/A&#34;,
-      t.status
-    ]);
-
-    const csvContent = &#34;data:text/csv;charset=utf-8,&#34; 
-      + headers.join(&#34;,&#34;) + &#34;\n&#34; 
-      + rows.map(e =&#62; e.join(&#34;,&#34;)).join(&#34;\n&#34;);
-
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement(&#34;a&#34;);
-    link.setAttribute(&#34;href&#34;, encodedUri);
-    link.setAttribute(&#34;download&#34;, `livre_de_caisse_${new Date().toISOString().split(&#39;T&#39;)[0]}.csv`);</pre>
-          </div>
-          
-          <div class="clone-item">
-            <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/admin/finance/page.tsx (Line 184:54 - Line 196:58),
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/finance/page.tsx (Line 200:58 - Line 212:58)
-            </div>
-            <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-26')">Show code</button>
-            </div>
-            <pre id="code-tsx-26" class="code-block">    link.setAttribute(&#34;download&#34;, `livre_de_caisse_${new Date().toISOString().split(&#39;T&#39;)[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const filteredTransactions = transactions.filter(t =&#62; {
-    if (filter !== &#34;ALL&#34; &#38;&#38; t.type !== filter) return false;
-    if (search &#38;&#38; !t.description.toLowerCase().includes(search.toLowerCase()) &#38;&#38; !(t.referenceId || &#34;&#34;).toLowerCase().includes(search.toLowerCase())) return false;
-    return true;
-  });
-
-  const totalIncome = transactions.filter(t =&#62; t.type === &#34;SUBSCRIPTION&#34; || t.type === &#34;OTHER_INCOME&#34;).reduce((acc, t) =&#62; acc + t.amount, 0);</pre>
-          </div>
-          
-          <div class="clone-item">
-            <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/admin/finance/page.tsx (Line 197:48 - Line 204:57),
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/finance/page.tsx (Line 213:71 - Line 220:57)
-            </div>
-            <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-27')">Show code</button>
-            </div>
-            <pre id="code-tsx-27" class="code-block">  const totalPayout = transactions.filter(t =&#62; t.type === &#34;EXPENSE&#34;).reduce((acc, t) =&#62; acc + t.amount, 0);
-  const balance = totalIncome - totalPayout;
-
-  return (
-    &#60;div className=&#34;space-y-6 pb-20&#34;&#62;
-      &#60;div className=&#34;flex flex-col sm:flex-row sm:items-center justify-between gap-4&#34;&#62;
-        &#60;div&#62;
-          &#60;h1 className=&#34;text-2xl font-bold text-white&#34;&#62;Livre de Caisse&#60;/h1&#62;</pre>
-          </div>
-          
-          <div class="clone-item">
-            <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/admin/finance/page.tsx (Line 205:102 - Line 217:23),
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/finance/page.tsx (Line 221:94 - Line 233:23)
-            </div>
-            <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-28')">Show code</button>
-            </div>
-            <pre id="code-tsx-28" class="code-block">          &#60;p className=&#34;text-sm text-gray-400&#34;&#62;Gérez et suivez toutes les transactions financières.&#60;/p&#62;
-        &#60;/div&#62;
-        &#60;div className=&#34;flex space-x-3&#34;&#62;
-          &#60;button 
-            onClick={downloadCSV}
-            className=&#34;flex items-center space-x-2 bg-black/20 hover:bg-black/40 border border-white/10 text-white px-4 py-2 rounded-lg transition-colors&#34;
-          &#62;
-            &#60;Download size={20} /&#62;
-            &#60;span&#62;Exporter CSV&#60;/span&#62;
-          &#60;/button&#62;
-          &#60;button 
-            onClick={() =&#62; setIsModalOpen(true)}
-            className=&#34;flex items-center space-x-2 bg-primary hover:bg-primary-light text-white px-4 py-2 rounded-lg transition-colors&#34;</pre>
-          </div>
-          
-          <div class="clone-item">
-            <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/admin/finance/page.tsx (Line 218:11 - Line 228:63),
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/finance/page.tsx (Line 234:11 - Line 244:63)
-            </div>
-            <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-29')">Show code</button>
-            </div>
-            <pre id="code-tsx-29" class="code-block">          &#62;
-            &#60;Plus size={20} /&#62;
-            &#60;span&#62;Ajouter Opération&#60;/span&#62;
-          &#60;/button&#62;
-        &#60;/div&#62;
-      &#60;/div&#62;
-
-      &#60;div className=&#34;grid grid-cols-1 md:grid-cols-3 gap-6&#34;&#62;
-        &#60;div className=&#34;bg-white/5 border border-white/10 rounded-2xl p-6&#34;&#62;
-          &#60;div className=&#34;flex items-center justify-between&#34;&#62;
-            &#60;h3 className=&#34;text-gray-400 text-sm font-medium&#34;&#62;Solde Caisse&#60;/h3&#62;</pre>
-          </div>
-          
-          <div class="clone-item">
-            <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/admin/finance/page.tsx (Line 228:75 - Line 238:63),
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/finance/page.tsx (Line 244:75 - Line 254:63)
-            </div>
-            <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-30')">Show code</button>
-            </div>
-            <pre id="code-tsx-30" class="code-block">            &#60;h3 className=&#34;text-gray-400 text-sm font-medium&#34;&#62;Solde Caisse&#60;/h3&#62;
-            &#60;div className=&#34;p-2 bg-blue-500/20 rounded-lg&#34;&#62;
-              &#60;Wallet className=&#34;text-blue-400&#34; size={20} /&#62;
-            &#60;/div&#62;
-          &#60;/div&#62;
-          &#60;p className=&#34;text-3xl font-bold text-white mt-4&#34;&#62;${balance.toFixed(2)}&#60;/p&#62;
-        &#60;/div&#62;
-        
-        &#60;div className=&#34;bg-white/5 border border-white/10 rounded-2xl p-6&#34;&#62;
-          &#60;div className=&#34;flex items-center justify-between&#34;&#62;
-            &#60;h3 className=&#34;text-gray-400 text-sm font-medium&#34;&#62;Total Entrées (Revenus)&#60;/h3&#62;</pre>
-          </div>
-          
-          <div class="clone-item">
-            <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/admin/finance/page.tsx (Line 238:87 - Line 248:63),
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/finance/page.tsx (Line 254:81 - Line 264:63)
-            </div>
-            <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-31')">Show code</button>
-            </div>
-            <pre id="code-tsx-31" class="code-block">            &#60;h3 className=&#34;text-gray-400 text-sm font-medium&#34;&#62;Total Entrées (Revenus)&#60;/h3&#62;
-            &#60;div className=&#34;p-2 bg-green-500/20 rounded-lg&#34;&#62;
-              &#60;ArrowDownRight className=&#34;text-green-400&#34; size={20} /&#62;
-            &#60;/div&#62;
-          &#60;/div&#62;
-          &#60;p className=&#34;text-3xl font-bold text-white mt-4&#34;&#62;${totalIncome.toFixed(2)}&#60;/p&#62;
-        &#60;/div&#62;
-
-        &#60;div className=&#34;bg-white/5 border border-white/10 rounded-2xl p-6&#34;&#62;
-          &#60;div className=&#34;flex items-center justify-between&#34;&#62;
-            &#60;h3 className=&#34;text-gray-400 text-sm font-medium&#34;&#62;Total Sorties (Dépenses/Paiements)&#60;/h3&#62;</pre>
-          </div>
-          
-          <div class="clone-item">
-            <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/admin/finance/page.tsx (Line 248:98 - Line 267:40),
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/finance/page.tsx (Line 264:82 - Line 283:40)
-            </div>
-            <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-32')">Show code</button>
-            </div>
-            <pre id="code-tsx-32" class="code-block">            &#60;h3 className=&#34;text-gray-400 text-sm font-medium&#34;&#62;Total Sorties (Dépenses/Paiements)&#60;/h3&#62;
-            &#60;div className=&#34;p-2 bg-red-500/20 rounded-lg&#34;&#62;
-              &#60;ArrowUpRight className=&#34;text-red-400&#34; size={20} /&#62;
-            &#60;/div&#62;
-          &#60;/div&#62;
-          &#60;p className=&#34;text-3xl font-bold text-white mt-4&#34;&#62;${totalPayout.toFixed(2)}&#60;/p&#62;
-        &#60;/div&#62;
-      &#60;/div&#62;
-
-      &#60;div className=&#34;bg-white/5 border border-white/10 rounded-2xl overflow-hidden&#34;&#62;
-        &#60;div className=&#34;p-4 border-b border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4&#34;&#62;
-          &#60;div className=&#34;flex space-x-2&#34;&#62;
-            &#60;button
-              onClick={() =&#62; setFilter(&#34;ALL&#34;)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === &#34;ALL&#34; ? &#34;bg-white/10 text-white&#34; : &#34;text-gray-400 hover:text-white&#34;}`}
-            &#62;
-              Tous
-            &#60;/button&#62;
-            &#60;button
-              onClick={() =&#62; setFilter(&#34;SUBSCRIPTION&#34;)}</pre>
-          </div>
-          
-          <div class="clone-item">
-            <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/admin/finance/page.tsx (Line 293:13 - Line 324:34),
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/finance/page.tsx (Line 311:13 - Line 342:34)
-            </div>
-            <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-33')">Show code</button>
-            </div>
-            <pre id="code-tsx-33" class="code-block">            /&#62;
-          &#60;/div&#62;
-        &#60;/div&#62;
-
-        &#60;div className=&#34;overflow-x-auto&#34;&#62;
-          &#60;table className=&#34;w-full text-left text-sm text-gray-300&#34;&#62;
-            &#60;thead className=&#34;text-xs uppercase bg-black/20 text-gray-400&#34;&#62;
-              &#60;tr&#62;
-                &#60;th className=&#34;px-6 py-4&#34;&#62;Date&#60;/th&#62;
-                &#60;th className=&#34;px-6 py-4&#34;&#62;Type&#60;/th&#62;
-                &#60;th className=&#34;px-6 py-4&#34;&#62;Description&#60;/th&#62;
-                &#60;th className=&#34;px-6 py-4&#34;&#62;Référence&#60;/th&#62;
-                &#60;th className=&#34;px-6 py-4 text-right&#34;&#62;Montant (USD)&#60;/th&#62;
-              &#60;/tr&#62;
-            &#60;/thead&#62;
-            &#60;tbody&#62;
-              {isLoading ? (
-                &#60;tr&#62;
-                  &#60;td colSpan={5} className=&#34;px-6 py-8 text-center text-gray-400&#34;&#62;Chargement...&#60;/td&#62;
-                &#60;/tr&#62;
-              ) : filteredTransactions.length === 0 ? (
-                &#60;tr&#62;
-                  &#60;td colSpan={5} className=&#34;px-6 py-8 text-center text-gray-400&#34;&#62;Aucune transaction trouvée.&#60;/td&#62;
-                &#60;/tr&#62;
-              ) : (
-                filteredTransactions.map((t) =&#62; (
-                  &#60;tr key={t.id} className=&#34;border-b border-white/5 hover:bg-white/5 transition-colors&#34;&#62;
-                    &#60;td className=&#34;px-6 py-4&#34;&#62;
-                      {t.createdAt?.toDate ? t.createdAt.toDate().toLocaleDateString(&#39;fr-FR&#39;, { day: &#39;2-digit&#39;, month: &#39;short&#39;, year: &#39;numeric&#39; }) : &#39;N/A&#39;}
-                    &#60;/td&#62;
-                    &#60;td className=&#34;px-6 py-4&#34;&#62;
-                      {t.type === &#34;SUBSCRIPTION&#34; &#38;&#38; &#60;span className=&#34;inline-flex items-center text-green-400 bg-green-400/10 px-2 py-1 rounded text-xs&#34;&#62;&#60;ArrowDownRight size={12} className=&#34;mr-1&#34;/&#62; Abonnement&#60;/span&#62;}</pre>
-          </div>
-          
-          <div class="clone-item">
-            <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/admin/finance/page.tsx (Line 325:209 - Line 330:80),
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/finance/page.tsx (Line 343:195 - Line 348:80)
-            </div>
-            <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-34')">Show code</button>
-            </div>
-            <pre id="code-tsx-34" class="code-block">                      {t.type === &#34;OTHER_INCOME&#34; &#38;&#38; &#60;span className=&#34;inline-flex items-center text-blue-400 bg-blue-400/10 px-2 py-1 rounded text-xs&#34;&#62;&#60;ArrowDownRight size={12} className=&#34;mr-1&#34;/&#62; Autre Entrée&#60;/span&#62;}
-                      {t.type === &#34;EXPENSE&#34; &#38;&#38; &#60;span className=&#34;inline-flex items-center text-red-400 bg-red-400/10 px-2 py-1 rounded text-xs&#34;&#62;&#60;ArrowUpRight size={12} className=&#34;mr-1&#34;/&#62; Dépense&#60;/span&#62;}
-                    &#60;/td&#62;
-                    &#60;td className=&#34;px-6 py-4 text-white font-medium&#34;&#62;{t.description}&#60;/td&#62;
-                    &#60;td className=&#34;px-6 py-4 text-gray-400&#34;&#62;{t.referenceId || &#34;-&#34;}&#60;/td&#62;
-                    &#60;td className={`px-6 py-4 text-right font-bold ${t.type === &#39;SUBSCRIPTION&#39; || t.type === &#39;OTHER_INCOME&#39; ? &#39;text-green-400&#39; : &#39;text-white&#39;}`}&#62;</pre>
-          </div>
-          
-          <div class="clone-item">
-            <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/admin/finance/page.tsx (Line 331:79 - Line 364:31),
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/finance/page.tsx (Line 349:44 - Line 382:31)
-            </div>
-            <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-35')">Show code</button>
-            </div>
-            <pre id="code-tsx-35" class="code-block">                      {t.type === &#39;SUBSCRIPTION&#39; || t.type === &#39;OTHER_INCOME&#39; ? &#39;+&#39; : &#39;-&#39;}${t.amount.toFixed(2)}
-                    &#60;/td&#62;
-                  &#60;/tr&#62;
-                ))
-              )}
-            &#60;/tbody&#62;
-          &#60;/table&#62;
-        &#60;/div&#62;
-      &#60;/div&#62;
-
-      {/* Modal Add Transaction */}
+      {/* MODAL 1: AJUSTEMENT DE CAISSE FORMEL */}
       &#60;AnimatePresence&#62;
-        {isModalOpen &#38;&#38; (
-          &#60;div className=&#34;fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm&#34;&#62;
+        {isAdjustmentModalOpen &#38;&#38; (
+          &#60;div className=&#34;fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm&#34;&#62;
             &#60;motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className=&#34;w-full max-w-md bg-[#140b2e] border border-white/10 rounded-2xl shadow-2xl overflow-hidden&#34;
+              className=&#34;w-full max-w-lg bg-[#0F1D27] border border-white/10 rounded-2xl shadow-2xl overflow-hidden&#34;
             &#62;
               &#60;div className=&#34;flex items-center justify-between p-6 border-b border-white/10&#34;&#62;
-                &#60;h2 className=&#34;text-xl font-semibold text-white&#34;&#62;Nouvelle Opération&#60;/h2&#62;
-                &#60;button onClick={() =&#62; setIsModalOpen(false)} className=&#34;text-gray-400 hover:text-white&#34;&#62;
-                  &#60;X size={24} /&#62;
+                &#60;div&#62;
+                  &#60;h2 className=&#34;text-lg font-bold text-white flex items-center gap-2&#34;&#62;
+                    &#60;Sliders className=&#34;text-[#C7D300]&#34; size={18} /&#62;</pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              /Users/danielkiboko/Projet Rayon/src/app/admin/finance/page.tsx (Line 739:32 - Line 745:25),
+              /Users/danielkiboko/Projet Rayon/src/app/admin/finance/page.tsx (Line 867:24 - Line 873:25)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-25')">Show code</button>
+            </div>
+            <pre id="code-tsx-25" class="code-block">        {isAdjustmentModalOpen &#38;&#38; (
+          &#60;div className=&#34;fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm&#34;&#62;
+            &#60;motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className=&#34;w-full max-w-lg bg-[#0F1D27] border border-white/10 rounded-2xl shadow-2xl overflow-hidden&#34;</pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              /Users/danielkiboko/Projet Rayon/src/app/admin/finance/page.tsx (Line 739:32 - Line 745:25),
+              /Users/danielkiboko/Projet Rayon/src/app/supplier/tenants/page.tsx (Line 696:22 - Line 702:25)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-26')">Show code</button>
+            </div>
+            <pre id="code-tsx-26" class="code-block">        {isAdjustmentModalOpen &#38;&#38; (
+          &#60;div className=&#34;fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm&#34;&#62;
+            &#60;motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className=&#34;w-full max-w-lg bg-[#0F1D27] border border-white/10 rounded-2xl shadow-2xl overflow-hidden&#34;</pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              /Users/danielkiboko/Projet Rayon/src/app/admin/finance/page.tsx (Line 739:32 - Line 745:25),
+              /Users/danielkiboko/Projet Rayon/src/app/supplier/tenants/page.tsx (Line 865:33 - Line 871:25)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-27')">Show code</button>
+            </div>
+            <pre id="code-tsx-27" class="code-block">        {isAdjustmentModalOpen &#38;&#38; (
+          &#60;div className=&#34;fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm&#34;&#62;
+            &#60;motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className=&#34;w-full max-w-lg bg-[#0F1D27] border border-white/10 rounded-2xl shadow-2xl overflow-hidden&#34;</pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              /Users/danielkiboko/Projet Rayon/src/app/admin/finance/page.tsx (Line 739:32 - Line 745:25),
+              /Users/danielkiboko/Projet Rayon/src/app/supplier/tenants/page.tsx (Line 935:31 - Line 941:25)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-28')">Show code</button>
+            </div>
+            <pre id="code-tsx-28" class="code-block">        {isAdjustmentModalOpen &#38;&#38; (
+          &#60;div className=&#34;fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm&#34;&#62;
+            &#60;motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className=&#34;w-full max-w-lg bg-[#0F1D27] border border-white/10 rounded-2xl shadow-2xl overflow-hidden&#34;</pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              /Users/danielkiboko/Projet Rayon/src/app/admin/finance/page.tsx (Line 739:32 - Line 749:22),
+              /Users/danielkiboko/Projet Rayon/src/app/supplier/tenants/page.tsx (Line 989:29 - Line 998:66)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-29')">Show code</button>
+            </div>
+            <pre id="code-tsx-29" class="code-block">        {isAdjustmentModalOpen &#38;&#38; (
+          &#60;div className=&#34;fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm&#34;&#62;
+            &#60;motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className=&#34;w-full max-w-lg bg-[#0F1D27] border border-white/10 rounded-2xl shadow-2xl overflow-hidden&#34;
+            &#62;
+              &#60;div className=&#34;flex items-center justify-between p-6 border-b border-white/10&#34;&#62;
+                &#60;div&#62;
+                  &#60;h2 className=&#34;text-lg font-bold text-white flex items-center gap-2&#34;&#62;</pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              /Users/danielkiboko/Projet Rayon/src/app/admin/finance/page.tsx (Line 740:25 - Line 752:19),
+              /Users/danielkiboko/Projet Rayon/src/app/supplier/finance/page.tsx (Line 907:25 - Line 919:19)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-30')">Show code</button>
+            </div>
+            <pre id="code-tsx-30" class="code-block">          &#60;div className=&#34;fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm&#34;&#62;
+            &#60;motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className=&#34;w-full max-w-lg bg-[#0F1D27] border border-white/10 rounded-2xl shadow-2xl overflow-hidden&#34;
+            &#62;
+              &#60;div className=&#34;flex items-center justify-between p-6 border-b border-white/10&#34;&#62;
+                &#60;div&#62;
+                  &#60;h2 className=&#34;text-lg font-bold text-white flex items-center gap-2&#34;&#62;
+                    &#60;Sliders className=&#34;text-[#C7D300]&#34; size={18} /&#62;
+                    Ajustement de Caisse
+                  &#60;/h2&#62;</pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              /Users/danielkiboko/Projet Rayon/src/app/admin/finance/page.tsx (Line 754:77 - Line 800:33),
+              /Users/danielkiboko/Projet Rayon/src/app/supplier/finance/page.tsx (Line 921:65 - Line 967:33)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-31')">Show code</button>
+            </div>
+            <pre id="code-tsx-31" class="code-block">                    Solde actuel avant ajustement : &#60;strong&#62;${currentBalance.toFixed(2)}&#60;/strong&#62;
+                  &#60;/p&#62;
+                &#60;/div&#62;
+                &#60;button onClick={() =&#62; setIsAdjustmentModalOpen(false)} className=&#34;text-gray-400 hover:text-white&#34;&#62;
+                  &#60;X size={20} /&#62;
                 &#60;/button&#62;
               &#60;/div&#62;
 
-              &#60;form onSubmit={handleAddTransaction} className=&#34;p-6 space-y-4&#34;&#62;
-                &#60;div className=&#34;space-y-1&#34;&#62;
-                  &#60;label className=&#34;text-sm font-medium text-gray-300&#34;&#62;Type d&#39;opération&#60;/label&#62;
-                  &#60;select 
-                    value={txType}
-                    onChange={(e: any) =&#62; setTxType(e.target.value)}
-                    className=&#34;w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white&#34;</pre>
-          </div>
-          
-          <div class="clone-item">
-            <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/admin/finance/page.tsx (Line 368:92 - Line 380:31),
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/finance/page.tsx (Line 386:82 - Line 398:31)
-            </div>
-            <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-36')">Show code</button>
-            </div>
-            <pre id="code-tsx-36" class="code-block">                    &#60;option value=&#34;EXPENSE&#34;&#62;Dépense de Plateforme (Serveurs, Marketing...)&#60;/option&#62;
-                  &#60;/select&#62;
+              &#60;form onSubmit={handleSaveAdjustment} className=&#34;p-6 space-y-4 text-xs&#34;&#62;
+                &#60;div&#62;
+                  &#60;label className=&#34;text-gray-300 font-semibold block mb-1.5&#34;&#62;Sens de l&#39;ajustement&#60;/label&#62;
+                  &#60;div className=&#34;grid grid-cols-2 gap-2&#34;&#62;
+                    &#60;button
+                      type=&#34;button&#34;
+                      onClick={() =&#62; setAdjType(&#34;ADD&#34;)}
+                      className={`py-2.5 rounded-xl font-bold transition-all border ${
+                        adjType === &#34;ADD&#34; 
+                          ? &#34;bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-sm&#34; 
+                          : &#34;bg-white/5 text-gray-400 border-white/10&#34;
+                      }`}
+                    &#62;
+                      + Entrée / Apport Caisse
+                    &#60;/button&#62;
+                    &#60;button
+                      type=&#34;button&#34;
+                      onClick={() =&#62; setAdjType(&#34;SUBTRACT&#34;)}
+                      className={`py-2.5 rounded-xl font-bold transition-all border ${
+                        adjType === &#34;SUBTRACT&#34; 
+                          ? &#34;bg-red-500/20 text-red-300 border-red-500/40 shadow-sm&#34; 
+                          : &#34;bg-white/5 text-gray-400 border-white/10&#34;
+                      }`}
+                    &#62;
+                      - Sortie / Prélèvement Caisse
+                    &#60;/button&#62;
+                  &#60;/div&#62;
                 &#60;/div&#62;
 
-                &#60;div className=&#34;space-y-1&#34;&#62;
-                  &#60;label className=&#34;text-sm font-medium text-gray-300&#34;&#62;Montant (USD)&#60;/label&#62;
+                &#60;div&#62;
+                  &#60;label className=&#34;text-gray-300 font-semibold block mb-1&#34;&#62;Montant ($ USD) *&#60;/label&#62;
                   &#60;input
                     type=&#34;number&#34;
                     step=&#34;0.01&#34;
+                    min=&#34;0.01&#34;
                     required
-                    value={amount}
-                    onChange={(e) =&#62; setAmount(e.target.value)}
-                    className=&#34;w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white&#34;</pre>
+                    value={adjAmount}
+                    onChange={(e) =&#62; setAdjAmount(e.target.value)}
+                    placeholder=&#34;ex: 50.00&#34;</pre>
           </div>
           
           <div class="clone-item">
             <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/admin/finance/page.tsx (Line 456:19 - Line 470:31),
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/finance/page.tsx (Line 423:19 - Line 437:31)
+              /Users/danielkiboko/Projet Rayon/src/app/admin/finance/page.tsx (Line 806:106 - Line 821:77),
+              /Users/danielkiboko/Projet Rayon/src/app/supplier/finance/page.tsx (Line 973:96 - Line 988:77)
             </div>
             <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-37')">Show code</button>
+              <button class="toggle-btn" onclick="toggle('code-tsx-32')">Show code</button>
             </div>
-            <pre id="code-tsx-37" class="code-block">                  /&#62;
+            <pre id="code-tsx-32" class="code-block">                  &#60;label className=&#34;text-gray-300 font-semibold block mb-1&#34;&#62;Motif comptable obligatoire *&#60;/label&#62;
+                  &#60;select
+                    value={adjReason}
+                    onChange={(e) =&#62; setAdjReason(e.target.value)}
+                    className=&#34;w-full px-3.5 py-2.5 bg-black/30 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-[#C7D300]&#34;
+                  &#62;
+                    {ADJUSTMENT_REASONS.map((r) =&#62; (
+                      &#60;option key={r} value={r} className=&#34;bg-[#0F1D27] text-white&#34;&#62;
+                        {r}
+                      &#60;/option&#62;
+                    ))}
+                  &#60;/select&#62;
                 &#60;/div&#62;
 
-                &#60;div className=&#34;pt-4 flex justify-end space-x-3&#34;&#62;
+                &#60;div&#62;
+                  &#60;label className=&#34;text-gray-300 font-semibold block mb-1&#34;&#62;Libellé précis de l&#39;opération *&#60;/label&#62;</pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              /Users/danielkiboko/Projet Rayon/src/app/admin/finance/page.tsx (Line 839:21 - Line 856:61),
+              /Users/danielkiboko/Projet Rayon/src/app/supplier/finance/page.tsx (Line 1006:21 - Line 1023:61)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-33')">Show code</button>
+            </div>
+            <pre id="code-tsx-33" class="code-block">                    className=&#34;w-full px-3.5 py-2.5 bg-black/30 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-[#C7D300]&#34;
+                  /&#62;
+                &#60;/div&#62;
+
+                &#60;div className=&#34;pt-2 flex justify-end gap-3&#34;&#62;
                   &#60;button
                     type=&#34;button&#34;
-                    onClick={() =&#62; setIsModalOpen(false)}
-                    className=&#34;px-4 py-2 text-gray-400 hover:text-white transition-colors&#34;
+                    onClick={() =&#62; setIsAdjustmentModalOpen(false)}
+                    className=&#34;px-4 py-2.5 text-gray-400 hover:text-white transition-colors&#34;
                   &#62;
                     Annuler
                   &#60;/button&#62;
                   &#60;button
                     type=&#34;submit&#34;
-                    disabled={isSubmitting}
-                    className=&#34;px-6 py-2 bg-primary hover:bg-primary-light text-white font-semibold rounded-lg transition-colors flex items-center disabled:opacity-50&#34;</pre>
+                    disabled={isSubmittingAdj}
+                    className=&#34;px-5 py-2.5 bg-[#C7D300] hover:bg-[#b5c000] text-[#0F1D27] font-bold rounded-xl transition-all disabled:opacity-50&#34;
+                  &#62;
+                    {isSubmittingAdj ? &#34;Enregistrement...&#34; : &#34;Valider l&#39;Écriture d&#39;Ajustement&#34;}</pre>
           </div>
           
           <div class="clone-item">
             <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/admin/finance/page.tsx (Line 471:19 - Line 482:2),
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/finance/page.tsx (Line 438:19 - Line 449:2)
+              /Users/danielkiboko/Projet Rayon/src/app/admin/orders/page.tsx (Line 44:3 - Line 49:20),
+              /Users/danielkiboko/Projet Rayon/src/app/supplier/orders/page.tsx (Line 48:3 - Line 53:20)
             </div>
             <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-38')">Show code</button>
+              <button class="toggle-btn" onclick="toggle('code-tsx-34')">Show code</button>
             </div>
-            <pre id="code-tsx-38" class="code-block">                  &#62;
-                    {isSubmitting ? &#34;Enregistrement...&#34; : &#34;Enregistrer&#34;}
-                  &#60;/button&#62;
-                &#60;/div&#62;
-              &#60;/form&#62;
-            &#60;/motion.div&#62;
-          &#60;/div&#62;
-        )}
-      &#60;/AnimatePresence&#62;
-    &#60;/div&#62;
-  );
-}</pre>
-          </div>
-          
-          <div class="clone-item">
-            <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/admin/orders/page.tsx (Line 7:27 - Line 42:24),
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/orders/page.tsx (Line 8:34 - Line 43:24)
-            </div>
-            <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-39')">Show code</button>
-            </div>
-            <pre id="code-tsx-39" class="code-block">import { collection, query, onSnapshot, orderBy } from &#34;firebase/firestore&#34;;
-
-interface Order {
-  id: string;
-  clientId: string;
-  clientPhone?: string;
-  clientAddress?: string;
-  items: any[];
-  itemsTotal: number;
-  total: number;
-  status: string;
-  createdAt: any;
-}
-
-const getStatusBadge = (status: string) =&#62; {
-  const normalized = status.toUpperCase();
-  switch (normalized) {
-    case &#34;LIVRÉE&#34;:
-    case &#34;DELIVERED&#34;:
-    case &#34;COMPLETED&#34;:
-      return &#60;span className=&#34;flex w-max items-center space-x-1 text-green-400 bg-green-400/10 px-2 py-1 rounded-md text-xs font-medium&#34;&#62;&#60;CheckCircle size={12} /&#62;&#60;span&#62;Livrée&#60;/span&#62;&#60;/span&#62;;
-    case &#34;EN_ATTENTE&#34;:
-    case &#34;PENDING&#34;:
-      return &#60;span className=&#34;flex w-max items-center space-x-1 text-orange-400 bg-orange-400/10 px-2 py-1 rounded-md text-xs font-medium&#34;&#62;&#60;Clock size={12} /&#62;&#60;span&#62;En attente&#60;/span&#62;&#60;/span&#62;;
-    case &#34;EXPÉDIÉE&#34;:
-    case &#34;SHIPPED&#34;:
-      return &#60;span className=&#34;flex w-max items-center space-x-1 text-blue-400 bg-blue-400/10 px-2 py-1 rounded-md text-xs font-medium&#34;&#62;&#60;Truck size={12} /&#62;&#60;span&#62;Expédiée&#60;/span&#62;&#60;/span&#62;;
-    case &#34;ANNULÉE&#34;:
-    case &#34;CANCELLED&#34;:
-      return &#60;span className=&#34;flex w-max items-center space-x-1 text-red-400 bg-red-400/10 px-2 py-1 rounded-md text-xs font-medium&#34;&#62;&#60;XCircle size={12} /&#62;&#60;span&#62;Annulée&#60;/span&#62;&#60;/span&#62;;
-    default:
-      return &#60;span className=&#34;w-max text-gray-400 bg-white/10 px-2 py-1 rounded-md text-xs font-medium&#34;&#62;{status}&#60;/span&#62;;
-  }
-};
-
-export default function AdminOrdersPage() {</pre>
-          </div>
-          
-          <div class="clone-item">
-            <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/admin/orders/page.tsx (Line 43:3 - Line 48:20),
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/orders/page.tsx (Line 46:3 - Line 51:20)
-            </div>
-            <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-40')">Show code</button>
-            </div>
-            <pre id="code-tsx-40" class="code-block">  const [search, setSearch] = useState(&#34;&#34;);
+            <pre id="code-tsx-34" class="code-block">  const [search, setSearch] = useState(&#34;&#34;);
   const [filter, setFilter] = useState(&#34;all&#34;);
   const [orders, setOrders] = useState&#60;Order[]&#62;([]);
   const [loading, setLoading] = useState(true);
@@ -1127,13 +999,13 @@ export default function AdminOrdersPage() {</pre>
           
           <div class="clone-item">
             <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/admin/orders/page.tsx (Line 49:44 - Line 64:7),
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/orders/page.tsx (Line 58:62 - Line 75:7)
+              /Users/danielkiboko/Projet Rayon/src/app/admin/orders/page.tsx (Line 50:44 - Line 65:7),
+              /Users/danielkiboko/Projet Rayon/src/app/supplier/orders/page.tsx (Line 59:49 - Line 76:7)
             </div>
             <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-41')">Show code</button>
+              <button class="toggle-btn" onclick="toggle('code-tsx-35')">Show code</button>
             </div>
-            <pre id="code-tsx-41" class="code-block">    const q = query(collection(db, &#34;orders&#34;), orderBy(&#34;createdAt&#34;, &#34;desc&#34;));
+            <pre id="code-tsx-35" class="code-block">    const q = query(collection(db, &#34;orders&#34;), orderBy(&#34;createdAt&#34;, &#34;desc&#34;));
 
     const unsubscribe = onSnapshot(q, (snapshot) =&#62; {
       const fetched: Order[] = [];
@@ -1153,91 +1025,65 @@ export default function AdminOrdersPage() {</pre>
           
           <div class="clone-item">
             <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/admin/orders/page.tsx (Line 64:7 - Line 83:57),
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/orders/page.tsx (Line 75:11 - Line 94:57)
+              /Users/danielkiboko/Projet Rayon/src/app/admin/orders/page.tsx (Line 65:7 - Line 71:47),
+              /Users/danielkiboko/Projet Rayon/src/app/supplier/orders/page.tsx (Line 76:29 - Line 82:47)
             </div>
             <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-42')">Show code</button>
+              <button class="toggle-btn" onclick="toggle('code-tsx-36')">Show code</button>
             </div>
-            <pre id="code-tsx-42" class="code-block">  }, []);
+            <pre id="code-tsx-36" class="code-block">  }, []);
 
   const filteredOrders = orders.filter(o =&#62; {
     const searchMatch = o.id.toLowerCase().includes(search.toLowerCase()) || 
                        (o.clientPhone &#38;&#38; o.clientPhone.includes(search));
     
-    const normalizedStatus = (o.status || &#34;&#34;).toUpperCase();
-    let statusMatch = true;
-    if (filter === &#34;pending&#34;) statusMatch = normalizedStatus === &#34;EN_ATTENTE&#34; || normalizedStatus === &#34;PENDING&#34;;
-    if (filter === &#34;shipped&#34;) statusMatch = normalizedStatus === &#34;EXPÉDIÉE&#34; || normalizedStatus === &#34;SHIPPED&#34;;
-    if (filter === &#34;delivered&#34;) statusMatch = normalizedStatus === &#34;LIVRÉE&#34; || normalizedStatus === &#34;DELIVERED&#34; || normalizedStatus === &#34;COMPLETED&#34;;
-
-    return searchMatch &#38;&#38; statusMatch;
-  });
-
-  return (
-    &#60;div className=&#34;space-y-6&#34;&#62;
-      &#60;div className=&#34;flex flex-col sm:flex-row sm:items-center justify-between gap-4&#34;&#62;
-        &#60;div&#62;
-          &#60;h1 className=&#34;text-2xl font-bold text-white&#34;&#62;Toutes les Commandes&#60;/h1&#62;</pre>
+    const normalizedStatus = (o.status || &#34;&#34;).toUpperCase();</pre>
           </div>
           
           <div class="clone-item">
             <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/admin/orders/page.tsx (Line 105:13 - Line 116:30),
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/orders/page.tsx (Line 116:13 - Line 127:30)
+              /Users/danielkiboko/Projet Rayon/src/app/admin/orders/page.tsx (Line 123:54 - Line 131:45),
+              /Users/danielkiboko/Projet Rayon/src/app/supplier/orders/page.tsx (Line 142:64 - Line 150:45)
             </div>
             <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-43')">Show code</button>
+              <button class="toggle-btn" onclick="toggle('code-tsx-37')">Show code</button>
             </div>
-            <pre id="code-tsx-43" class="code-block">            &#62;
-              &#60;option value=&#34;all&#34;&#62;Tous les statuts&#60;/option&#62;
-              &#60;option value=&#34;pending&#34;&#62;En attente&#60;/option&#62;
-              &#60;option value=&#34;shipped&#34;&#62;Expédiée&#60;/option&#62;
-              &#60;option value=&#34;delivered&#34;&#62;Livrée&#60;/option&#62;
-            &#60;/select&#62;
-          &#60;/div&#62;
-        &#60;/div&#62;
-
-        &#60;div className=&#34;overflow-x-auto&#34;&#62;
-          &#60;table className=&#34;w-full text-left text-sm text-gray-300&#34;&#62;
-            &#60;thead className=&#34;text-xs uppercase bg-[#121212] text-gray-400&#34;&#62;</pre>
-          </div>
-          
-          <div class="clone-item">
-            <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/admin/orders/page.tsx (Line 121:63 - Line 136:88),
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/orders/page.tsx (Line 132:66 - Line 147:88)
-            </div>
-            <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-44')">Show code</button>
-            </div>
-            <pre id="code-tsx-44" class="code-block">                &#60;th className=&#34;px-6 py-4&#34;&#62;Détail des Articles&#60;/th&#62;
-                &#60;th className=&#34;px-6 py-4&#34;&#62;Total Payé&#60;/th&#62;
+            <pre id="code-tsx-37" class="code-block">                &#60;th className=&#34;px-6 py-4&#34;&#62;Total Payé&#60;/th&#62;
                 &#60;th className=&#34;px-6 py-4&#34;&#62;Statut&#60;/th&#62;
+                &#60;th className=&#34;px-6 py-4 text-right&#34;&#62;Facturation&#60;/th&#62;
               &#60;/tr&#62;
             &#60;/thead&#62;
             &#60;tbody&#62;
               {loading ? (
                 &#60;tr&#62;
-                  &#60;td colSpan={6} className=&#34;px-6 py-8 text-center text-gray-400&#34;&#62;
-                    Chargement des commandes...
-                  &#60;/td&#62;
-                &#60;/tr&#62;
-              ) : filteredOrders.length === 0 ? (
-                &#60;tr&#62;
-                  &#60;td colSpan={6} className=&#34;px-6 py-8 text-center text-gray-400 flex flex-col items-center&#34;&#62;
-                    &#60;ShoppingBag size={48} className=&#34;mb-4 text-gray-600 opacity-50&#34; /&#62;</pre>
+                  &#60;td colSpan={7} className=&#34;px-6 py-8 text-center text-gray-400&#34;&#62;</pre>
           </div>
           
           <div class="clone-item">
             <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/admin/orders/page.tsx (Line 143:69 - Line 161:34),
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/orders/page.tsx (Line 156:110 - Line 174:34)
+              /Users/danielkiboko/Projet Rayon/src/app/admin/orders/page.tsx (Line 140:19 - Line 145:39),
+              /Users/danielkiboko/Projet Rayon/src/app/supplier/orders/page.tsx (Line 160:19 - Line 165:39)
             </div>
             <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-45')">Show code</button>
+              <button class="toggle-btn" onclick="toggle('code-tsx-38')">Show code</button>
             </div>
-            <pre id="code-tsx-45" class="code-block">                  const total = order.total || order.itemsTotal || 0;
+            <pre id="code-tsx-38" class="code-block">                  &#60;/td&#62;
+                &#60;/tr&#62;
+              ) : (
+                filteredOrders.map((order, index) =&#62; {
+                  const itemsCount = order.items?.reduce((acc, item) =&#62; acc + (item.quantity || 1), 0) || 0;
+                  const total = order.total || order.itemsTotal || 0;</pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              /Users/danielkiboko/Projet Rayon/src/app/admin/orders/page.tsx (Line 145:69 - Line 155:37),
+              /Users/danielkiboko/Projet Rayon/src/app/supplier/orders/page.tsx (Line 170:29 - Line 180:37)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-39')">Show code</button>
+            </div>
+            <pre id="code-tsx-39" class="code-block">                  const total = order.total || order.itemsTotal || 0;
 
                   return (
                     &#60;motion.tr 
@@ -1247,45 +1093,22 @@ export default function AdminOrdersPage() {</pre>
                       key={order.id} 
                       className=&#34;border-b border-white/5 hover:bg-white/5 transition-colors&#34;
                     &#62;
-                      &#60;td className=&#34;px-6 py-4 font-medium text-white truncate max-w-[120px]&#34;&#62;{order.id}&#60;/td&#62;
-                      &#60;td className=&#34;px-6 py-4&#34;&#62;
-                        {order.createdAt?.toDate ? order.createdAt.toDate().toLocaleDateString(&#34;fr-FR&#34;) : &#34;Date inconnue&#34;}
-                      &#60;/td&#62;
-                      &#60;td className=&#34;px-6 py-4 truncate max-w-[150px]&#34;&#62;{order.clientPhone || order.clientId}&#60;/td&#62;
-                      &#60;td className=&#34;px-6 py-4 flex flex-col space-y-1&#34;&#62;
-                        &#60;div className=&#34;flex items-center space-x-2&#34;&#62;
-                          &#60;Package size={14} className=&#34;text-gray-400&#34; /&#62;
-                          &#60;span&#62;{itemsCount} produit(s)&#60;/span&#62;</pre>
+                      &#60;td className=&#34;px-6 py-4 font-medium text-white truncate max-w-[120px]&#34;&#62;{order.id}&#60;/td&#62;</pre>
           </div>
           
           <div class="clone-item">
             <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/admin/orders/page.tsx (Line 163:39 - Line 169:73),
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/orders/page.tsx (Line 176:34 - Line 182:73)
+              /Users/danielkiboko/Projet Rayon/src/app/admin/orders/page.tsx (Line 179:27 - Line 195:2),
+              /Users/danielkiboko/Projet Rayon/src/app/supplier/orders/page.tsx (Line 210:27 - Line 226:2)
             </div>
             <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-46')">Show code</button>
+              <button class="toggle-btn" onclick="toggle('code-tsx-40')">Show code</button>
             </div>
-            <pre id="code-tsx-46" class="code-block">                        {order.items?.map((item, idx) =&#62; (
-                          &#60;span key={idx} className=&#34;text-xs text-gray-500 truncate max-w-[150px]&#34;&#62;
-                            {item.quantity}x {item.name}
-                          &#60;/span&#62;
-                        ))}
-                      &#60;/td&#62;
-                      &#60;td className=&#34;px-6 py-4 font-medium text-white&#34;&#62;{total.toLocaleString()} FC&#60;/td&#62;</pre>
-          </div>
-          
-          <div class="clone-item">
-            <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/admin/orders/page.tsx (Line 169:78 - Line 183:2),
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/orders/page.tsx (Line 182:80 - Line 196:2)
-            </div>
-            <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-47')">Show code</button>
-            </div>
-            <pre id="code-tsx-47" class="code-block">                      &#60;td className=&#34;px-6 py-4 font-medium text-white&#34;&#62;{total.toLocaleString()} FC&#60;/td&#62;
-                      &#60;td className=&#34;px-6 py-4&#34;&#62;
-                        {getStatusBadge(order.status)}
+            <pre id="code-tsx-40" class="code-block">                          className=&#34;inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-[#C7D300] hover:text-[#0F1D27] text-white rounded-lg text-xs font-bold transition-all shadow-xs active:scale-95&#34;
+                        &#62;
+                          &#60;Download size={13} /&#62;
+                          &#60;span&#62;Facture&#60;/span&#62;
+                        &#60;/button&#62;
                       &#60;/td&#62;
                     &#60;/motion.tr&#62;
                   );
@@ -1302,36 +1125,29 @@ export default function AdminOrdersPage() {</pre>
           
           <div class="clone-item">
             <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/admin/products/page.tsx (Line 9:42 - Line 43:11),
-              /Users/danielkiboko/Projet Rayon/src/app/admin/properties/page.tsx (Line 9:44 - Line 43:11)
+              /Users/danielkiboko/Projet Rayon/src/app/admin/products/page.tsx (Line 10:42 - Line 37:11),
+              /Users/danielkiboko/Projet Rayon/src/app/admin/properties/page.tsx (Line 10:44 - Line 37:11)
             </div>
             <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-48')">Show code</button>
+              <button class="toggle-btn" onclick="toggle('code-tsx-41')">Show code</button>
             </div>
-            <pre id="code-tsx-48" class="code-block">export default function AdminProductsPage() {
+            <pre id="code-tsx-41" class="code-block">export default function AdminProductsPage() {
   const { user, userData, loading } = useAuth();
   const router = useRouter();
+  const isAuthorized = hasAdminAccess(user, userData);
   
-  // Protect route for Super Admin and authorized SUB_ADMINs
+  // Protect route for Admin and authorized staff
   useEffect(() =&#62; {
     if (!loading) {
       if (!user) {
         router.push(&#34;/login&#34;);
-      } else {
-        const isSuperAdmin = user.email === &#34;danielkiboko218@gmail.com&#34;;
-        const isAuthorizedSubAdmin = userData?.role === &#34;SUB_ADMIN&#34;;
-        
-        if (!isSuperAdmin &#38;&#38; !isAuthorizedSubAdmin) {
-          router.push(&#34;/&#34;);
-        }
+      } else if (!isAuthorized) {
+        router.push(&#34;/&#34;);
       }
     }
-  }, [user, userData, loading, router]);
+  }, [user, userData, loading, router, isAuthorized]);
 
-  const isSuperAdmin = user?.email === &#34;danielkiboko218@gmail.com&#34;;
-  const isAuthorizedSubAdmin = userData?.role === &#34;SUB_ADMIN&#34;;
-
-  if (loading || !user || (!isSuperAdmin &#38;&#38; !isAuthorizedSubAdmin)) {
+  if (loading || !user || !isAuthorized) {
     return (
       &#60;div className=&#34;min-h-[60vh] flex items-center justify-center&#34;&#62;
         &#60;div className=&#34;text-white flex flex-col items-center&#34;&#62;
@@ -1347,13 +1163,107 @@ export default function AdminOrdersPage() {</pre>
           
           <div class="clone-item">
             <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/driver/mission/[id]/page.tsx (Line 72:7 - Line 79:18),
-              /Users/danielkiboko/Projet Rayon/src/app/driver/page.tsx (Line 98:9 - Line 105:20)
+              /Users/danielkiboko/Projet Rayon/src/app/admin/products/page.tsx (Line 12:28 - Line 24:12),
+              /Users/danielkiboko/Projet Rayon/src/app/admin/team/page.tsx (Line 72:46 - Line 83:12)
             </div>
             <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-49')">Show code</button>
+              <button class="toggle-btn" onclick="toggle('code-tsx-42')">Show code</button>
             </div>
-            <pre id="code-tsx-49" class="code-block">      const phone = order.clientPhone || (order.customerInfo &#38;&#38; order.customerInfo.phone) || &#34;&#34;;
+            <pre id="code-tsx-42" class="code-block">  const router = useRouter();
+  const isAuthorized = hasAdminAccess(user, userData);
+  
+  // Protect route for Admin and authorized staff
+  useEffect(() =&#62; {
+    if (!loading) {
+      if (!user) {
+        router.push(&#34;/login&#34;);
+      } else if (!isAuthorized) {
+        router.push(&#34;/&#34;);
+      }
+    }
+  }, [user, userData, loading, router, isAuthorized]);</pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              /Users/danielkiboko/Projet Rayon/src/app/admin/suppliers/page.tsx (Line 467:18 - Line 475:8),
+              /Users/danielkiboko/Projet Rayon/src/app/admin/team/page.tsx (Line 437:38 - Line 445:8)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-43')">Show code</button>
+            </div>
+            <pre id="code-tsx-43" class="code-block">            &#60;span&#62;{successMessage}&#60;/span&#62;
+          &#60;/div&#62;
+          &#60;button onClick={() =&#62; setSuccessMessage(&#34;&#34;)} className=&#34;text-green-400 hover:text-white&#34;&#62;
+            &#60;X size={16} /&#62;
+          &#60;/button&#62;
+        &#60;/div&#62;
+      )}
+
+      {/* Rayon Category Separation Tabs */}</pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              /Users/danielkiboko/Projet Rayon/src/app/admin/suppliers/page.tsx (Line 921:112 - Line 928:30),
+              /Users/danielkiboko/Projet Rayon/src/app/supplier/tenants/page.tsx (Line 866:112 - Line 873:30)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-44')">Show code</button>
+            </div>
+            <pre id="code-tsx-44" class="code-block">          &#60;div className=&#34;fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm&#34;&#62;
+            &#60;motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className=&#34;w-full max-w-md bg-[#140b2e] border border-white/10 rounded-2xl shadow-2xl overflow-hidden&#34;
+            &#62;
+              &#60;div className=&#34;flex items-center justify-between p-6 border-b border-white/10&#34;&#62;</pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              /Users/danielkiboko/Projet Rayon/src/app/admin/suppliers/page.tsx (Line 1236:112 - Line 1243:30),
+              /Users/danielkiboko/Projet Rayon/src/app/supplier/tenants/page.tsx (Line 936:112 - Line 943:30)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-45')">Show code</button>
+            </div>
+            <pre id="code-tsx-45" class="code-block">          &#60;div className=&#34;fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm&#34;&#62;
+            &#60;motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className=&#34;w-full max-w-sm bg-[#140b2e] border border-white/10 rounded-2xl shadow-2xl overflow-hidden&#34;
+            &#62;
+              &#60;div className=&#34;flex items-center justify-between p-6 border-b border-white/10&#34;&#62;</pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              /Users/danielkiboko/Projet Rayon/src/app/dashboard/client/page.tsx (Line 78:32 - Line 83:23),
+              /Users/danielkiboko/Projet Rayon/src/components/hotels/HotelBookingsManager.tsx (Line 61:22 - Line 66:18)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-46')">Show code</button>
+            </div>
+            <pre id="code-tsx-46" class="code-block">      list.sort((a: any, b: any) =&#62; {
+        const timeA = a.createdAt?.seconds ? a.createdAt.seconds * 1000 : new Date(a.checkInDate || 0).getTime();
+        const timeB = b.createdAt?.seconds ? b.createdAt.seconds * 1000 : new Date(b.checkInDate || 0).getTime();
+        return timeB - timeA;
+      });
+      setHotelBookings(list);</pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              /Users/danielkiboko/Projet Rayon/src/app/driver/mission/[id]/page.tsx (Line 72:7 - Line 79:18),
+              /Users/danielkiboko/Projet Rayon/src/app/driver/page.tsx (Line 103:9 - Line 110:20)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-47')">Show code</button>
+            </div>
+            <pre id="code-tsx-47" class="code-block">      const phone = order.clientPhone || (order.customerInfo &#38;&#38; order.customerInfo.phone) || &#34;&#34;;
       fetch(&#34;/api/notifications&#34;, {
         method: &#34;POST&#34;,
         headers: { &#34;Content-Type&#34;: &#34;application/json&#34; },
@@ -1365,13 +1275,13 @@ export default function AdminOrdersPage() {</pre>
           
           <div class="clone-item">
             <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/forgot-password/page.tsx (Line 50:9 - Line 59:82),
-              /Users/danielkiboko/Projet Rayon/src/app/login/page.tsx (Line 61:9 - Line 70:82)
+              /Users/danielkiboko/Projet Rayon/src/app/forgot-password/page.tsx (Line 50:9 - Line 58:26),
+              /Users/danielkiboko/Projet Rayon/src/app/login/page.tsx (Line 61:9 - Line 69:26)
             </div>
             <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-50')">Show code</button>
+              <button class="toggle-btn" onclick="toggle('code-tsx-48')">Show code</button>
             </div>
-            <pre id="code-tsx-50" class="code-block">        &#60;/Link&#62;
+            <pre id="code-tsx-48" class="code-block">        &#60;/Link&#62;
         
         &#60;motion.div 
           initial={{ opacity: 0, y: 20 }}
@@ -1379,45 +1289,45 @@ export default function AdminOrdersPage() {</pre>
           transition={{ duration: 0.5 }}
           className=&#34;max-w-md w-full&#34;
         &#62;
-          &#60;div className=&#34;space-y-2 mb-8&#34;&#62;
-            &#60;h1 className=&#34;text-3xl font-extrabold tracking-tight text-gray-900&#34;&#62;Mot de passe oublié ?&#60;/h1&#62;</pre>
+          &#60;div className=&#34;space-y-2 mb-8&#34;&#62;</pre>
           </div>
           
           <div class="clone-item">
             <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/login/page.tsx (Line 16:31 - Line 21:54),
-              /Users/danielkiboko/Projet Rayon/src/app/register/page.tsx (Line 17:23 - Line 22:54)
+              /Users/danielkiboko/Projet Rayon/src/app/login/page.tsx (Line 17:31 - Line 23:8),
+              /Users/danielkiboko/Projet Rayon/src/app/register/page.tsx (Line 18:23 - Line 25:8)
             </div>
             <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-51')">Show code</button>
+              <button class="toggle-btn" onclick="toggle('code-tsx-49')">Show code</button>
             </div>
-            <pre id="code-tsx-51" class="code-block">  const [password, setPassword] = useState(&#34;&#34;);
+            <pre id="code-tsx-49" class="code-block">  const [password, setPassword] = useState(&#34;&#34;);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(&#34;&#34;);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectUrl = searchParams.get(&#34;redirect&#34;) || &#34;/dashboard&#34;;</pre>
+  const redirectUrl = searchParams.get(&#34;redirect&#34;) || &#34;/dashboard&#34;;
+  const reason = searchParams.get(&#34;reason&#34;);</pre>
           </div>
           
           <div class="clone-item">
             <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/login/page.tsx (Line 49:5 - Line 70:82),
-              /Users/danielkiboko/Projet Rayon/src/app/register/page.tsx (Line 57:5 - Line 78:82)
+              /Users/danielkiboko/Projet Rayon/src/app/login/page.tsx (Line 49:5 - Line 74:96),
+              /Users/danielkiboko/Projet Rayon/src/app/register/page.tsx (Line 60:5 - Line 85:96)
             </div>
             <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-52')">Show code</button>
+              <button class="toggle-btn" onclick="toggle('code-tsx-50')">Show code</button>
             </div>
-            <pre id="code-tsx-52" class="code-block">    } finally {
+            <pre id="code-tsx-50" class="code-block">    } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    &#60;div className=&#34;flex min-h-screen bg-gray-50 text-gray-900&#34;&#62;
+    &#60;div className=&#34;flex min-h-screen bg-[#F8FAFC] text-[#0F1D27]&#34;&#62;
       
       {/* Left Column: Form */}
-      &#60;div className=&#34;w-full lg:w-1/2 flex flex-col justify-center px-8 sm:px-16 lg:px-24&#34;&#62;
-        &#60;Link href=&#34;/&#34; className=&#34;inline-flex items-center text-sm font-medium text-gray-500 hover:text-gray-900 mb-12 transition-colors&#34;&#62;
+      &#60;div className=&#34;w-full lg:w-1/2 flex flex-col justify-center px-8 sm:px-16 lg:px-24 py-12&#34;&#62;
+        &#60;Link href=&#34;/&#34; className=&#34;inline-flex items-center text-sm font-medium text-gray-500 hover:text-[#0F1D27] mb-8 transition-colors&#34;&#62;
           &#60;ArrowLeft size={16} className=&#34;mr-2&#34; /&#62; Retour à l&#39;accueil
         &#60;/Link&#62;
         
@@ -1427,24 +1337,23 @@ export default function AdminOrdersPage() {</pre>
           transition={{ duration: 0.5 }}
           className=&#34;max-w-md w-full&#34;
         &#62;
+          &#60;div className=&#34;mb-6&#34;&#62;
+            &#60;RayonsLogo size=&#34;lg&#34; href=&#34;/&#34; /&#62;
+          &#60;/div&#62;
+
           &#60;div className=&#34;space-y-2 mb-8&#34;&#62;
-            &#60;h1 className=&#34;text-3xl font-extrabold tracking-tight text-gray-900&#34;&#62;Bon retour&#60;/h1&#62;</pre>
+            &#60;h1 className=&#34;text-3xl font-heading font-extrabold tracking-tight text-[#0F1D27]&#34;&#62;Bon retour&#60;/h1&#62;</pre>
           </div>
           
           <div class="clone-item">
             <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/login/page.tsx (Line 54:3 - Line 70:82),
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/register/page.tsx (Line 126:3 - Line 142:82)
+              /Users/danielkiboko/Projet Rayon/src/app/login/page.tsx (Line 59:138 - Line 70:39),
+              /Users/danielkiboko/Projet Rayon/src/app/supplier/register/page.tsx (Line 160:138 - Line 171:82)
             </div>
             <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-53')">Show code</button>
+              <button class="toggle-btn" onclick="toggle('code-tsx-51')">Show code</button>
             </div>
-            <pre id="code-tsx-53" class="code-block">  return (
-    &#60;div className=&#34;flex min-h-screen bg-gray-50 text-gray-900&#34;&#62;
-      
-      {/* Left Column: Form */}
-      &#60;div className=&#34;w-full lg:w-1/2 flex flex-col justify-center px-8 sm:px-16 lg:px-24&#34;&#62;
-        &#60;Link href=&#34;/&#34; className=&#34;inline-flex items-center text-sm font-medium text-gray-500 hover:text-gray-900 mb-12 transition-colors&#34;&#62;
+            <pre id="code-tsx-51" class="code-block">        &#60;Link href=&#34;/&#34; className=&#34;inline-flex items-center text-sm font-medium text-gray-500 hover:text-[#0F1D27] mb-8 transition-colors&#34;&#62;
           &#60;ArrowLeft size={16} className=&#34;mr-2&#34; /&#62; Retour à l&#39;accueil
         &#60;/Link&#62;
         
@@ -1454,170 +1363,51 @@ export default function AdminOrdersPage() {</pre>
           transition={{ duration: 0.5 }}
           className=&#34;max-w-md w-full&#34;
         &#62;
-          &#60;div className=&#34;space-y-2 mb-8&#34;&#62;
-            &#60;h1 className=&#34;text-3xl font-extrabold tracking-tight text-gray-900&#34;&#62;Bon retour&#60;/h1&#62;</pre>
+          &#60;div className=&#34;mb-6&#34;&#62;
+            &#60;RayonsLogo size=&#34;lg&#34; href=&#34;/&#34; /&#62;</pre>
           </div>
           
           <div class="clone-item">
             <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/login/page.tsx (Line 81:13 - Line 94:16),
-              /Users/danielkiboko/Projet Rayon/src/app/register/page.tsx (Line 101:13 - Line 114:16)
+              /Users/danielkiboko/Projet Rayon/src/app/login/page.tsx (Line 85:13 - Line 98:16),
+              /Users/danielkiboko/Projet Rayon/src/app/register/page.tsx (Line 108:13 - Line 121:16)
             </div>
             <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-54')">Show code</button>
+              <button class="toggle-btn" onclick="toggle('code-tsx-52')">Show code</button>
             </div>
-            <pre id="code-tsx-54" class="code-block">            &#60;div className=&#34;space-y-1&#34;&#62;
-              &#60;label className=&#34;text-sm font-bold text-gray-700&#34;&#62;Adresse Email&#60;/label&#62;
+            <pre id="code-tsx-52" class="code-block">            &#60;div className=&#34;space-y-1.5&#34;&#62;
+              &#60;label className=&#34;text-xs font-heading font-bold uppercase tracking-wider text-gray-700&#34;&#62;Adresse Email&#60;/label&#62;
               &#60;input
                 type=&#34;email&#34;
                 required
                 value={email}
                 onChange={(e) =&#62; setEmail(e.target.value)}
-                className=&#34;w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-gray-900 transition-all shadow-sm&#34;
+                className=&#34;w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C7D300] focus:border-transparent text-[#0F1D27] transition-all shadow-xs&#34;
                 placeholder=&#34;votre@email.com&#34;
               /&#62;
             &#60;/div&#62;
             
-            &#60;div className=&#34;space-y-1&#34;&#62;
+            &#60;div className=&#34;space-y-1.5&#34;&#62;
               &#60;div className=&#34;flex justify-between items-center&#34;&#62;</pre>
           </div>
           
           <div class="clone-item">
             <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/rayon/immo/page.tsx (Line 49:76 - Line 57:25),
-              /Users/danielkiboko/Projet Rayon/src/components/rayon/StoreTemplate.tsx (Line 22:33 - Line 29:39)
+              /Users/danielkiboko/Projet Rayon/src/app/login/page.tsx (Line 103:20 - Line 119:25),
+              /Users/danielkiboko/Projet Rayon/src/app/register/page.tsx (Line 121:123 - Line 137:25)
             </div>
             <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-55')">Show code</button>
+              <button class="toggle-btn" onclick="toggle('code-tsx-53')">Show code</button>
             </div>
-            <pre id="code-tsx-55" class="code-block">  const [selectedProperty, setSelectedProperty] = useState&#60;any | null&#62;(null);
-  const [products, setProducts] = useState&#60;any[]&#62;([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() =&#62; {
-    const fetchProducts = async () =&#62; {
-      try {
-        const q = query(
-          collection(db, &#34;properties&#34;), </pre>
-          </div>
-          
-          <div class="clone-item">
-            <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/rayon/immo/page.tsx (Line 58:45 - Line 67:23),
-              /Users/danielkiboko/Projet Rayon/src/components/rayon/StoreTemplate.tsx (Line 29:85 - Line 37:23)
-            </div>
-            <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-56')">Show code</button>
-            </div>
-            <pre id="code-tsx-56" class="code-block">          where(&#34;status&#34;, &#34;==&#34;, &#34;Disponible&#34;)
-        );
-        const querySnapshot = await getDocs(q);
-        const productsList = querySnapshot.docs.map(doc =&#62; ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        
-        if (productsList.length === 0) {
-          setProducts([]);</pre>
-          </div>
-          
-          <div class="clone-item">
-            <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/rayon/immo/page.tsx (Line 104:21 - Line 114:13),
-              /Users/danielkiboko/Projet Rayon/src/components/rayon/StoreTemplate.tsx (Line 88:39 - Line 98:13)
-            </div>
-            <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-57')">Show code</button>
-            </div>
-            <pre id="code-tsx-57" class="code-block">              {t.tag}
-            &#60;/span&#62;
-            &#60;motion.h1 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className=&#34;text-4xl md:text-5xl font-extrabold text-white tracking-tight leading-tight mb-4&#34;
-            &#62;
-              {t.title}
-            &#60;/motion.h1&#62;
-            &#60;motion.p </pre>
-          </div>
-          
-          <div class="clone-item">
-            <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/register/page.tsx (Line 79:98 - Line 90:66),
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/register/page.tsx (Line 143:96 - Line 154:66)
-            </div>
-            <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-58')">Show code</button>
-            </div>
-            <pre id="code-tsx-58" class="code-block">            &#60;p className=&#34;text-gray-500&#34;&#62;Rejoignez la plateforme Rayon et profitez de nos offres.&#60;/p&#62;
-          &#60;/div&#62;
-
-          {error &#38;&#38; (
-            &#60;div className=&#34;mb-6 p-4 bg-red-50 border border-red-100 text-red-600 text-sm rounded-lg&#34;&#62;
-              {error}
-            &#60;/div&#62;
-          )}
-
-          &#60;form onSubmit={handleRegister} className=&#34;space-y-5&#34;&#62;
-            &#60;div className=&#34;space-y-1&#34;&#62;
-              &#60;label className=&#34;text-sm font-bold text-gray-700&#34;&#62;Nom complet&#60;/label&#62;</pre>
-          </div>
-          
-          <div class="clone-item">
-            <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/register/page.tsx (Line 90:77 - Line 102:66),
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/register/page.tsx (Line 154:87 - Line 166:66)
-            </div>
-            <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-59')">Show code</button>
-            </div>
-            <pre id="code-tsx-59" class="code-block">              &#60;label className=&#34;text-sm font-bold text-gray-700&#34;&#62;Nom complet&#60;/label&#62;
+            <pre id="code-tsx-53" class="code-block">              &#60;/div&#62;
               &#60;input
-                type=&#34;text&#34;
+                type=&#34;password&#34;
                 required
-                value={name}
-                onChange={(e) =&#62; setName(e.target.value)}
-                className=&#34;w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-gray-900 transition-all shadow-sm&#34;
-                placeholder=&#34;Jean Dupont&#34;
+                value={password}
+                onChange={(e) =&#62; setPassword(e.target.value)}
+                className=&#34;w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C7D300] focus:border-transparent text-[#0F1D27] transition-all shadow-xs&#34;
+                placeholder=&#34;••••••••&#34;
               /&#62;
-            &#60;/div&#62;
-
-            &#60;div className=&#34;space-y-1&#34;&#62;
-              &#60;label className=&#34;text-sm font-bold text-gray-700&#34;&#62;Adresse Email&#60;/label&#62;</pre>
-          </div>
-          
-          <div class="clone-item">
-            <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/register/page.tsx (Line 98:15 - Line 109:29),
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/register/page.tsx (Line 174:15 - Line 185:29)
-            </div>
-            <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-60')">Show code</button>
-            </div>
-            <pre id="code-tsx-60" class="code-block">              /&#62;
-            &#60;/div&#62;
-
-            &#60;div className=&#34;space-y-1&#34;&#62;
-              &#60;label className=&#34;text-sm font-bold text-gray-700&#34;&#62;Adresse Email&#60;/label&#62;
-              &#60;input
-                type=&#34;email&#34;
-                required
-                value={email}
-                onChange={(e) =&#62; setEmail(e.target.value)}
-                className=&#34;w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-gray-900 transition-all shadow-sm&#34;
-                placeholder=&#34;votre@email.com&#34;</pre>
-          </div>
-          
-          <div class="clone-item">
-            <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/register/page.tsx (Line 123:16 - Line 135:20),
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/register/page.tsx (Line 211:23 - Line 223:20)
-            </div>
-            <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-61')">Show code</button>
-            </div>
-            <pre id="code-tsx-61" class="code-block">              /&#62;
             &#60;/div&#62;
 
             &#60;motion.button
@@ -1625,109 +1415,65 @@ export default function AdminOrdersPage() {</pre>
               whileTap={{ scale: 0.99 }}
               type=&#34;submit&#34;
               disabled={isLoading}
-              className=&#34;w-full py-3.5 bg-gray-900 hover:bg-gray-800 text-white font-bold rounded-xl transition-colors shadow-sm flex justify-center items-center mt-4&#34;
-            &#62;
-              {isLoading ? (
-                &#60;div className=&#34;w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin&#34; /&#62;
-              ) : (</pre>
+              className=&#34;w-full py-3.5 bg-[#C7D300] hover:bg-[#b5c000] text-[#0F1D27] font-heading font-bold rounded-xl transition-all shadow-md shadow-[#C7D300]/20 flex justify-center items-center mt-3 cursor-pointer&#34;</pre>
           </div>
           
           <div class="clone-item">
             <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/invoices/SupplierInvoicesClient.tsx (Line 23:67 - Line 31:10),
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/payments/SupplierPaymentsClient.tsx (Line 37:58 - Line 42:10)
+              /Users/danielkiboko/Projet Rayon/src/app/supplier/finance/page.tsx (Line 683:80 - Line 697:26),
+              /Users/danielkiboko/Projet Rayon/src/components/invoices/InvoiceManager.tsx (Line 518:34 - Line 532:26)
             </div>
             <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-62')">Show code</button>
+              <button class="toggle-btn" onclick="toggle('code-tsx-54')">Show code</button>
             </div>
-            <pre id="code-tsx-62" class="code-block">  const activeSupplierId = userData?.parentSupplierId || user?.uid;
-  
-  const [tenants, setTenants] = useState&#60;Tenant[]&#62;([]);
-  const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Form State
-  const [invoiceType, setInvoiceType] = useState(&#34;Facture&#34;); // Facture ou Proforma</pre>
-          </div>
-          
-          <div class="clone-item">
-            <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/invoices/SupplierInvoicesClient.tsx (Line 284:12 - Line 296:60),
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/payments/SupplierPaymentsClient.tsx (Line 313:14 - Line 325:60)
-            </div>
-            <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-63')">Show code</button>
-            </div>
-            <pre id="code-tsx-63" class="code-block">        &#60;/p&#62;
+            <pre id="code-tsx-54" class="code-block">                        {t.type === &#39;INCOME&#39; ? &#39;+&#39; : &#39;-&#39;}${t.amount.toFixed(2)}
+                      &#60;/td&#62;
+                    &#60;/tr&#62;
+                  );
+                })
+              )}
+            &#60;/tbody&#62;
+          &#60;/table&#62;
+        &#60;/div&#62;
       &#60;/div&#62;
 
-      {/* Creation Modal */}
-      {showModal &#38;&#38; (
-        &#60;div className=&#34;fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm&#34;&#62;
-          &#60;motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className=&#34;bg-[#1a1a1a] border border-white/10 rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto&#34;
-          &#62;
-            &#60;div className=&#34;flex justify-between items-center mb-6&#34;&#62;
-              &#60;h2 className=&#34;text-lg font-bold text-white&#34;&#62;Créer un document&#60;/h2&#62;</pre>
+      {/* Modal Add Transaction */}
+      &#60;AnimatePresence&#62;
+        {isModalOpen &#38;&#38; (
+          &#60;div className=&#34;fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm&#34;&#62;</pre>
           </div>
           
           <div class="clone-item">
             <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/invoices/SupplierInvoicesClient.tsx (Line 296:78 - Line 306:81),
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/payments/SupplierPaymentsClient.tsx (Line 325:83 - Line 335:81)
+              /Users/danielkiboko/Projet Rayon/src/app/supplier/messages/page.tsx (Line 23:20 - Line 34:25),
+              /Users/danielkiboko/Projet Rayon/src/components/ChatBox.tsx (Line 16:19 - Line 27:25)
             </div>
             <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-64')">Show code</button>
+              <button class="toggle-btn" onclick="toggle('code-tsx-55')">Show code</button>
             </div>
-            <pre id="code-tsx-64" class="code-block">              &#60;h2 className=&#34;text-lg font-bold text-white&#34;&#62;Créer un document&#60;/h2&#62;
-              &#60;button onClick={() =&#62; setShowModal(false)} className=&#34;text-gray-400 hover:text-white&#34;&#62;
-                &#60;X size={20} /&#62;
-              &#60;/button&#62;
-            &#60;/div&#62;
-
-            &#60;form onSubmit={handleCreate} className=&#34;space-y-4&#34;&#62;
-              
-              {/* Type */}
-              &#60;div&#62;
-                &#60;label className=&#34;block text-sm font-medium text-gray-300 mb-1&#34;&#62;Type de document&#60;/label&#62;</pre>
+            <pre id="code-tsx-55" class="code-block">type ChatMessage = {
+  id: string;
+  text: string;
+  senderId: string;
+  createdAt: any;
+  type?: &#39;text&#39; | &#39;proforma&#39;;
+  proforma?: {
+    productId?: string;
+    productName?: string;
+    quantity: number;
+    price: number;
+    deliveryFee: number;</pre>
           </div>
           
           <div class="clone-item">
             <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/invoices/SupplierInvoicesClient.tsx (Line 331:99 - Line 344:54),
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/payments/SupplierPaymentsClient.tsx (Line 335:99 - Line 348:54)
+              /Users/danielkiboko/Projet Rayon/src/app/supplier/messages/page.tsx (Line 79:43 - Line 86:13),
+              /Users/danielkiboko/Projet Rayon/src/components/ChatBox.tsx (Line 46:37 - Line 54:13)
             </div>
             <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-65')">Show code</button>
+              <button class="toggle-btn" onclick="toggle('code-tsx-56')">Show code</button>
             </div>
-            <pre id="code-tsx-65" class="code-block">                &#60;label className=&#34;block text-sm font-medium text-gray-300 mb-1&#34;&#62;Locataire / Client&#60;/label&#62;
-                &#60;div className=&#34;relative&#34;&#62;
-                  &#60;div className=&#34;absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none&#34;&#62;
-                    &#60;User size={16} className=&#34;text-gray-500&#34; /&#62;
-                  &#60;/div&#62;
-                  &#60;select
-                    value={selectedTenant}
-                    onChange={(e) =&#62; handleTenantSelect(e.target.value)}
-                    required
-                    className=&#34;w-full bg-[#111] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500&#34;
-                  &#62;
-                    &#60;option value=&#34;&#34;&#62;Sélectionner un locataire...&#60;/option&#62;
-                    {tenants.map(t =&#62; (
-                      &#60;option key={t.id} value={t.id} disabled={!t.propertyId}&#62;</pre>
-          </div>
-          
-          <div class="clone-item">
-            <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/messages/page.tsx (Line 59:43 - Line 66:13),
-              /Users/danielkiboko/Projet Rayon/src/components/ChatBox.tsx (Line 36:37 - Line 44:13)
-            </div>
-            <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-66')">Show code</button>
-            </div>
-            <pre id="code-tsx-66" class="code-block">      collection(db, &#34;chats&#34;, activeChatId, &#34;messages&#34;),
+            <pre id="code-tsx-56" class="code-block">      collection(db, &#34;chats&#34;, activeChatId, &#34;messages&#34;),
       orderBy(&#34;createdAt&#34;, &#34;asc&#34;)
     );
     const unsubscribe = onSnapshot(q, (snapshot) =&#62; {
@@ -1739,13 +1485,13 @@ export default function AdminOrdersPage() {</pre>
           
           <div class="clone-item">
             <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/messages/page.tsx (Line 59:55 - Line 66:10),
-              /Users/danielkiboko/Projet Rayon/src/components/ClientChatBox.tsx (Line 45:44 - Line 50:77)
+              /Users/danielkiboko/Projet Rayon/src/app/supplier/messages/page.tsx (Line 79:55 - Line 86:10),
+              /Users/danielkiboko/Projet Rayon/src/components/GlobalChatbot.tsx (Line 189:55 - Line 194:77)
             </div>
             <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-67')">Show code</button>
+              <button class="toggle-btn" onclick="toggle('code-tsx-57')">Show code</button>
             </div>
-            <pre id="code-tsx-67" class="code-block">      collection(db, &#34;chats&#34;, activeChatId, &#34;messages&#34;),
+            <pre id="code-tsx-57" class="code-block">      collection(db, &#34;chats&#34;, activeChatId, &#34;messages&#34;),
       orderBy(&#34;createdAt&#34;, &#34;asc&#34;)
     );
     const unsubscribe = onSnapshot(q, (snapshot) =&#62; {
@@ -1757,13 +1503,13 @@ export default function AdminOrdersPage() {</pre>
           
           <div class="clone-item">
             <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/tenants/page.tsx (Line 82:40 - Line 88:37),
-              /Users/danielkiboko/Projet Rayon/src/components/dashboards/ImmoDashboard.tsx (Line 127:22 - Line 132:40)
+              /Users/danielkiboko/Projet Rayon/src/app/supplier/tenants/page.tsx (Line 120:40 - Line 126:37),
+              /Users/danielkiboko/Projet Rayon/src/components/dashboards/ImmoDashboard.tsx (Line 115:22 - Line 120:40)
             </div>
             <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-68')">Show code</button>
+              <button class="toggle-btn" onclick="toggle('code-tsx-58')">Show code</button>
             </div>
-            <pre id="code-tsx-68" class="code-block">        if (data.status !== &#34;PARTI&#34; &#38;&#38; data.nextPayment) {
+            <pre id="code-tsx-58" class="code-block">        if (data.status !== &#34;PARTI&#34; &#38;&#38; data.nextPayment) {
           const paymentDate = new Date(data.nextPayment);
           const today = new Date();
           paymentDate.setHours(0, 0, 0, 0);
@@ -1774,13 +1520,13 @@ export default function AdminOrdersPage() {</pre>
           
           <div class="clone-item">
             <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/tenants/page.tsx (Line 181:71 - Line 201:13),
-              /Users/danielkiboko/Projet Rayon/src/app/supplier/tenants/page.tsx (Line 250:58 - Line 270:13)
+              /Users/danielkiboko/Projet Rayon/src/app/supplier/tenants/page.tsx (Line 230:71 - Line 250:13),
+              /Users/danielkiboko/Projet Rayon/src/app/supplier/tenants/page.tsx (Line 387:58 - Line 407:13)
             </div>
             <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-69')">Show code</button>
+              <button class="toggle-btn" onclick="toggle('code-tsx-59')">Show code</button>
             </div>
-            <pre id="code-tsx-69" class="code-block">                       u.capacity = Math.max(0, (u.capacity || 1) - 1);
+            <pre id="code-tsx-59" class="code-block">                       u.capacity = Math.max(0, (u.capacity || 1) - 1);
                     }
                     if ((u.capacity || 1) &#62; 0) allUnitsTaken = false;
                     return u;
@@ -1805,13 +1551,220 @@ export default function AdminOrdersPage() {</pre>
           
           <div class="clone-item">
             <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/components/dashboards/ConnectDashboard.tsx (Line 13:35 - Line 21:13),
-              /Users/danielkiboko/Projet Rayon/src/components/dashboards/ModeDashboard.tsx (Line 13:33 - Line 21:13)
+              /Users/danielkiboko/Projet Rayon/src/components/ChatBox.tsx (Line 129:23 - Line 160:74),
+              /Users/danielkiboko/Projet Rayon/src/components/GlobalChatbot.tsx (Line 104:31 - Line 136:74)
             </div>
             <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-70')">Show code</button>
+              <button class="toggle-btn" onclick="toggle('code-tsx-60')">Show code</button>
             </div>
-            <pre id="code-tsx-70" class="code-block">    { title: &#34;Matériels en Vente&#34;, value: stats.totalProducts.toString(), subtitle: &#34;Catalogue&#34;, subInfo: &#34;Gérer le catalogue&#34;, icon: Package },
+            <pre id="code-tsx-60" class="code-block">        chatId: chatId,
+        items: [{
+          productId: msg.proforma.productId,
+          productName: msg.proforma.productName,
+          quantity: msg.proforma.quantity,
+          price: msg.proforma.price,
+        }],
+        totalAmount: msg.proforma.price,
+        deliveryFee: msg.proforma.deliveryFee,
+        paymentStatus: &#39;delivery_paid&#39;,
+        status: &#39;pending_driver&#39;,
+        createdAt: serverTimestamp(),
+        clientLocation: {
+          lat: -4.322447, // Kinshasa mock
+          lng: 15.307045
+        }
+      });
+      
+      // 3. Déduire le stock
+      if (msg.proforma.productId) {
+        await fetch(&#39;/api/orders/update-stock&#39;, {
+          method: &#39;POST&#39;,
+          headers: { &#39;Content-Type&#39;: &#39;application/json&#39; },
+          body: JSON.stringify({
+            productId: msg.proforma.productId,
+            quantity: msg.proforma.quantity,
+            action: &#39;decrement&#39;
+          })
+        });
+      }
+      
+      alert(&#34;Paiement réussi ! La commande est envoyée aux livreurs.&#34;);</pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              /Users/danielkiboko/Projet Rayon/src/components/ClientChatsWidget.tsx (Line 32:30 - Line 42:53),
+              /Users/danielkiboko/Projet Rayon/src/components/GlobalChatbot.tsx (Line 41:33 - Line 50:53)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-61')">Show code</button>
+            </div>
+            <pre id="code-tsx-61" class="code-block">      router.replace(&#34;/login&#34;);
+      return;
+    }
+
+    const q = query(
+      collection(db, &#34;chats&#34;),
+      where(&#34;clientId&#34;, &#34;==&#34;, user.uid)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) =&#62; {
+      const fetchedChats: any[] = snapshot.docs.map(docSnap =&#62; ({</pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              /Users/danielkiboko/Projet Rayon/src/components/DirectBuyModal.tsx (Line 71:39 - Line 81:24),
+              /Users/danielkiboko/Projet Rayon/src/components/cart/CartDrawer.tsx (Line 78:39 - Line 87:24)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-62')">Show code</button>
+            </div>
+            <pre id="code-tsx-62" class="code-block">  const [successOrder, setSuccessOrder] = useState&#60;any | null&#62;(null);
+
+  // Prefill user data if logged in
+  useEffect(() =&#62; {
+    if (user) {
+      setClientName(userData?.displayName || userData?.name || user.displayName || &#34;&#34;);
+      setClientPhone(userData?.phone || user.phoneNumber || &#34;&#34;);
+      if (userData?.commune) setSelectedCommune(userData.commune);
+      if (userData?.address) setDeliveryAddress(userData.address);
+    }
+  }, [user, userData]);</pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              /Users/danielkiboko/Projet Rayon/src/components/DirectBuyModal.tsx (Line 92:86 - Line 103:16),
+              /Users/danielkiboko/Projet Rayon/src/components/cart/CartDrawer.tsx (Line 102:44 - Line 113:16)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-63')">Show code</button>
+            </div>
+            <pre id="code-tsx-63" class="code-block">  const productImage = product.imageUrl || product.image || &#34;/images/placeholder.png&#34;;
+
+  const handleOrderSubmit = async (e: React.FormEvent) =&#62; {
+    e.preventDefault();
+    setError(&#34;&#34;);
+
+    if (!clientName.trim()) {
+      setError(&#34;Veuillez renseigner votre nom complet.&#34;);
+      return;
+    }
+    if (!clientPhone.trim()) {
+      setError(&#34;Veuillez renseigner votre numéro de téléphone pour la livraison.&#34;);</pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              /Users/danielkiboko/Projet Rayon/src/components/DirectBuyModal.tsx (Line 107:84 - Line 121:20),
+              /Users/danielkiboko/Projet Rayon/src/components/cart/CartDrawer.tsx (Line 117:82 - Line 131:20)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-64')">Show code</button>
+            </div>
+            <pre id="code-tsx-64" class="code-block">      setError(&#34;Veuillez indiquer votre adresse ou un repère précis à Kinshasa.&#34;);
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const orderId = `CMD-${Date.now().toString(36).toUpperCase()}-${Math.floor(Math.random() * 900 + 100)}`;
+      
+      const orderData = {
+        id: orderId,
+        clientId: user ? user.uid : &#34;GUEST&#34;,
+        clientName: clientName.trim(),
+        clientPhone: clientPhone.trim(),
+        supplierId: product.supplierId || &#34;admin&#34;,</pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              /Users/danielkiboko/Projet Rayon/src/components/DirectBuyModal.tsx (Line 131:33 - Line 151:59),
+              /Users/danielkiboko/Projet Rayon/src/components/cart/CartDrawer.tsx (Line 142:32 - Line 162:59)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-65')">Show code</button>
+            </div>
+            <pre id="code-tsx-65" class="code-block">        totalAmount: totalAmount,
+        currency: &#34;$&#34;,
+        deliveryDetails: {
+          city: &#34;Kinshasa&#34;,
+          commune: selectedCommune,
+          address: deliveryAddress.trim(),
+          recipientName: clientName.trim(),
+          recipientPhone: clientPhone.trim()
+        },
+        paymentMethod: paymentMethod,
+        paymentStatus: paymentMethod === &#34;CASH_ON_DELIVERY&#34; ? &#34;PAYMENT_ON_DELIVERY&#34; : &#34;AWAITING_PAYMENT&#34;,
+        status: &#34;CONFIRMED_AWAITING_DRIVER&#34;,
+        createdAt: serverTimestamp(),
+        clientLocation: {
+          city: &#34;Kinshasa&#34;,
+          commune: selectedCommune
+        }
+      };
+
+      // 1. Save order to Firestore
+      await setDoc(doc(db, &#34;orders&#34;, orderId), orderData);</pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              /Users/danielkiboko/Projet Rayon/src/components/GlobalChatbot.tsx (Line 402:99 - Line 417:85),
+              /Users/danielkiboko/Projet Rayon/src/components/GlobalChatbot.tsx (Line 446:22 - Line 461:85)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-66')">Show code</button>
+            </div>
+            <pre id="code-tsx-66" class="code-block">                &#60;label className=&#34;block text-sm font-medium text-gray-700 mb-1&#34;&#62;Téléphone&#60;/label&#62;
+                &#60;input
+                  type=&#34;tel&#34;
+                  required
+                  value={guestPhone}
+                  onChange={(e) =&#62; setGuestPhone(e.target.value)}
+                  className=&#34;w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 focus:outline-none&#34;
+                  placeholder=&#34;Ex: 085...&#34;
+                /&#62;
+              &#60;/div&#62;
+              &#60;button
+                type=&#34;submit&#34;
+                disabled={isAuthenticating}
+                className=&#34;w-full py-3 bg-gray-900 text-white rounded-xl font-medium flex justify-center items-center hover:bg-gray-800 disabled:opacity-50 transition-colors&#34;
+              &#62;
+                {isAuthenticating ? &#60;Loader2 size={20} className=&#34;animate-spin&#34; /&#62; : &#34;Trouver mon email&#34;}</pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              /Users/danielkiboko/Projet Rayon/src/components/dashboards/ConnectDashboard.tsx (Line 1:1 - Line 9:24),
+              /Users/danielkiboko/Projet Rayon/src/components/dashboards/ModeDashboard.tsx (Line 1:1 - Line 9:24)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-67')">Show code</button>
+            </div>
+            <pre id="code-tsx-67" class="code-block">&#34;use client&#34;;
+
+import { useRouter } from &#34;next/navigation&#34;;
+import { Package, ShoppingCart, DollarSign, Truck } from &#34;lucide-react&#34;;
+import { useCurrency } from &#34;@/context/CurrencyContext&#34;;
+import GenericDashboard, { KpiConfig, ActionConfig } from &#34;./shared/GenericDashboard&#34;;
+import { useSupplierDashboardStats } from &#34;@/hooks/useSupplierDashboardStats&#34;;
+
+export default function ConnectDashboard() {</pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              /Users/danielkiboko/Projet Rayon/src/components/dashboards/ConnectDashboard.tsx (Line 15:35 - Line 23:13),
+              /Users/danielkiboko/Projet Rayon/src/components/dashboards/ModeDashboard.tsx (Line 15:33 - Line 23:13)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-68')">Show code</button>
+            </div>
+            <pre id="code-tsx-68" class="code-block">    { title: &#34;Matériels en Vente&#34;, value: stats.totalProducts.toString(), subtitle: &#34;Catalogue&#34;, subInfo: &#34;Gérer le catalogue&#34;, icon: Package },
     { title: &#34;Commandes Actives&#34;, value: stats.activeOrders.toString(), subtitle: &#34;En cours&#34;, subInfo: &#34;À traiter&#34;, icon: ShoppingCart },
     { title: &#34;Chiffre d&#39;affaires&#34;, value: formatPrice(stats.totalRevenue), subtitle: &#34;Total&#34;, subInfo: &#34;Revenus bruts&#34;, icon: DollarSign },
     { title: &#34;À Expédier&#34;, value: stats.pendingDeliveries.toString(), subtitle: &#34;Action requise&#34;, subInfo: stats.pendingDeliveries &#62; 0 ? &#34;Préparer les colis&#34; : &#34;Tout est expédié&#34;, icon: Truck, alertCondition: stats.pendingDeliveries &#62; 0 },
@@ -1824,22 +1777,22 @@ export default function AdminOrdersPage() {</pre>
           
           <div class="clone-item">
             <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/components/dashboards/ConnectDashboard.tsx (Line 22:80 - Line 39:18),
-              /Users/danielkiboko/Projet Rayon/src/components/dashboards/ModeDashboard.tsx (Line 22:91 - Line 39:18)
+              /Users/danielkiboko/Projet Rayon/src/components/dashboards/ConnectDashboard.tsx (Line 24:80 - Line 41:18),
+              /Users/danielkiboko/Projet Rayon/src/components/dashboards/ModeDashboard.tsx (Line 24:91 - Line 41:18)
             </div>
             <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-71')">Show code</button>
+              <button class="toggle-btn" onclick="toggle('code-tsx-69')">Show code</button>
             </div>
-            <pre id="code-tsx-71" class="code-block">      description: &#34;Mettez en vente de nouveaux équipements (Starlink, etc.).&#34;,
+            <pre id="code-tsx-69" class="code-block">      description: &#34;Mettez en vente de nouveaux équipements (Starlink, etc.).&#34;,
       buttonText: &#34;Créer un produit&#34;,
-      onClick: () =&#62; window.location.href = &#39;/supplier/products&#39;,
+      onClick: () =&#62; router.push(&#39;/supplier/products&#39;),
       isPrimary: true
     },
     {
       title: &#34;Voir les expéditions&#34;,
       description: &#34;Consultez les commandes en attente d&#39;expédition par un livreur.&#34;,
       buttonText: &#34;Gérer les commandes&#34;,
-      onClick: () =&#62; window.location.href = &#39;/supplier/orders&#39;,
+      onClick: () =&#62; router.push(&#39;/supplier/orders&#39;),
       isPrimary: false
     }
   ];
@@ -1852,107 +1805,63 @@ export default function AdminOrdersPage() {</pre>
           
           <div class="clone-item">
             <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/components/dashboards/ConnectDashboard.tsx (Line 49:7 - Line 55:25),
-              /Users/danielkiboko/Projet Rayon/src/components/dashboards/ModeDashboard.tsx (Line 49:7 - Line 55:25)
+              /Users/danielkiboko/Projet Rayon/src/components/dashboards/ConnectDashboard.tsx (Line 51:7 - Line 57:25),
+              /Users/danielkiboko/Projet Rayon/src/components/dashboards/ModeDashboard.tsx (Line 51:7 - Line 57:25)
             </div>
             <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-72')">Show code</button>
+              <button class="toggle-btn" onclick="toggle('code-tsx-70')">Show code</button>
             </div>
-            <pre id="code-tsx-72" class="code-block">      actions={actions}
+            <pre id="code-tsx-70" class="code-block">      actions={actions}
       renderRecentRow={(order: any) =&#62; (
         &#60;tr key={order.id} className=&#34;border-b border-white/5 hover:bg-white/5 transition-colors&#34;&#62;
           &#60;td className=&#34;p-4 font-semibold text-white&#34;&#62;#{order.id.slice(0, 6).toUpperCase()}&#60;/td&#62;
           &#60;td className=&#34;p-4&#34;&#62;{order.createdAt ? new Date(order.createdAt.seconds * 1000).toLocaleDateString() : &#34;-&#34;}&#60;/td&#62;
           &#60;td className=&#34;p-4&#34;&#62;{order.clientName || order.clientPhone}&#60;/td&#62;
-          &#60;td className=&#34;p-4 font-bold text-emerald-400&#34;&#62;{formatPrice(order.itemsTotal)}&#60;/td&#62;</pre>
+          &#60;td className=&#34;p-4 font-bold text-emerald-400&#34;&#62;{formatPrice(order.myTotal || order.itemsTotal)}&#60;/td&#62;</pre>
           </div>
           
           <div class="clone-item">
             <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/components/products/ProductManager.tsx (Line 8:1 - Line 20:10),
-              /Users/danielkiboko/Projet Rayon/src/components/properties/PropertyManager.tsx (Line 8:1 - Line 20:10)
+              /Users/danielkiboko/Projet Rayon/src/components/dashboards/ConnectDashboard.tsx (Line 51:7 - Line 57:25),
+              /Users/danielkiboko/Projet Rayon/src/components/dashboards/SaveursDashboard.tsx (Line 51:7 - Line 57:25)
             </div>
             <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-73')">Show code</button>
+              <button class="toggle-btn" onclick="toggle('code-tsx-71')">Show code</button>
             </div>
-            <pre id="code-tsx-73" class="code-block">} from &#34;lucide-react&#34;;
-import { useProductAiAssistant, handleImageUploadShared } from &#34;@/hooks/useProductAiAssistant&#34;;
-import AiAssistantChat from &#34;@/components/shared/AiAssistantChat&#34;;
-import ImageUploadArea from &#34;@/components/shared/ImageUploadArea&#34;;
-import { useAuth } from &#34;@/context/AuthContext&#34;;
-import { db } from &#34;@/lib/firebase&#34;;
-import { 
-  collection, query, where, getDocs, addDoc, updateDoc, 
-  deleteDoc, doc, serverTimestamp, orderBy, onSnapshot 
-} from &#34;firebase/firestore&#34;;
-import { useCurrency } from &#34;@/context/CurrencyContext&#34;;
-
-interface ProductManagerProps {</pre>
+            <pre id="code-tsx-71" class="code-block">      actions={actions}
+      renderRecentRow={(order: any) =&#62; (
+        &#60;tr key={order.id} className=&#34;border-b border-white/5 hover:bg-white/5 transition-colors&#34;&#62;
+          &#60;td className=&#34;p-4 font-semibold text-white&#34;&#62;#{order.id.slice(0, 6).toUpperCase()}&#60;/td&#62;
+          &#60;td className=&#34;p-4&#34;&#62;{order.createdAt ? new Date(order.createdAt.seconds * 1000).toLocaleDateString() : &#34;-&#34;}&#60;/td&#62;
+          &#60;td className=&#34;p-4&#34;&#62;{order.clientName || order.clientPhone}&#60;/td&#62;
+          &#60;td className=&#34;p-4 font-bold text-emerald-400&#34;&#62;{formatPrice(order.myTotal || order.itemsTotal)}&#60;/td&#62;</pre>
           </div>
           
           <div class="clone-item">
             <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/components/products/ProductManager.tsx (Line 28:31 - Line 35:10),
-              /Users/danielkiboko/Projet Rayon/src/components/properties/PropertyManager.tsx (Line 28:35 - Line 33:10)
+              /Users/danielkiboko/Projet Rayon/src/components/products/ProductManager.tsx (Line 31:31 - Line 36:8),
+              /Users/danielkiboko/Projet Rayon/src/components/properties/PropertyManager.tsx (Line 31:35 - Line 36:8)
             </div>
             <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-74')">Show code</button>
+              <button class="toggle-btn" onclick="toggle('code-tsx-72')">Show code</button>
             </div>
-            <pre id="code-tsx-74" class="code-block">  const [products, setProducts] = useState&#60;any[]&#62;([]);
+            <pre id="code-tsx-72" class="code-block">  const [products, setProducts] = useState&#60;any[]&#62;([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [search, setSearch] = useState(&#34;&#34;);
   const [editingId, setEditingId] = useState&#60;string | null&#62;(null);
-
-  // Form State
-  const [imageFile, setImageFile] = useState&#60;File | null&#62;(null);</pre>
+  const subscriptionInfo = evaluateSupplierSubscription(userData);</pre>
           </div>
           
           <div class="clone-item">
             <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/components/products/ProductManager.tsx (Line 32:53 - Line 39:10),
-              /Users/danielkiboko/Projet Rayon/src/components/properties/PropertyManager.tsx (Line 33:62 - Line 40:10)
+              /Users/danielkiboko/Projet Rayon/src/components/products/ProductManager.tsx (Line 320:7 - Line 331:8),
+              /Users/danielkiboko/Projet Rayon/src/components/properties/PropertyManager.tsx (Line 503:7 - Line 514:8)
             </div>
             <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-75')">Show code</button>
+              <button class="toggle-btn" onclick="toggle('code-tsx-73')">Show code</button>
             </div>
-            <pre id="code-tsx-75" class="code-block">  const [editingId, setEditingId] = useState&#60;string | null&#62;(null);
-
-  // Form State
-  const [imageFile, setImageFile] = useState&#60;File | null&#62;(null);
-  const [imagePreview, setImagePreview] = useState&#60;string | null&#62;(null);
-  const fileInputRef = useRef&#60;HTMLInputElement&#62;(null);
-
-  const [productTitle, setProductTitle] = useState(&#34;&#34;);</pre>
-          </div>
-          
-          <div class="clone-item">
-            <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/components/products/ProductManager.tsx (Line 93:13 - Line 99:10),
-              /Users/danielkiboko/Projet Rayon/src/components/products/ProductManager.tsx (Line 185:21 - Line 192:8)
-            </div>
-            <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-76')">Show code</button>
-            </div>
-            <pre id="code-tsx-76" class="code-block">        try {
-          const q = query(collection(db, &#34;products&#34;), where(&#34;supplierId&#34;, &#34;==&#34;, activeSupplierId));
-          const snapshot = await getDocs(q);
-          const prods: any[] = [];
-          snapshot.forEach(docSnap =&#62; prods.push({ id: docSnap.id, ...docSnap.data() }));
-          setProducts(prods);
-        } catch (error) {</pre>
-          </div>
-          
-          <div class="clone-item">
-            <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/components/products/ProductManager.tsx (Line 288:30 - Line 300:8),
-              /Users/danielkiboko/Projet Rayon/src/components/properties/PropertyManager.tsx (Line 318:79 - Line 330:8)
-            </div>
-            <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-77')">Show code</button>
-            </div>
-            <pre id="code-tsx-77" class="code-block">        setIsProcessing(false);
-      }
+            <pre id="code-tsx-73" class="code-block">      }
     }
   };
 
@@ -1963,21 +1872,65 @@ interface ProductManagerProps {</pre>
     return titleObj || &#34;Sans titre&#34;;
   };
 
-  const filteredProducts = products.filter(p =&#62; {</pre>
+  const [selectedRayonFilter, setSelectedRayonFilter] = useState&#60;string&#62;(&#34;all&#34;);</pre>
           </div>
           
           <div class="clone-item">
             <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/components/products/ProductManager.tsx (Line 368:15 - Line 380:37),
-              /Users/danielkiboko/Projet Rayon/src/components/properties/PropertyManager.tsx (Line 391:15 - Line 403:37)
+              /Users/danielkiboko/Projet Rayon/src/components/products/ProductManager.tsx (Line 412:13 - Line 427:86),
+              /Users/danielkiboko/Projet Rayon/src/components/properties/PropertyManager.tsx (Line 565:37 - Line 580:86)
             </div>
             <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-78')">Show code</button>
+              <button class="toggle-btn" onclick="toggle('code-tsx-74')">Show code</button>
             </div>
-            <pre id="code-tsx-78" class="code-block">              value={search}
+            <pre id="code-tsx-74" class="code-block">          )}
+          &#60;button
+            onClick={openAddModal}
+            className={`${
+              !isAdmin &#38;&#38; subscriptionInfo.isBlocked 
+                ? &#34;bg-red-600/80 text-white cursor-not-allowed shadow-red-900/30&#34; 
+                : &#34;bg-primary text-white hover:bg-primary-light&#34;
+            } px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center transition-colors shadow-sm`}
+            title={!isAdmin &#38;&#38; subscriptionInfo.isBlocked ? &#34;Compte suspendu : Dépôt mensuel impayé&#34; : undefined}
+          &#62;
+            {!isAdmin &#38;&#38; subscriptionInfo.isBlocked ? (
+              &#60;Lock size={18} className=&#34;mr-2&#34; /&#62;
+            ) : (
+              &#60;Plus size={18} className=&#34;mr-2&#34; /&#62;
+            )}
+            {!isAdmin &#38;&#38; subscriptionInfo.isBlocked ? &#34;Ajout verrouillé (Impayé)&#34; : &#34;Ajouter un produit&#34;}</pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              /Users/danielkiboko/Projet Rayon/src/components/products/ProductManager.tsx (Line 463:15 - Line 472:29),
+              /Users/danielkiboko/Projet Rayon/src/components/properties/PropertyManager.tsx (Line 651:15 - Line 660:29)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-75')">Show code</button>
+            </div>
+            <pre id="code-tsx-75" class="code-block">              value={search}
               onChange={(e) =&#62; setSearch(e.target.value)}
               className=&#34;w-full pl-10 pr-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white text-sm transition-all&#34;
             /&#62;
+          &#60;/div&#62;
+
+          {/* Multi-Rayon Filter Tabs */}
+          &#60;div className=&#34;flex items-center gap-2 overflow-x-auto w-full sm:w-auto&#34;&#62;
+            &#60;button
+              onClick={() =&#62; setSelectedRayonFilter(&#34;all&#34;)}</pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              /Users/danielkiboko/Projet Rayon/src/components/products/ProductManager.tsx (Line 531:15 - Line 541:37),
+              /Users/danielkiboko/Projet Rayon/src/components/properties/PropertyManager.tsx (Line 702:15 - Line 712:37)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-76')">Show code</button>
+            </div>
+            <pre id="code-tsx-76" class="code-block">              &#60;/button&#62;
+            )}
           &#60;/div&#62;
         &#60;/div&#62;
 
@@ -1991,13 +1944,13 @@ interface ProductManagerProps {</pre>
           
           <div class="clone-item">
             <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/components/products/ProductManager.tsx (Line 382:41 - Line 389:21),
-              /Users/danielkiboko/Projet Rayon/src/components/properties/PropertyManager.tsx (Line 406:47 - Line 413:21)
+              /Users/danielkiboko/Projet Rayon/src/components/products/ProductManager.tsx (Line 543:41 - Line 550:21),
+              /Users/danielkiboko/Projet Rayon/src/components/properties/PropertyManager.tsx (Line 715:49 - Line 722:21)
             </div>
             <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-79')">Show code</button>
+              <button class="toggle-btn" onclick="toggle('code-tsx-77')">Show code</button>
             </div>
-            <pre id="code-tsx-79" class="code-block">                &#60;th className=&#34;p-4&#34;&#62;Prix&#60;/th&#62;
+            <pre id="code-tsx-77" class="code-block">                &#60;th className=&#34;p-4&#34;&#62;Prix&#60;/th&#62;
                 &#60;th className=&#34;p-4&#34;&#62;Statut&#60;/th&#62;
                 &#60;th className=&#34;p-4 text-right&#34;&#62;Actions&#60;/th&#62;
               &#60;/tr&#62;
@@ -2009,25 +1962,13 @@ interface ProductManagerProps {</pre>
           
           <div class="clone-item">
             <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/components/products/ProductManager.tsx (Line 466:67 - Line 491:66),
-              /Users/danielkiboko/Projet Rayon/src/components/properties/PropertyManager.tsx (Line 495:69 - Line 520:66)
+              /Users/danielkiboko/Projet Rayon/src/components/products/ProductManager.tsx (Line 637:7 - Line 650:66),
+              /Users/danielkiboko/Projet Rayon/src/components/properties/PropertyManager.tsx (Line 831:5 - Line 844:66)
             </div>
             <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-80')">Show code</button>
+              <button class="toggle-btn" onclick="toggle('code-tsx-78')">Show code</button>
             </div>
-            <pre id="code-tsx-80" class="code-block">                        onClick={() =&#62; handleDeleteProduct(product.id)}
-                        className=&#34;inline-flex p-2 bg-white/5 text-gray-400 hover:text-white rounded-lg hover:bg-red-600 transition-colors border border-transparent hover:border-red-600&#34;
-                      &#62;
-                        &#60;Trash2 size={18} /&#62;
-                      &#60;/button&#62;
-                    &#60;/td&#62;
-                  &#60;/tr&#62;
-                ))
-              )}
-            &#60;/tbody&#62;
-          &#60;/table&#62;
-        &#60;/div&#62;
-      &#60;/div&#62;
+            <pre id="code-tsx-78" class="code-block">      &#60;/div&#62;
 
       {/* Create / Edit Product Modal */}
       &#60;AnimatePresence&#62;
@@ -2045,13 +1986,13 @@ interface ProductManagerProps {</pre>
           
           <div class="clone-item">
             <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/components/products/ProductManager.tsx (Line 482:22 - Line 488:25),
-              /Users/danielkiboko/Projet Rayon/src/components/properties/PropertyManager.tsx (Line 764:26 - Line 770:25)
+              /Users/danielkiboko/Projet Rayon/src/components/products/ProductManager.tsx (Line 641:22 - Line 647:25),
+              /Users/danielkiboko/Projet Rayon/src/components/properties/PropertyManager.tsx (Line 1359:26 - Line 1365:25)
             </div>
             <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-81')">Show code</button>
+              <button class="toggle-btn" onclick="toggle('code-tsx-79')">Show code</button>
             </div>
-            <pre id="code-tsx-81" class="code-block">        {isModalOpen &#38;&#38; (
+            <pre id="code-tsx-79" class="code-block">        {isModalOpen &#38;&#38; (
           &#60;div className=&#34;fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto&#34;&#62;
             &#60;motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -2062,13 +2003,13 @@ interface ProductManagerProps {</pre>
           
           <div class="clone-item">
             <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/components/products/ProductManager.tsx (Line 499:48 - Line 517:17),
-              /Users/danielkiboko/Projet Rayon/src/components/properties/PropertyManager.tsx (Line 526:49 - Line 544:17)
+              /Users/danielkiboko/Projet Rayon/src/components/products/ProductManager.tsx (Line 658:48 - Line 676:17),
+              /Users/danielkiboko/Projet Rayon/src/components/properties/PropertyManager.tsx (Line 850:49 - Line 868:17)
             </div>
             <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-82')">Show code</button>
+              <button class="toggle-btn" onclick="toggle('code-tsx-80')">Show code</button>
             </div>
-            <pre id="code-tsx-82" class="code-block">              &#60;form onSubmit={handleSaveProduct} className=&#34;p-4 space-y-5 overflow-y-auto scrollbar-hide&#34;&#62;
+            <pre id="code-tsx-80" class="code-block">              &#60;form onSubmit={handleSaveProduct} className=&#34;p-4 space-y-5 overflow-y-auto scrollbar-hide&#34;&#62;
                 
                 {/* Image Upload Area */}
                 &#60;ImageUploadArea
@@ -2091,13 +2032,13 @@ interface ProductManagerProps {</pre>
           
           <div class="clone-item">
             <div class="clone-info">
-              /Users/danielkiboko/Projet Rayon/src/components/products/ProductManager.tsx (Line 604:31 - Line 618:31),
-              /Users/danielkiboko/Projet Rayon/src/components/properties/PropertyManager.tsx (Line 737:22 - Line 751:31)
+              /Users/danielkiboko/Projet Rayon/src/components/products/ProductManager.tsx (Line 764:31 - Line 778:31),
+              /Users/danielkiboko/Projet Rayon/src/components/properties/PropertyManager.tsx (Line 1332:22 - Line 1346:31)
             </div>
             <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-83')">Show code</button>
+              <button class="toggle-btn" onclick="toggle('code-tsx-81')">Show code</button>
             </div>
-            <pre id="code-tsx-83" class="code-block">                  &#62;&#60;/textarea&#62;
+            <pre id="code-tsx-81" class="code-block">                  &#62;&#60;/textarea&#62;
                 &#60;/div&#62;
 
                 &#60;div className=&#34;pt-4 flex justify-end space-x-3 border-t border-white/10&#34;&#62;
@@ -2120,14 +2061,107 @@ interface ProductManagerProps {</pre>
               /Users/danielkiboko/Projet Rayon/src/components/shared/AiAssistantChat.tsx (Line 47:52 - Line 52:16)
             </div>
             <div>
-              <button class="toggle-btn" onclick="toggle('code-tsx-84')">Show code</button>
+              <button class="toggle-btn" onclick="toggle('code-tsx-82')">Show code</button>
             </div>
-            <pre id="code-tsx-84" class="code-block">        {chatMessages.length === 0 &#38;&#38; isAiLoading ? (
+            <pre id="code-tsx-82" class="code-block">        {chatMessages.length === 0 &#38;&#38; isAiLoading ? (
           &#60;div className=&#34;flex items-center space-x-2 text-gray-400 text-sm&#34;&#62;
             &#60;motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }}&#62;
               &#60;Bot size={16} /&#62;
             &#60;/motion.div&#62;
             &#60;p&#62;Analyse de la photo en cours...&#60;/p&#62;</pre>
+          </div>
+          
+        </div>
+      </section>
+    </div>
+    
+    <div class="card">
+      <section class="clone-section">
+        <a name="typescript-clones"></a>
+        <h2>typescript</h2>
+        <div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              /Users/danielkiboko/Projet Rayon/src/app/api/reviews/submit/route.ts (Line 64:41 - Line 74:10),
+              /Users/danielkiboko/Projet Rayon/src/lib/productVerification.ts (Line 133:31 - Line 142:8)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-1')">Show code</button>
+            </div>
+            <pre id="code-typescript-1" class="code-block">    allReviewsSnap.forEach((docSnap: any) =&#62; {
+      const r = docSnap.data().rating;
+      if (typeof r === &#34;number&#34;) {
+        totalScore += r;
+        count += 1;
+      }
+    });
+
+    const newAverage = count &#62; 0 ? Math.round((totalScore / count) * 10) / 10 : rating;
+
+    const updatePayload: any = {</pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              /Users/danielkiboko/Projet Rayon/src/app/api/users/create/route.ts (Line 36:5 - Line 48:10),
+              /Users/danielkiboko/Projet Rayon/src/app/api/users/delete/route.ts (Line 25:5 - Line 37:10)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-2')">Show code</button>
+            </div>
+            <pre id="code-typescript-2" class="code-block">    if (!callerRole) {
+      try {
+        const userDoc = await adminDb.collection(&#39;users&#39;).doc(callerUid).get();
+        if (userDoc.exists) {
+          callerRole = userDoc.data()?.role;
+        }
+      } catch (dbErr) {
+        console.warn(&#39;Could not fetch caller doc from Firestore:&#39;, dbErr);
+      }
+    }
+
+    const normalizedRole = (callerRole || &#39;&#39;).toString().toLowerCase();
+    const isAdminCaller = isSuperAdminEmail || </pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              /Users/danielkiboko/Projet Rayon/src/lib/invoiceGenerator.ts (Line 59:65 - Line 70:8),
+              /Users/danielkiboko/Projet Rayon/src/lib/leaseGenerator.ts (Line 47:61 - Line 58:8)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-3')">Show code</button>
+            </div>
+            <pre id="code-typescript-3" class="code-block">export async function generateFormalInvoicePDF(data: InvoiceData) {
+  const { default: jsPDF } = await import(&#34;jspdf&#34;);
+  await import(&#34;jspdf-autotable&#34;);
+
+  const doc = new jsPDF({
+    orientation: &#34;portrait&#34;,
+    unit: &#34;mm&#34;,
+    format: &#34;a4&#34;
+  });
+
+  const currency = data.currency || &#34;USD&#34;;
+  const rayon = data.rayon || (data.immoBranch ? &#34;immo&#34; : &#34;general&#34;);</pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              /Users/danielkiboko/Projet Rayon/src/lib/leaseGenerator.ts (Line 185:7 - Line 191:28),
+              /Users/danielkiboko/Projet Rayon/src/lib/leaseGenerator.ts (Line 237:8 - Line 243:28)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-4')">Show code</button>
+            </div>
+            <pre id="code-typescript-4" class="code-block">    y += 4;
+
+    doc.setFontSize(7.8);
+    doc.setFont(&#34;helvetica&#34;, &#34;normal&#34;);
+    doc.setTextColor(60, 60, 60);
+    const splitText = doc.splitTextToSize(art.content, 182);
+    doc.text(splitText, 14, y);</pre>
           </div>
           
         </div>

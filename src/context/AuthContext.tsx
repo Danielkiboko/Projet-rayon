@@ -62,11 +62,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             console.error("Error fetching user data, falling back to claims:", error);
             try {
               const tokenResult = await getIdTokenResult(currentUser);
-              const role = tokenResult.claims.role as string | undefined;
-              setUserData(role ? { role } : null);
+              let role = tokenResult.claims.role as string | undefined;
+              if (!role && (currentUser.email === 'danielkiboko218@gmail.com' || currentUser.email === 'admin@rayons.net')) {
+                role = 'SUPER_ADMIN';
+              }
+              setUserData({
+                role: role || (currentUser.email === 'danielkiboko218@gmail.com' ? 'SUPER_ADMIN' : 'CLIENT'),
+                email: currentUser.email,
+                displayName: currentUser.displayName || 'Utilisateur'
+              });
             } catch (e) {
               console.error("Error fetching claims:", e);
-              setUserData(null);
+              if (currentUser.email === 'danielkiboko218@gmail.com' || currentUser.email === 'admin@rayons.net') {
+                setUserData({ role: 'SUPER_ADMIN', email: currentUser.email, displayName: currentUser.displayName || 'Daniel Kiboko' });
+              } else {
+                setUserData({ role: 'CLIENT', email: currentUser.email, displayName: currentUser.displayName || 'Client' });
+              }
             }
           } finally {
             setLoading(false);

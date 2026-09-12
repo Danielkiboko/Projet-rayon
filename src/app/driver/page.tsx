@@ -55,6 +55,9 @@ export default function DriverDashboard() {
           const orders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
           setAvailableOrders(orders);
           setIsLoading(false);
+        }, (err) => {
+          console.warn("Driver available orders listener warning:", err.message);
+          setIsLoading(false);
         });
 
         // Query 2: My Orders (ACCEPTED, ARRIVED_AWAITING_PAYMENT)
@@ -68,6 +71,8 @@ export default function DriverDashboard() {
         unsubMyOrders = onSnapshot(qMyOrders, (snapshot) => {
           const orders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
           setMyOrders(orders);
+        }, (err) => {
+          console.warn("Driver my orders listener warning:", err.message);
         });
 
       } catch (error) {

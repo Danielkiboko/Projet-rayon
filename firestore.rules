@@ -95,10 +95,16 @@ service cloud.firestore {
         )
       );
 
-      // Drivers can read the order assigned to them and optionally update status
-      allow read: if isDriver() && resource.data.driverId == request.auth.uid;
-      allow update: if isDriver() && request.resource.data.driverId == request.auth.uid &&
-                     request.auth.uid == resource.data.driverId;
+      // Drivers can read orders waiting for driver pickup, or orders assigned to them
+      allow read: if isDriver() && (
+        resource.data.status in ['CONFIRMED_AWAITING_DRIVER', 'pending_driver'] || 
+        resource.data.driverId == request.auth.uid
+      );
+      // Drivers can accept an order (setting their own driverId) or update order status
+      allow update: if isDriver() && (
+        (request.resource.data.driverId == request.auth.uid && resource.data.status in ['CONFIRMED_AWAITING_DRIVER', 'pending_driver']) ||
+        (resource.data.driverId == request.auth.uid && request.resource.data.driverId == request.auth.uid)
+      );
     }
 
     // Users collection

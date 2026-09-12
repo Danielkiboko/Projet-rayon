@@ -148,13 +148,53 @@ export default function AdminLayout({
     );
   }
 
+  const userRole = (userData?.role || "").toUpperCase();
+
+  // Role-based menu customization
+  const filteredMenuItems = ADMIN_MENU.filter((item) => {
+    if (isSuper) return true;
+
+    if (userRole === "ADMIN_FINANCE") {
+      return ["/admin/dashboard", "/admin/finance", "/admin/orders", "/admin/settings"].includes(item.href);
+    }
+    if (userRole === "ADMIN_DB" || userRole === "ADMIN_TECH") {
+      return ["/admin/dashboard", "/admin/products", "/admin/properties", "/admin/orders", "/admin/settings"].includes(item.href);
+    }
+    if (userRole === "ADMIN_OPS") {
+      return ["/admin/dashboard", "/admin/orders", "/admin/drivers", "/admin/clients", "/admin/settings"].includes(item.href);
+    }
+    
+    // Sub admin sees everything except Health and Team (reserved for Super Admin)
+    return !["/admin/health", "/admin/team"].includes(item.href);
+  });
+
+  const roleBadgeValue = isSuper 
+    ? "SUPER ADMIN" 
+    : userRole === "ADMIN_FINANCE" 
+    ? "GESTIONNAIRE FINANCE"
+    : userRole === "ADMIN_DB" || userRole === "ADMIN_TECH"
+    ? "GESTIONNAIRE BDD & PRODUITS"
+    : userRole === "ADMIN_OPS"
+    ? "GESTIONNAIRE OPÉRATIONS"
+    : "ADMIN DÉLÉGUÉ";
+
+  const userRoleTitle = isSuper 
+    ? "Directeur Général (Super Admin)" 
+    : userRole === "ADMIN_FINANCE" 
+    ? "Responsable Finances & Caisse"
+    : userRole === "ADMIN_DB" || userRole === "ADMIN_TECH"
+    ? "Gestionnaire Catalogue & BDD"
+    : userRole === "ADMIN_OPS"
+    ? "Responsable Opérations & Logistique"
+    : "Collaborateur Administratif";
+
   return (
     <DashboardLayout
-      menuItems={ADMIN_MENU}
-      roleBadgeValue={isSuper ? "SUPER ADMIN" : "SOUS ADMIN"}
+      menuItems={filteredMenuItems}
+      roleBadgeValue={roleBadgeValue}
       topbarTitle="Administration Centrale"
-      userName={userData?.displayName || userData?.name || "Admin"}
-      userRole={isSuper ? "Directeur Général" : "Agent Administratif"}
+      userName={userData?.displayName || userData?.name || "Collaborateur"}
+      userRole={userRoleTitle}
       notifications={notifications}
       unreadCount={unreadCount}
     >

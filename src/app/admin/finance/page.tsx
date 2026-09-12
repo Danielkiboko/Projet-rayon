@@ -14,7 +14,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { fetchSuppliersAction } from "./actions";
-import { hasAdminAccess } from "@/lib/permissions";
+import { hasAdminAccess, canAccessFinance } from "@/lib/permissions";
 import { 
   AccountingEntry, 
   ADJUSTMENT_REASONS, 
@@ -87,8 +87,8 @@ export default function AdminFinancePage() {
   const [actionNotice, setActionNotice] = useState("");
 
   useEffect(() => {
-    if (!loading && !hasAdminAccess(user, userData)) {
-      router.push("/");
+    if (!loading && !canAccessFinance(user, userData)) {
+      router.push("/admin/dashboard");
       return;
     }
 
@@ -101,7 +101,7 @@ export default function AdminFinancePage() {
       }
     };
 
-    if (hasAdminAccess(user, userData)) {
+    if (canAccessFinance(user, userData)) {
       fetchSuppliers();
     }
 

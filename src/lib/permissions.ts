@@ -33,12 +33,27 @@ export const hasAdminAccess = (user: any, userData: any): boolean => {
  */
 export const canAccessFinance = (user: any, userData: any): boolean => {
   const role = (userData?.role || "").toUpperCase();
-  return isSuperAdmin(user, userData) || role === "ADMIN_FINANCE";
+  return isSuperAdmin(user, userData) || role === "ADMIN_FINANCE" || role === "SUB_ADMIN";
 };
 
 export const canAccessDatabase = (user: any, userData: any): boolean => {
   const role = (userData?.role || "").toUpperCase();
-  return isSuperAdmin(user, userData) || role === "ADMIN_DB" || role === "ADMIN_TECH";
+  return isSuperAdmin(user, userData) || role === "ADMIN_DB" || role === "ADMIN_TECH" || role === "SUB_ADMIN";
+};
+
+export const canAccessOperations = (user: any, userData: any): boolean => {
+  const role = (userData?.role || "").toUpperCase();
+  return isSuperAdmin(user, userData) || role === "ADMIN_OPS" || role === "SUB_ADMIN";
+};
+
+export const getRoleTitle = (role?: string): string => {
+  const r = (role || "").toUpperCase();
+  if (r.includes("SUPER")) return "Directeur Général (Super Admin)";
+  if (r.includes("FINANCE")) return "Gestionnaire Financier & Comptabilité";
+  if (r.includes("DB") || r.includes("TECH")) return "Gestionnaire Base de Données & Catalogue";
+  if (r.includes("OPS")) return "Gestionnaire des Opérations & Logistique";
+  if (r === "SUB_ADMIN") return "Administrateur Délégué";
+  return "Collaborateur";
 };
 
 /**

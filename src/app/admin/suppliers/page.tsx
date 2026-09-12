@@ -10,7 +10,7 @@ import { auth, db } from "@/lib/firebase";
 import { collection, getDocs, query, where, doc, updateDoc, onSnapshot, orderBy } from "firebase/firestore";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { useAuth } from "@/context/AuthContext";
-import { hasAdminAccess } from "@/lib/permissions";
+import { hasAdminAccess, isTeamMember } from "@/lib/permissions";
 
 interface Supplier {
   id: string;
@@ -96,6 +96,10 @@ export default function SuppliersPage() {
       const fetchedSuppliers: Supplier[] = [];
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
+        // Skip internal staff / fonctionnaires from commercial suppliers list
+        if (data.isInternalStaff || isTeamMember(data)) {
+          return;
+        }
         fetchedSuppliers.push({
           id: docSnap.id,
           name: data.displayName || "Sans nom",

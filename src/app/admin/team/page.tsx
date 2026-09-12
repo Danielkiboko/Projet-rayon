@@ -21,7 +21,8 @@ import {
   UserCheck, 
   Mail, 
   Phone,
-  Crown
+  Crown,
+  Truck
 } from "lucide-react";
 import { db, auth } from "@/lib/firebase";
 import { collection, query, where, getDocs, doc, updateDoc, onSnapshot, serverTimestamp } from "firebase/firestore";
@@ -56,13 +57,13 @@ export default function AdminTeamPage() {
   const [newLastName, setNewLastName] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newPhone, setNewPhone] = useState("");
-  const [newRole, setNewRole] = useState<"ADMIN_FINANCE" | "ADMIN_DB" | "SUB_ADMIN">("ADMIN_FINANCE");
+  const [newRole, setNewRole] = useState<"ADMIN_FINANCE" | "ADMIN_DB" | "ADMIN_OPS" | "SUB_ADMIN">("ADMIN_FINANCE");
   const [isCreating, setIsCreating] = useState(false);
 
   // Search & promote existing user
   const [searchEmail, setSearchEmail] = useState("");
   const [searchedUser, setSearchedUser] = useState<any>(null);
-  const [selectedPromoteRole, setSelectedPromoteRole] = useState<"ADMIN_FINANCE" | "ADMIN_DB" | "SUB_ADMIN">("ADMIN_FINANCE");
+  const [selectedPromoteRole, setSelectedPromoteRole] = useState<"ADMIN_FINANCE" | "ADMIN_DB" | "ADMIN_OPS" | "SUB_ADMIN">("ADMIN_FINANCE");
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState("");
 
@@ -198,7 +199,7 @@ export default function AdminTeamPage() {
           extraData: {
             isInternalStaff: true,
             roleTitle: getRoleLabel(newRole),
-            department: newRole === "ADMIN_FINANCE" ? "Finance" : newRole === "ADMIN_DB" ? "Technique & BDD" : "Opérations"
+            department: newRole === "ADMIN_FINANCE" ? "Finance & Caisse" : newRole === "ADMIN_DB" ? "Technique & BDD" : newRole === "ADMIN_OPS" ? "Opérations & Livreurs" : "Direction Déléguée"
           },
           notificationMethod: "email",
           phoneNumber: newPhone ? newPhone.trim() : undefined,
@@ -343,14 +344,22 @@ export default function AdminTeamPage() {
       return (
         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 uppercase tracking-wider">
           <Database size={14} className="text-cyan-400" />
-          <span>Gestionnaire Données / BDD</span>
+          <span>Gestionnaire Données & Catalogue</span>
+        </span>
+      );
+    }
+    if (r.includes("OPS")) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-blue-500/15 text-blue-300 border border-blue-500/30 uppercase tracking-wider">
+          <Truck size={14} className="text-blue-400" />
+          <span>Gestionnaire Opérations & Livreurs</span>
         </span>
       );
     }
     return (
       <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-purple-500/15 text-purple-300 border border-purple-500/30 uppercase tracking-wider">
         <ShieldCheck size={14} className="text-purple-400" />
-        <span>Gestionnaire Opérations</span>
+        <span>Administrateur Délégué</span>
       </span>
     );
   };
@@ -359,8 +368,9 @@ export default function AdminTeamPage() {
     const r = (role || "").toUpperCase();
     if (r.includes("SUPER")) return "Super Administrateur";
     if (r.includes("FINANCE")) return "Gestionnaire Finance & Caisse";
-    if (r.includes("DB") || r.includes("TECH")) return "Gestionnaire Base de Données & Technique";
-    return "Gestionnaire Opérations & Modération";
+    if (r.includes("DB") || r.includes("TECH")) return "Gestionnaire Base de Données & Catalogue";
+    if (r.includes("OPS")) return "Gestionnaire Opérations & Livreurs";
+    return "Administrateur Délégué";
   };
 
   const superAdminCount = teamMembers.filter(m => m.role?.toUpperCase().includes("SUPER")).length;
@@ -533,7 +543,8 @@ export default function AdminTeamPage() {
                         {isMemberSuperAdmin && "Tous les modules & privilèges système complets"}
                         {member.role?.toUpperCase().includes("FINANCE") && "Caisse, Écritures comptables, Trésorerie, Factures & Dépôts"}
                         {member.role?.toUpperCase().includes("DB") && "Santé de l'app, Audits des collections, Erreurs système & Données"}
-                        {!isMemberSuperAdmin && !member.role?.toUpperCase().includes("FINANCE") && !member.role?.toUpperCase().includes("DB") && "Validation des biens/produits, Commandes & Livraisons"}
+                        {member.role?.toUpperCase().includes("OPS") && "Flotte de livreurs, Attribution des courses & Suivi des commandes"}
+                        {!isMemberSuperAdmin && !member.role?.toUpperCase().includes("FINANCE") && !member.role?.toUpperCase().includes("DB") && !member.role?.toUpperCase().includes("OPS") && "Validation des biens/produits, Commandes & Modération"}
                       </td>
                       <td className="px-6 py-4">
                         <span className="inline-flex items-center gap-1 text-xs text-emerald-400 font-medium bg-emerald-500/10 px-2 py-0.5 rounded-full">
@@ -553,7 +564,8 @@ export default function AdminTeamPage() {
                             >
                               <option value="ADMIN_FINANCE">💼 Finance & Caisse</option>
                               <option value="ADMIN_DB">🗄️ Base de Données</option>
-                              <option value="SUB_ADMIN">📦 Opérations & Modération</option>
+                              <option value="ADMIN_OPS">🚚 Opérations & Livreurs</option>
+                              <option value="SUB_ADMIN">📦 Modération Générale</option>
                             </select>
 
                             <button
@@ -606,7 +618,7 @@ export default function AdminTeamPage() {
             <button
               type="submit"
               disabled={isSearching}
-              className="px-6 py-2.5 bg-white/10 hover:bg-white/20 text-white font-semibold text-sm rounded-xl transition-all disabled:opacity-50 shrink-0"
+              className="px-6 py-2.5 bg-white/10 hover:bg-white/20 text-white font-semibold text-sm rounded-xl transition-all disabled:opacity-50 shrink-0 flex items-center justify-center gap-2"
             >
               {isSearching ? "Recherche..." : "Rechercher"}
             </button>
@@ -634,7 +646,8 @@ export default function AdminTeamPage() {
                 >
                   <option value="ADMIN_FINANCE">💼 Nommer Gestionnaire Finance</option>
                   <option value="ADMIN_DB">🗄️ Nommer Gestionnaire Base de Données</option>
-                  <option value="SUB_ADMIN">📦 Nommer Gestionnaire Opérations</option>
+                  <option value="ADMIN_OPS">🚚 Nommer Gestionnaire Opérations & Livreurs</option>
+                  <option value="SUB_ADMIN">📦 Nommer Gestionnaire Modération</option>
                 </select>
                 <button
                   onClick={handlePromoteSearchedUser}
@@ -819,6 +832,27 @@ export default function AdminTeamPage() {
                         </div>
                       </div>
                       {newRole === "ADMIN_DB" && <CheckCircle2 size={18} className="text-cyan-400 shrink-0" />}
+                    </div>
+
+                    {/* Ops / Livreurs */}
+                    <div
+                      onClick={() => setNewRole("ADMIN_OPS")}
+                      className={`p-3.5 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${
+                        newRole === "ADMIN_OPS"
+                          ? "bg-blue-500/15 border-blue-500 text-white shadow-md shadow-blue-500/10"
+                          : "bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:text-white"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="p-2.5 rounded-lg bg-blue-500/20 text-blue-400">
+                          <Truck size={18} />
+                        </div>
+                        <div>
+                          <p className="font-bold text-sm text-white">Gestionnaire Opérations & Livreurs</p>
+                          <p className="text-xs text-gray-400">Attribution des courses, suivi flotte de livreurs & livraisons en temps réel</p>
+                        </div>
+                      </div>
+                      {newRole === "ADMIN_OPS" && <CheckCircle2 size={18} className="text-blue-400 shrink-0" />}
                     </div>
 
                     {/* Ops / Moderation */}

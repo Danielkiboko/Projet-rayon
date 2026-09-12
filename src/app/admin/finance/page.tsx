@@ -2,12 +2,26 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Wallet, ArrowDownRight, ArrowUpRight, Plus, Download, X, Search, FileText } from "lucide-react";
+import { 
+  Wallet, ArrowDownRight, ArrowUpRight, Plus, Download, X, Search, 
+  FileText, ShieldAlert, CheckCircle, Clock, AlertTriangle, Sliders, RefreshCw, Lock
+} from "lucide-react";
 import { db } from "@/lib/firebase";
-import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, updateDoc } from "firebase/firestore";
+import { 
+  collection, query, orderBy, onSnapshot, addDoc, 
+  serverTimestamp, doc, updateDoc, getDocs 
+} from "firebase/firestore";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { fetchSuppliersAction } from "./actions";
+import { hasAdminAccess } from "@/lib/permissions";
+import { 
+  AccountingEntry, 
+  ADJUSTMENT_REASONS, 
+  recordCashAdjustment, 
+  recordSubscriptionDeposit 
+} from "@/lib/accountingLedger";
+import { evaluateSupplierSubscription } from "@/lib/supplierSubscription";
 
 interface Transaction {
   id: string;
@@ -20,34 +34,57 @@ interface Transaction {
   createdAt: any;
 }
 
-interface User {
+interface UserSupplier {
   id: string;
   displayName: string;
   email: string;
+  company?: string;
+  phone?: string;
+  rayon?: string;
   subscriptionEndDate?: any;
   subscriptionStatus?: string;
+  isBlocked?: boolean;
+  depositAmount?: number;
+  createdAt?: any;
 }
-
-import { hasAdminAccess } from "@/lib/permissions";
 
 export default function AdminFinancePage() {
   const { user, userData, loading } = useAuth();
   const router = useRouter();
-  
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [filter, setFilter] = useState("ALL");
-  const [search, setSearch] = useState("");
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [suppliers, setSuppliers] = useState<User[]>([]);
 
-  // Form states
+  // Navigation tabs
+  const [activeTab, setActiveTab] = useState<"ledger" | "deposits" | "overview">("ledger");
+
+  // State data
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [ledgerEntries, setLedgerEntries] = useState<AccountingEntry[]>([]);
+  const [suppliers, setSuppliers] = useState<UserSupplier[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [journalFilter, setJournalFilter] = useState<string>("ALL");
+  const [search, setSearch] = useState("");
+
+  // Modals
+  const [isTxModalOpen, setIsTxModalOpen] = useState(false);
+  const [isAdjustmentModalOpen, setIsAdjustmentModalOpen] = useState(false);
+
+  // Form states: Standard Transaction
   const [txType, setTxType] = useState<"SUBSCRIPTION" | "EXPENSE" | "OTHER_INCOME">("SUBSCRIPTION");
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [referenceId, setReferenceId] = useState("");
   const [selectedSupplierId, setSelectedSupplierId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Form states: Cash Adjustment
+  const [adjAmount, setAdjAmount] = useState("");
+  const [adjType, setAdjType] = useState<"ADD" | "SUBTRACT">("ADD");
+  const [adjReason, setAdjReason] = useState<string>(ADJUSTMENT_REASONS[0]);
+  const [adjLabel, setAdjLabel] = useState("");
+  const [adjRef, setAdjRef] = useState("");
+  const [isSubmittingAdj, setIsSubmittingAdj] = useState(false);
+
+  // Action feedback
+  const [actionNotice, setActionNotice] = useState("");
 
   useEffect(() => {
     if (!loading && !hasAdminAccess(user, userData)) {
@@ -63,15 +100,17 @@ export default function AdminFinancePage() {
         console.error("Error fetching suppliers:", err);
       }
     };
+
     if (hasAdminAccess(user, userData)) {
       fetchSuppliers();
     }
 
-    const q = query(collection(db, "transactions"), orderBy("createdAt", "desc"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    // 1. Listen to Transactions
+    const qTx = query(collection(db, "transactions"), orderBy("createdAt", "desc"));
+    const unsubTx = onSnapshot(qTx, (snapshot) => {
       const data: Transaction[] = [];
-      snapshot.forEach((doc) => {
-        data.push({ id: doc.id, ...doc.data() } as Transaction);
+      snapshot.forEach((docSnap) => {
+        data.push({ id: docSnap.id, ...docSnap.data() } as Transaction);
       });
       setTransactions(data);
       setIsLoading(false);
@@ -80,81 +119,175 @@ export default function AdminFinancePage() {
       setIsLoading(false);
     });
 
-    return () => unsubscribe();
+    // 2. Listen to Formal Accounting Ledger
+    const qLedger = query(collection(db, "accounting_ledger"), orderBy("date", "desc"));
+    const unsubLedger = onSnapshot(qLedger, (snapshot) => {
+      const entries: AccountingEntry[] = [];
+      snapshot.forEach((docSnap) => {
+        entries.push({ id: docSnap.id, ...docSnap.data() } as AccountingEntry);
+      });
+      setLedgerEntries(entries);
+    });
+
+    return () => {
+      unsubTx();
+      unsubLedger();
+    };
   }, [user, userData, loading, router]);
 
+  // Calculations
+  const totalSubscriptions = transactions
+    .filter(t => t.type === "SUBSCRIPTION")
+    .reduce((acc, t) => acc + t.amount, 0);
+
+  const totalOtherIncome = transactions
+    .filter(t => t.type === "OTHER_INCOME")
+    .reduce((acc, t) => acc + t.amount, 0);
+
+  const totalIncome = totalSubscriptions + totalOtherIncome;
+  const totalPayout = transactions
+    .filter(t => t.type === "EXPENSE")
+    .reduce((acc, t) => acc + t.amount, 0);
+
+  const currentBalance = totalIncome - totalPayout;
+
+  // Settle supplier deposit (1-click action)
+  const handleSettleSupplierDeposit = async (supplier: UserSupplier) => {
+    const depositAmount = supplier.depositAmount || 50;
+    if (!confirm(`Confirmez-vous l'encaissement du dépôt de $${depositAmount} pour le fournisseur ${supplier.displayName || supplier.email} ?\n\nCette action prolongera son abonnement de 30 jours, débloquera son compte et passera l'écriture comptable correspondante.`)) {
+      return;
+    }
+
+    try {
+      await recordSubscriptionDeposit({
+        supplierId: supplier.id,
+        supplierName: supplier.displayName || supplier.email || "Fournisseur",
+        amount: depositAmount,
+        paymentMethod: "Caisse centrale / Mobile Money",
+        currentBalance
+      });
+
+      // Refresh local supplier list
+      setSuppliers(prev => prev.map(s => {
+        if (s.id === supplier.id) {
+          const next = new Date();
+          next.setDate(next.getDate() + 30);
+          return {
+            ...s,
+            subscriptionStatus: "ACTIVE",
+            subscriptionEndDate: next.toISOString(),
+            isBlocked: false
+          };
+        }
+        return s;
+      }));
+
+      setActionNotice(`Dépôt de $${depositAmount} encaissé avec succès pour ${supplier.displayName || supplier.email}. Compte actif et débloqué !`);
+      setTimeout(() => setActionNotice(""), 6000);
+    } catch (err: any) {
+      console.error("Error settling deposit:", err);
+      alert(err.message || "Erreur lors de l'encaissement du dépôt.");
+    }
+  };
+
+  // Submit Cash Adjustment
+  const handleSaveAdjustment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const val = parseFloat(adjAmount);
+    if (isNaN(val) || val <= 0) {
+      alert("Veuillez saisir un montant valide.");
+      return;
+    }
+
+    const finalAmount = adjType === "ADD" ? val : -val;
+    setIsSubmittingAdj(true);
+
+    try {
+      await recordCashAdjustment({
+        amount: finalAmount,
+        reason: adjReason,
+        label: adjLabel,
+        referencePiece: adjRef,
+        actorType: "ADMIN",
+        currentBalance
+      });
+
+      setIsAdjustmentModalOpen(false);
+      setAdjAmount("");
+      setAdjLabel("");
+      setAdjRef("");
+      setActionNotice(`Ajustement de caisse de ${finalAmount > 0 ? "+" : ""}$${finalAmount} enregistré avec succès dans le Grand Livre.`);
+      setTimeout(() => setActionNotice(""), 6000);
+    } catch (err: any) {
+      console.error("Error saving cash adjustment:", err);
+      alert(err.message || "Erreur lors de l'enregistrement de l'ajustement de caisse.");
+    } finally {
+      setIsSubmittingAdj(false);
+    }
+  };
+
+  // Submit Standard Transaction
   const handleAddTransaction = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!amount || isNaN(Number(amount))) return;
+    const parsedAmount = parseFloat(amount);
+    if (!amount || isNaN(parsedAmount) || parsedAmount <= 0) {
+      alert("Veuillez saisir un montant valide.");
+      return;
+    }
     
     if (txType === "SUBSCRIPTION" && !selectedSupplierId) {
-      alert("Veuillez sélectionner un fournisseur");
+      alert("Veuillez sélectionner un fournisseur.");
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const txRefId = referenceId || `MANUAL-${Math.floor(Math.random() * 1000000)}`;
-      let finalDescription = description;
-
       if (txType === "SUBSCRIPTION") {
-        const supplier = suppliers.find(s => s.id === selectedSupplierId);
-        if (supplier) {
-          finalDescription = `Paiement Abonnement - ${supplier.displayName || supplier.email || 'Fournisseur'}`;
-          
-          // Calculer la nouvelle date
-          const now = new Date();
-          let baseDate = new Date(now.getTime());
-          if (supplier.subscriptionEndDate) {
-            // Because it's coming from server action or state, it might be an ISO string or a timestamp
-            const currentEnd = typeof supplier.subscriptionEndDate === 'string' 
-              ? new Date(supplier.subscriptionEndDate) 
-              : (supplier.subscriptionEndDate as any).toDate?.() || new Date(supplier.subscriptionEndDate);
-            
-            if (currentEnd > now) {
-              baseDate = new Date(currentEnd.getTime());
-            }
-          }
-          const newEndDate = new Date(baseDate.setDate(baseDate.getDate() + 30));
+        const sup = suppliers.find(s => s.id === selectedSupplierId);
+        await recordSubscriptionDeposit({
+          supplierId: selectedSupplierId,
+          supplierName: sup?.displayName || sup?.email || "Fournisseur",
+          amount: parsedAmount,
+          referencePiece: referenceId,
+          currentBalance
+        });
+      } else {
+        const txRefId = referenceId || `MANUAL-${Math.floor(Math.random() * 1000000)}`;
+        await addDoc(collection(db, "transactions"), {
+          type: txType,
+          amount: parsedAmount,
+          currency: "USD",
+          description,
+          referenceId: txRefId,
+          status: "COMPLETED",
+          createdAt: serverTimestamp(),
+          createdBy: user?.uid
+        });
 
-          // Mettre à jour l'utilisateur
-          await updateDoc(doc(db, "users", selectedSupplierId), {
-            subscriptionStatus: "ACTIVE",
-            subscriptionEndDate: newEndDate.toISOString()
-          });
-
-          // Ajouter dans supplier_transactions
-          await addDoc(collection(db, "supplier_transactions"), {
-            supplierId: selectedSupplierId,
-            type: "EXPENSE",
-            amount: Number(amount),
-            currency: "USD",
-            description: "Paiement Abonnement Plateforme (Manuel)",
-            referenceId: txRefId,
-            status: "COMPLETED",
-            createdAt: serverTimestamp(),
-            createdBy: user?.uid
-          });
-        }
+        await addDoc(collection(db, "accounting_ledger"), {
+          entryNumber: `ECR-${new Date().getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`,
+          date: serverTimestamp(),
+          journal: txType === "EXPENSE" ? "CS" : "VT",
+          journalName: txType === "EXPENSE" ? "Journal de Caisse (Dépense)" : "Journal des Ventes & Recettes",
+          referencePiece: txRefId,
+          label: description,
+          debit: txType === "OTHER_INCOME" ? parsedAmount : 0,
+          credit: txType === "EXPENSE" ? parsedAmount : 0,
+          balanceAfter: txType === "EXPENSE" ? currentBalance - parsedAmount : currentBalance + parsedAmount,
+          currency: "USD",
+          actorType: "ADMIN",
+          category: txType,
+          status: "VALIDATED"
+        });
       }
 
-      await addDoc(collection(db, "transactions"), {
-        type: txType,
-        amount: Number(amount),
-        currency: "USD",
-        description: finalDescription,
-        referenceId: txRefId,
-        status: "COMPLETED",
-        createdAt: serverTimestamp(),
-        createdBy: user?.uid,
-        supplierId: txType === "SUBSCRIPTION" ? selectedSupplierId : null
-      });
-      setIsModalOpen(false);
+      setIsTxModalOpen(false);
       setAmount("");
       setDescription("");
       setReferenceId("");
       setSelectedSupplierId("");
-      setTxType("SUBSCRIPTION");
+      setActionNotice("Opération enregistrée avec succès.");
+      setTimeout(() => setActionNotice(""), 5000);
     } catch (error) {
       console.error("Error adding transaction:", error);
       alert("Erreur lors de l'ajout de la transaction");
@@ -163,313 +296,671 @@ export default function AdminFinancePage() {
     }
   };
 
+  // Export CSV
   const downloadCSV = () => {
-    const headers = ["Date", "Type", "Montant (USD)", "Description", "Reference", "Statut"];
-    const rows = filteredTransactions.map(t => [
-      t.createdAt?.toDate ? t.createdAt.toDate().toLocaleDateString('fr-FR') : 'N/A',
-      t.type,
-      t.amount.toString(),
-      `"${t.description}"`,
-      t.referenceId || "N/A",
-      t.status
+    const headers = ["Date", "N° Écriture", "Journal", "Réf Pièce", "Libellé", "Débit (+)", "Crédit (-)", "Solde"];
+    const rows = ledgerEntries.map(e => [
+      e.date?.toDate ? e.date.toDate().toLocaleDateString('fr-FR') : 'N/A',
+      e.entryNumber || '-',
+      e.journal || '-',
+      e.referencePiece || '-',
+      `"${(e.label || '').replace(/"/g, '""')}"`,
+      e.debit ? `$${e.debit.toFixed(2)}` : '',
+      e.credit ? `$${e.credit.toFixed(2)}` : '',
+      e.balanceAfter ? `$${e.balanceAfter.toFixed(2)}` : ''
     ]);
 
     const csvContent = "data:text/csv;charset=utf-8," 
       + headers.join(",") + "\n" 
-      + rows.map(e => e.join(",")).join("\n");
+      + rows.map(r => r.join(",")).join("\n");
 
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `livre_de_caisse_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute("download", `grand_livre_rayons_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
-  const filteredTransactions = transactions.filter(t => {
-    if (filter !== "ALL" && t.type !== filter) return false;
-    if (search && !t.description.toLowerCase().includes(search.toLowerCase()) && !(t.referenceId || "").toLowerCase().includes(search.toLowerCase())) return false;
+  // Filtered Ledger
+  const filteredLedger = ledgerEntries.filter(entry => {
+    if (journalFilter !== "ALL" && entry.journal !== journalFilter) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      const matchLabel = (entry.label || "").toLowerCase().includes(q);
+      const matchRef = (entry.referencePiece || "").toLowerCase().includes(q);
+      const matchNum = (entry.entryNumber || "").toLowerCase().includes(q);
+      if (!matchLabel && !matchRef && !matchNum) return false;
+    }
     return true;
   });
 
-  const totalIncome = transactions.filter(t => t.type === "SUBSCRIPTION" || t.type === "OTHER_INCOME").reduce((acc, t) => acc + t.amount, 0);
-  const totalPayout = transactions.filter(t => t.type === "EXPENSE").reduce((acc, t) => acc + t.amount, 0);
-  const balance = totalIncome - totalPayout;
-
   return (
     <div className="space-y-6 pb-20">
+      {/* Header with Title and Primary Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Livre de Caisse</h1>
-          <p className="text-sm text-gray-400">Gérez et suivez toutes les transactions financières.</p>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-white">Comptabilité Centrale & Livre de Caisse</h1>
+            <span className="px-2.5 py-0.5 bg-[#C7D300]/10 text-[#C7D300] border border-[#C7D300]/30 rounded-full text-xs font-bold">
+              Officiel Rayons.net
+            </span>
+          </div>
+          <p className="text-sm text-gray-400 mt-1">
+            Grand Livre des écritures, encaissement des abonnements fournisseurs et ventes directes Admin.
+          </p>
         </div>
-        <div className="flex space-x-3">
+
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button 
+            onClick={() => setIsAdjustmentModalOpen(true)}
+            className="flex items-center space-x-1.5 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm"
+          >
+            <Sliders size={16} />
+            <span>Ajustement de Caisse</span>
+          </button>
+
           <button 
             onClick={downloadCSV}
-            className="flex items-center space-x-2 bg-black/20 hover:bg-black/40 border border-white/10 text-white px-4 py-2 rounded-lg transition-colors"
+            className="flex items-center space-x-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white px-3.5 py-2 rounded-xl text-xs font-semibold transition-all shadow-sm"
           >
-            <Download size={20} />
-            <span>Exporter CSV</span>
+            <Download size={16} />
+            <span>Exporter Grand Livre</span>
           </button>
+
           <button 
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center space-x-2 bg-primary hover:bg-primary-light text-white px-4 py-2 rounded-lg transition-colors"
+            onClick={() => setIsTxModalOpen(true)}
+            className="flex items-center space-x-1.5 bg-primary hover:bg-primary-light text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-md shadow-primary/20"
           >
-            <Plus size={20} />
-            <span>Ajouter Opération</span>
+            <Plus size={16} />
+            <span>Nouvelle Écriture</span>
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+      {/* Action Notification Banner */}
+      {actionNotice && (
+        <motion.div 
+          initial={{ opacity: 0, y: -10 }} 
+          animate={{ opacity: 1, y: 0 }} 
+          className="p-4 bg-emerald-500/15 border border-emerald-500/30 rounded-xl flex items-center gap-3 text-emerald-300 text-sm font-semibold shadow-lg shadow-emerald-950/20"
+        >
+          <CheckCircle size={20} className="text-emerald-400 shrink-0" />
+          <span>{actionNotice}</span>
+        </motion.div>
+      )}
+
+      {/* Financial Overview Cards - Based on User's Business Model */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
           <div className="flex items-center justify-between">
-            <h3 className="text-gray-400 text-sm font-medium">Solde Caisse</h3>
-            <div className="p-2 bg-blue-500/20 rounded-lg">
-              <Wallet className="text-blue-400" size={20} />
+            <h3 className="text-gray-400 text-xs font-semibold uppercase tracking-wider">Solde de Caisse</h3>
+            <div className="p-2 bg-blue-500/20 rounded-lg text-blue-400">
+              <Wallet size={18} />
             </div>
           </div>
-          <p className="text-3xl font-bold text-white mt-4">${balance.toFixed(2)}</p>
-        </div>
-        
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-          <div className="flex items-center justify-between">
-            <h3 className="text-gray-400 text-sm font-medium">Total Entrées (Revenus)</h3>
-            <div className="p-2 bg-green-500/20 rounded-lg">
-              <ArrowDownRight className="text-green-400" size={20} />
-            </div>
-          </div>
-          <p className="text-3xl font-bold text-white mt-4">${totalIncome.toFixed(2)}</p>
+          <p className="text-3xl font-black text-white mt-3">${currentBalance.toFixed(2)}</p>
+          <span className="text-[11px] text-gray-400 mt-1 block">Solde net consolidé</span>
         </div>
 
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
           <div className="flex items-center justify-between">
-            <h3 className="text-gray-400 text-sm font-medium">Total Sorties (Dépenses/Paiements)</h3>
-            <div className="p-2 bg-red-500/20 rounded-lg">
-              <ArrowUpRight className="text-red-400" size={20} />
+            <h3 className="text-gray-400 text-xs font-semibold uppercase tracking-wider">Abonnements Fournisseurs</h3>
+            <div className="p-2 bg-emerald-500/20 rounded-lg text-emerald-400">
+              <ArrowDownRight size={18} />
             </div>
           </div>
-          <p className="text-3xl font-bold text-white mt-4">${totalPayout.toFixed(2)}</p>
+          <p className="text-3xl font-black text-emerald-400 mt-3">${totalSubscriptions.toFixed(2)}</p>
+          <span className="text-[11px] text-gray-400 mt-1 block">Dépôts mensuels perçus</span>
+        </div>
+
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
+          <div className="flex items-center justify-between">
+            <h3 className="text-gray-400 text-xs font-semibold uppercase tracking-wider">Ventes & Recettes Admin</h3>
+            <div className="p-2 bg-cyan-500/20 rounded-lg text-cyan-400">
+              <ArrowDownRight size={18} />
+            </div>
+          </div>
+          <p className="text-3xl font-black text-cyan-400 mt-3">${totalOtherIncome.toFixed(2)}</p>
+          <span className="text-[11px] text-gray-400 mt-1 block">Vente de vos propres produits</span>
+        </div>
+
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
+          <div className="flex items-center justify-between">
+            <h3 className="text-gray-400 text-xs font-semibold uppercase tracking-wider">Dépenses Plateforme</h3>
+            <div className="p-2 bg-red-500/20 rounded-lg text-red-400">
+              <ArrowUpRight size={18} />
+            </div>
+          </div>
+          <p className="text-3xl font-black text-red-400 mt-3">${totalPayout.toFixed(2)}</p>
+          <span className="text-[11px] text-gray-400 mt-1 block">Frais serveurs & logistique</span>
         </div>
       </div>
 
-      <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
-        <div className="p-4 border-b border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex space-x-2">
-            <button
-              onClick={() => setFilter("ALL")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === "ALL" ? "bg-white/10 text-white" : "text-gray-400 hover:text-white"}`}
-            >
-              Tous
-            </button>
-            <button
-              onClick={() => setFilter("SUBSCRIPTION")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === "SUBSCRIPTION" ? "bg-green-500/20 text-green-400" : "text-gray-400 hover:text-white"}`}
-            >
-              Abonnements Fournisseurs
-            </button>
-            <button
-              onClick={() => setFilter("OTHER_INCOME")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === "OTHER_INCOME" ? "bg-blue-500/20 text-blue-400" : "text-gray-400 hover:text-white"}`}
-            >
-              Autres Entrées
-            </button>
-            <button
-              onClick={() => setFilter("EXPENSE")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === "EXPENSE" ? "bg-red-500/20 text-red-400" : "text-gray-400 hover:text-white"}`}
-            >
-              Dépenses de Plateforme
-            </button>
-          </div>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-            <input
-              type="text"
-              placeholder="Rechercher une transaction..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full sm:w-64 pl-10 pr-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white text-sm"
-            />
-          </div>
-        </div>
+      {/* Tabs Switcher */}
+      <div className="flex border-b border-white/10 gap-6 text-sm font-semibold">
+        <button
+          onClick={() => setActiveTab("ledger")}
+          className={`pb-3 border-b-2 transition-all flex items-center gap-2 ${
+            activeTab === "ledger" 
+              ? "border-[#C7D300] text-[#C7D300]" 
+              : "border-transparent text-gray-400 hover:text-white"
+          }`}
+        >
+          <FileText size={16} />
+          Grand Livre des Écritures ({filteredLedger.length})
+        </button>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-gray-300">
-            <thead className="text-xs uppercase bg-black/20 text-gray-400">
-              <tr>
-                <th className="px-6 py-4">Date</th>
-                <th className="px-6 py-4">Type</th>
-                <th className="px-6 py-4">Description</th>
-                <th className="px-6 py-4">Référence</th>
-                <th className="px-6 py-4 text-right">Montant (USD)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {isLoading ? (
+        <button
+          onClick={() => setActiveTab("deposits")}
+          className={`pb-3 border-b-2 transition-all flex items-center gap-2 ${
+            activeTab === "deposits" 
+              ? "border-[#C7D300] text-[#C7D300]" 
+              : "border-transparent text-gray-400 hover:text-white"
+          }`}
+        >
+          <Clock size={16} />
+          Échéancier Fournisseurs & Dépôts Attendus ({suppliers.length})
+        </button>
+
+        <button
+          onClick={() => setActiveTab("overview")}
+          className={`pb-3 border-b-2 transition-all flex items-center gap-2 ${
+            activeTab === "overview" 
+              ? "border-[#C7D300] text-[#C7D300]" 
+              : "border-transparent text-gray-400 hover:text-white"
+          }`}
+        >
+          <Wallet size={16} />
+          Livre de Caisse Simplifié
+        </button>
+      </div>
+
+      {/* TAB 1: GRAND LIVRE DES ÉCRITURES COMPTABLES */}
+      {activeTab === "ledger" && (
+        <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+          {/* Controls */}
+          <div className="p-4 border-b border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex flex-wrap gap-2 text-xs">
+              {[
+                { code: "ALL", label: "Tous les Journaux" },
+                { code: "VT", label: "VT • Ventes" },
+                { code: "AB", label: "AB • Abonnements" },
+                { code: "AJ", label: "AJ • Ajustements Caisse" },
+                { code: "CS", label: "CS • Caisse" },
+                { code: "BQ", label: "BQ • Banque / Mobile Money" }
+              ].map(j => (
+                <button
+                  key={j.code}
+                  onClick={() => setJournalFilter(j.code)}
+                  className={`px-3 py-1.5 rounded-lg font-bold transition-colors ${
+                    journalFilter === j.code 
+                      ? "bg-[#C7D300] text-[#0F1D27] shadow-sm" 
+                      : "bg-white/5 text-gray-400 hover:text-white"
+                  }`}
+                >
+                  {j.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+              <input
+                type="text"
+                placeholder="Rechercher par libellé ou réf..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full sm:w-64 pl-9 pr-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#C7D300] text-white text-xs"
+              />
+            </div>
+          </div>
+
+          {/* Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs text-gray-300">
+              <thead className="text-[11px] uppercase bg-black/30 text-gray-400">
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-gray-400">Chargement...</td>
+                  <th className="px-5 py-3.5">N° Écriture</th>
+                  <th className="px-5 py-3.5">Date</th>
+                  <th className="px-5 py-3.5">Code Journal</th>
+                  <th className="px-5 py-3.5">Pièce Justificative</th>
+                  <th className="px-5 py-3.5">Libellé Comptable</th>
+                  <th className="px-5 py-3.5 text-right">Débit (+)</th>
+                  <th className="px-5 py-3.5 text-right">Crédit (-)</th>
+                  <th className="px-5 py-3.5 text-right">Solde Caisse</th>
                 </tr>
-              ) : filteredTransactions.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-gray-400">Aucune transaction trouvée.</td>
-                </tr>
-              ) : (
-                filteredTransactions.map((t) => (
-                  <tr key={t.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                    <td className="px-6 py-4">
-                      {t.createdAt?.toDate ? t.createdAt.toDate().toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
-                    </td>
-                    <td className="px-6 py-4">
-                      {t.type === "SUBSCRIPTION" && <span className="inline-flex items-center text-green-400 bg-green-400/10 px-2 py-1 rounded text-xs"><ArrowDownRight size={12} className="mr-1"/> Abonnement</span>}
-                      {t.type === "OTHER_INCOME" && <span className="inline-flex items-center text-blue-400 bg-blue-400/10 px-2 py-1 rounded text-xs"><ArrowDownRight size={12} className="mr-1"/> Autre Entrée</span>}
-                      {t.type === "EXPENSE" && <span className="inline-flex items-center text-red-400 bg-red-400/10 px-2 py-1 rounded text-xs"><ArrowUpRight size={12} className="mr-1"/> Dépense</span>}
-                    </td>
-                    <td className="px-6 py-4 text-white font-medium">{t.description}</td>
-                    <td className="px-6 py-4 text-gray-400">{t.referenceId || "-"}</td>
-                    <td className={`px-6 py-4 text-right font-bold ${t.type === 'SUBSCRIPTION' || t.type === 'OTHER_INCOME' ? 'text-green-400' : 'text-white'}`}>
-                      {t.type === 'SUBSCRIPTION' || t.type === 'OTHER_INCOME' ? '+' : '-'}${t.amount.toFixed(2)}
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {filteredLedger.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="px-6 py-10 text-center text-gray-400">
+                      Aucune écriture comptable enregistrée pour ce filtre.
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  filteredLedger.map((entry) => (
+                    <tr key={entry.id || entry.entryNumber} className="hover:bg-white/5 transition-colors">
+                      <td className="px-5 py-3.5 font-mono text-white font-bold">
+                        {entry.entryNumber}
+                      </td>
+                      <td className="px-5 py-3.5 text-gray-400">
+                        {entry.date?.toDate ? entry.date.toDate().toLocaleDateString('fr-FR') : "Date récente"}
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <span className={`px-2 py-0.5 rounded font-black text-[10px] ${
+                          entry.journal === "AB" ? "bg-emerald-500/20 text-emerald-300" :
+                          entry.journal === "VT" ? "bg-cyan-500/20 text-cyan-300" :
+                          entry.journal === "AJ" ? "bg-amber-500/20 text-amber-300" :
+                          "bg-purple-500/20 text-purple-300"
+                        }`}>
+                          {entry.journal}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5 text-gray-400 font-mono">
+                        {entry.referencePiece || "-"}
+                      </td>
+                      <td className="px-5 py-3.5 text-white font-medium max-w-xs truncate" title={entry.label}>
+                        {entry.label}
+                      </td>
+                      <td className="px-5 py-3.5 text-right font-bold text-emerald-400">
+                        {entry.debit > 0 ? `+$${entry.debit.toFixed(2)}` : "-"}
+                      </td>
+                      <td className="px-5 py-3.5 text-right font-bold text-red-400">
+                        {entry.credit > 0 ? `-$${entry.credit.toFixed(2)}` : "-"}
+                      </td>
+                      <td className="px-5 py-3.5 text-right font-bold text-white">
+                        {entry.balanceAfter !== undefined ? `$${entry.balanceAfter.toFixed(2)}` : "-"}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Modal Add Transaction */}
+      {/* TAB 2: ÉCHÉANCIER FOURNISSEURS & DÉPÔTS ATTENDUS */}
+      {activeTab === "deposits" && (
+        <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+          <div className="p-4 border-b border-white/10 flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-bold text-white">Échéancier & Dépôts Attendus des Fournisseurs</h2>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Règle : 15 jours d'essai offerts. Si l'échéance mensuelle ($50) est dépassée, le fournisseur est bloqué de publication et messagerie.
+              </p>
+            </div>
+            <span className="text-xs font-semibold px-3 py-1 bg-white/5 text-gray-300 rounded-lg">
+              {suppliers.length} fournisseur{suppliers.length > 1 ? "s" : ""} enregistré{suppliers.length > 1 ? "s" : ""}
+            </span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs text-gray-300">
+              <thead className="text-[11px] uppercase bg-black/30 text-gray-400">
+                <tr>
+                  <th className="px-5 py-3.5">Fournisseur</th>
+                  <th className="px-5 py-3.5">Rayon</th>
+                  <th className="px-5 py-3.5">Cycle Actuel</th>
+                  <th className="px-5 py-3.5">Échéance Dépôt</th>
+                  <th className="px-5 py-3.5">Dépôt Attendu</th>
+                  <th className="px-5 py-3.5">Statut Plateforme</th>
+                  <th className="px-5 py-3.5 text-right">Actions Comptables</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {suppliers.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-10 text-center text-gray-400">
+                      Aucun fournisseur inscrit pour le moment.
+                    </td>
+                  </tr>
+                ) : (
+                  suppliers.map((s) => {
+                    const subInfo = evaluateSupplierSubscription(s);
+                    const depositAmount = s.depositAmount || 50;
+
+                    return (
+                      <tr key={s.id} className="hover:bg-white/5 transition-colors">
+                        <td className="px-5 py-3.5">
+                          <div className="font-bold text-white">{s.displayName || s.company || "Partenaire"}</div>
+                          <div className="text-[11px] text-gray-400">{s.email}</div>
+                        </td>
+                        <td className="px-5 py-3.5 uppercase font-bold text-gray-300">
+                          {s.rayon || "Mode / Connect"}
+                        </td>
+                        <td className="px-5 py-3.5">
+                          {subInfo.isTrial ? (
+                            <span className="inline-flex items-center text-blue-400 bg-blue-500/15 px-2.5 py-1 rounded-full text-[11px] font-semibold">
+                              Essai 15 jours ({subInfo.daysLeft}j restants)
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center text-gray-300 bg-white/5 px-2.5 py-1 rounded-full text-[11px] font-semibold">
+                              Abonnement Mensuel
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-5 py-3.5 font-medium text-gray-300">
+                          {subInfo.formattedDueDate}
+                        </td>
+                        <td className="px-5 py-3.5 font-bold text-white">
+                          ${depositAmount} / mois
+                        </td>
+                        <td className="px-5 py-3.5">
+                          {subInfo.isBlocked ? (
+                            <span className="inline-flex items-center text-red-400 bg-red-500/15 border border-red-500/30 px-2.5 py-1 rounded-full text-[11px] font-bold">
+                              <Lock size={12} className="mr-1" /> Bloqué (Impayé)
+                            </span>
+                          ) : subInfo.isTrial ? (
+                            <span className="inline-flex items-center text-blue-400 bg-blue-500/10 px-2.5 py-1 rounded-full text-[11px] font-semibold">
+                              Actif (En essai)
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-1 rounded-full text-[11px] font-bold">
+                              <CheckCircle size={12} className="mr-1" /> À jour
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-5 py-3.5 text-right">
+                          <button
+                            onClick={() => handleSettleSupplierDeposit(s)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#C7D300] hover:bg-[#b5c000] text-[#0F1D27] rounded-lg font-bold text-xs transition-colors shadow-sm"
+                            title="Encaisser le dépôt de 50$, débloquer le compte et passer l'écriture comptable AB"
+                          >
+                            <ArrowDownRight size={14} />
+                            Encaisser Dépôt ($50)
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 3: LIVRE DE CAISSE SIMPLIFIÉ (HISTORIQUE DES TRANSACTIONS) */}
+      {activeTab === "overview" && (
+        <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+          <div className="p-4 border-b border-white/10">
+            <h2 className="text-base font-bold text-white">Transactions Comptables de Caisse</h2>
+            <p className="text-xs text-gray-400 mt-0.5">Historique brut des encaissements et décaissements.</p>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs text-gray-300">
+              <thead className="text-[11px] uppercase bg-black/30 text-gray-400">
+                <tr>
+                  <th className="px-5 py-3.5">Date</th>
+                  <th className="px-5 py-3.5">Nature</th>
+                  <th className="px-5 py-3.5">Description</th>
+                  <th className="px-5 py-3.5">Réf Pièce</th>
+                  <th className="px-5 py-3.5 text-right">Montant (USD)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {transactions.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-8 text-center text-gray-400">Aucune transaction trouvée.</td>
+                  </tr>
+                ) : (
+                  transactions.map((t) => (
+                    <tr key={t.id} className="hover:bg-white/5 transition-colors">
+                      <td className="px-5 py-3.5 text-gray-400">
+                        {t.createdAt?.toDate ? t.createdAt.toDate().toLocaleDateString('fr-FR') : 'N/A'}
+                      </td>
+                      <td className="px-5 py-3.5">
+                        {t.type === "SUBSCRIPTION" && <span className="inline-flex items-center text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded text-[10px] font-bold"><ArrowDownRight size={11} className="mr-1"/> Abonnement Fournisseur</span>}
+                        {t.type === "OTHER_INCOME" && <span className="inline-flex items-center text-cyan-400 bg-cyan-400/10 px-2 py-0.5 rounded text-[10px] font-bold"><ArrowDownRight size={11} className="mr-1"/> Vente Produit Admin</span>}
+                        {t.type === "EXPENSE" && <span className="inline-flex items-center text-red-400 bg-red-400/10 px-2 py-0.5 rounded text-[10px] font-bold"><ArrowUpRight size={11} className="mr-1"/> Dépense</span>}
+                      </td>
+                      <td className="px-5 py-3.5 text-white font-medium">{t.description}</td>
+                      <td className="px-5 py-3.5 text-gray-400 font-mono">{t.referenceId || "-"}</td>
+                      <td className={`px-5 py-3.5 text-right font-bold ${t.type === 'SUBSCRIPTION' || t.type === 'OTHER_INCOME' ? 'text-emerald-400' : 'text-red-400'}`}>
+                        {t.type === 'SUBSCRIPTION' || t.type === 'OTHER_INCOME' ? '+' : '-'}${t.amount.toFixed(2)}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 1: AJUSTEMENT DE CAISSE FORMEL */}
       <AnimatePresence>
-        {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        {isAdjustmentModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-md bg-[#140b2e] border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+              className="w-full max-w-lg bg-[#0F1D27] border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
             >
               <div className="flex items-center justify-between p-6 border-b border-white/10">
-                <h2 className="text-xl font-semibold text-white">Nouvelle Opération</h2>
-                <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-white">
-                  <X size={24} />
+                <div>
+                  <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                    <Sliders className="text-[#C7D300]" size={18} />
+                    Ajustement de Caisse
+                  </h2>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    Solde actuel avant ajustement : <strong>${currentBalance.toFixed(2)}</strong>
+                  </p>
+                </div>
+                <button onClick={() => setIsAdjustmentModalOpen(false)} className="text-gray-400 hover:text-white">
+                  <X size={20} />
                 </button>
               </div>
 
-              <form onSubmit={handleAddTransaction} className="p-6 space-y-4">
-                <div className="space-y-1">
-                  <label className="text-sm font-medium text-gray-300">Type d'opération</label>
-                  <select 
-                    value={txType}
-                    onChange={(e: any) => setTxType(e.target.value)}
-                    className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white"
-                  >
-                    <option value="SUBSCRIPTION">Paiement d'Abonnement Fournisseur</option>
-                    <option value="OTHER_INCOME">Autre Entrée (Investissement, etc.)</option>
-                    <option value="EXPENSE">Dépense de Plateforme (Serveurs, Marketing...)</option>
-                  </select>
+              <form onSubmit={handleSaveAdjustment} className="p-6 space-y-4 text-xs">
+                <div>
+                  <label className="text-gray-300 font-semibold block mb-1.5">Sens de l'ajustement</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setAdjType("ADD")}
+                      className={`py-2.5 rounded-xl font-bold transition-all border ${
+                        adjType === "ADD" 
+                          ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-sm" 
+                          : "bg-white/5 text-gray-400 border-white/10"
+                      }`}
+                    >
+                      + Entrée / Apport Caisse
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAdjType("SUBTRACT")}
+                      className={`py-2.5 rounded-xl font-bold transition-all border ${
+                        adjType === "SUBTRACT" 
+                          ? "bg-red-500/20 text-red-300 border-red-500/40 shadow-sm" 
+                          : "bg-white/5 text-gray-400 border-white/10"
+                      }`}
+                    >
+                      - Sortie / Prélèvement Caisse
+                    </button>
+                  </div>
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-sm font-medium text-gray-300">Montant (USD)</label>
+                <div>
+                  <label className="text-gray-300 font-semibold block mb-1">Montant ($ USD) *</label>
                   <input
                     type="number"
                     step="0.01"
+                    min="0.01"
+                    required
+                    value={adjAmount}
+                    onChange={(e) => setAdjAmount(e.target.value)}
+                    placeholder="ex: 50.00"
+                    className="w-full px-3.5 py-2.5 bg-black/30 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-[#C7D300]"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-gray-300 font-semibold block mb-1">Motif comptable obligatoire *</label>
+                  <select
+                    value={adjReason}
+                    onChange={(e) => setAdjReason(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-black/30 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-[#C7D300]"
+                  >
+                    {ADJUSTMENT_REASONS.map((r) => (
+                      <option key={r} value={r} className="bg-[#0F1D27] text-white">
+                        {r}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-gray-300 font-semibold block mb-1">Libellé précis de l'opération *</label>
+                  <input
+                    type="text"
+                    required
+                    value={adjLabel}
+                    onChange={(e) => setAdjLabel(e.target.value)}
+                    placeholder="ex: Régularisation suite à inventaire physique du coffre"
+                    className="w-full px-3.5 py-2.5 bg-black/30 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-[#C7D300]"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-gray-300 font-semibold block mb-1">Numéro de pièce / Justificatif (Optionnel)</label>
+                  <input
+                    type="text"
+                    value={adjRef}
+                    onChange={(e) => setAdjRef(e.target.value)}
+                    placeholder="ex: REC-INV-2026-01"
+                    className="w-full px-3.5 py-2.5 bg-black/30 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-[#C7D300]"
+                  />
+                </div>
+
+                <div className="pt-2 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsAdjustmentModalOpen(false)}
+                    className="px-4 py-2.5 text-gray-400 hover:text-white transition-colors"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmittingAdj}
+                    className="px-5 py-2.5 bg-[#C7D300] hover:bg-[#b5c000] text-[#0F1D27] font-bold rounded-xl transition-all disabled:opacity-50"
+                  >
+                    {isSubmittingAdj ? "Enregistrement..." : "Valider l'Écriture d'Ajustement"}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL 2: AJOUTER TRANSACTION / ÉCRITURE */}
+      <AnimatePresence>
+        {isTxModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-md bg-[#0F1D27] border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+            >
+              <div className="flex items-center justify-between p-6 border-b border-white/10">
+                <h2 className="text-lg font-bold text-white">Nouvelle Écriture Comptable</h2>
+                <button onClick={() => setIsTxModalOpen(false)} className="text-gray-400 hover:text-white">
+                  <X size={20} />
+                </button>
+              </div>
+
+              <form onSubmit={handleAddTransaction} className="p-6 space-y-4 text-xs">
+                <div>
+                  <label className="text-gray-300 font-semibold block mb-1">Type d'opération</label>
+                  <select 
+                    value={txType}
+                    onChange={(e: any) => setTxType(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-black/30 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-[#C7D300]"
+                  >
+                    <option value="SUBSCRIPTION" className="bg-[#0F1D27]">Encaissement Abonnement Fournisseur ($50)</option>
+                    <option value="OTHER_INCOME" className="bg-[#0F1D27]">Vente Directe Produit Admin / Autre Recette</option>
+                    <option value="EXPENSE" className="bg-[#0F1D27]">Dépense de Plateforme</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-gray-300 font-semibold block mb-1">Montant ($ USD) *</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
                     required
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
-                    className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white"
-                    placeholder="ex: 20.00"
+                    className="w-full px-3.5 py-2.5 bg-black/30 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-[#C7D300]"
+                    placeholder="ex: 50.00"
                   />
                 </div>
 
                 {txType === "SUBSCRIPTION" ? (
-                  <div className="space-y-4">
-                    <div className="space-y-1">
-                      <label className="text-sm font-medium text-gray-300">Fournisseur</label>
-                      <select 
-                        value={selectedSupplierId}
-                        onChange={(e) => setSelectedSupplierId(e.target.value)}
-                        required
-                        className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white"
-                      >
-                        <option value="">Sélectionnez un fournisseur</option>
-                        {suppliers.map(s => (
-                          <option key={s.id} value={s.id}>
-                            {s.displayName || s.email}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    {selectedSupplierId && (
-                      <div className="p-4 bg-white/5 border border-white/10 rounded-lg text-sm text-gray-300">
-                        {(() => {
-                          const sup = suppliers.find(s => s.id === selectedSupplierId);
-                          if (!sup) return null;
-                          const currentEnd = sup.subscriptionEndDate ? (typeof sup.subscriptionEndDate === 'string' ? new Date(sup.subscriptionEndDate) : (sup.subscriptionEndDate as any).toDate?.() || new Date(sup.subscriptionEndDate)) : null;
-                          const hasEnd = !!currentEnd;
-                          const isExpired = !currentEnd || currentEnd < new Date();
-                          
-                          let baseDate = new Date();
-                          if (currentEnd && currentEnd > new Date()) {
-                            baseDate = new Date(currentEnd.getTime());
-                          }
-                          const nextEnd = new Date(baseDate.setDate(baseDate.getDate() + 30));
-
-                          return (
-                            <div className="space-y-2">
-                              <p>
-                                Statut actuel : <span className={isExpired ? "text-red-400 font-medium" : "text-green-400 font-medium"}>
-                                  {hasEnd ? (isExpired ? `Expiré depuis le ${currentEnd.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}` : `À jour jusqu'au ${currentEnd.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}`) : "Jamais abonné"}
-                                </span>
-                              </p>
-                              <p className="text-blue-400">
-                                Après ce paiement, l'abonnement sera valable jusqu'au : <strong>{nextEnd.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}</strong>
-                              </p>
-                            </div>
-                          );
-                        })()}
-                      </div>
-                    )}
+                  <div>
+                    <label className="text-gray-300 font-semibold block mb-1">Fournisseur concerné *</label>
+                    <select 
+                      value={selectedSupplierId}
+                      onChange={(e) => setSelectedSupplierId(e.target.value)}
+                      required
+                      className="w-full px-3.5 py-2.5 bg-black/30 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-[#C7D300]"
+                    >
+                      <option value="">Sélectionnez un fournisseur</option>
+                      {suppliers.map(s => (
+                        <option key={s.id} value={s.id} className="bg-[#0F1D27]">
+                          {s.displayName || s.company || s.email}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 ) : (
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium text-gray-300">Description</label>
+                  <div>
+                    <label className="text-gray-300 font-semibold block mb-1">Description / Libellé *</label>
                     <input
                       type="text"
                       required
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
-                      className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white"
-                      placeholder="ex: Investissement, Vente matériel, etc."
+                      className="w-full px-3.5 py-2.5 bg-black/30 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-[#C7D300]"
+                      placeholder="ex: Vente directe stock Admin ou Achat serveurs"
                     />
                   </div>
                 )}
                 
-                <div className="space-y-1">
-                  <label className="text-sm font-medium text-gray-300">Référence (Optionnel)</label>
+                <div>
+                  <label className="text-gray-300 font-semibold block mb-1">Référence Pièce Justificative (Optionnel)</label>
                   <input
                     type="text"
                     value={referenceId}
                     onChange={(e) => setReferenceId(e.target.value)}
-                    className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-white"
-                    placeholder="ID Commande ou ID Fournisseur"
+                    className="w-full px-3.5 py-2.5 bg-black/30 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-[#C7D300]"
+                    placeholder="ex: FAC-ADMIN-01"
                   />
                 </div>
 
-                <div className="pt-4 flex justify-end space-x-3">
+                <div className="pt-2 flex justify-end gap-3">
                   <button
                     type="button"
-                    onClick={() => setIsModalOpen(false)}
-                    className="px-4 py-2 text-gray-400 hover:text-white transition-colors"
+                    onClick={() => setIsTxModalOpen(false)}
+                    className="px-4 py-2.5 text-gray-400 hover:text-white transition-colors"
                   >
                     Annuler
                   </button>
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="px-6 py-2 bg-primary hover:bg-primary-light text-white font-semibold rounded-lg transition-colors flex items-center disabled:opacity-50"
+                    className="px-5 py-2.5 bg-primary hover:bg-primary-light text-white font-bold rounded-xl transition-all disabled:opacity-50"
                   >
-                    {isSubmitting ? "Enregistrement..." : "Enregistrer"}
+                    {isSubmitting ? "Enregistrement..." : "Valider l'Écriture"}
                   </button>
                 </div>
               </form>

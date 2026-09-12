@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   Plus, X, Search, Home, Image as ImageIcon, AlertCircle, 
   MapPin, CheckCircle, XCircle, Trash2, Building, Eye, Edit,
-  Star, Coffee, Car, Plane, Zap, Wifi, Waves, Shield, Clock, Sparkles, Bed, Hotel
+  Star, Coffee, Car, Plane, Zap, Wifi, Waves, Shield, Clock, Sparkles, Bed, Hotel, Lock
 } from "lucide-react";
 import { useProductAiAssistant, handleImageUploadShared } from "@/hooks/useProductAiAssistant";
 import AiAssistantChat from "@/components/shared/AiAssistantChat";
@@ -17,13 +17,15 @@ import {
   deleteDoc, doc, serverTimestamp, orderBy, onSnapshot 
 } from "firebase/firestore";
 import { useCurrency } from "@/context/CurrencyContext";
+import { evaluateSupplierSubscription } from "@/lib/supplierSubscription";
 
 interface PropertyManagerProps {
   isAdmin: boolean;
 }
 
 export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
-  const { user } = useAuth();
+  const { user, userData } = useAuth();
+  const subscriptionInfo = evaluateSupplierSubscription(userData);
   const { formatPrice, currency } = useCurrency();
   
   const [properties, setProperties] = useState<any[]>([]);
@@ -152,6 +154,10 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
   };
 
   const openAddModal = () => {
+    if (!isAdmin && subscriptionInfo.isBlocked) {
+      alert("Votre compte est actuellement suspendu pour impayé de dépôt mensuel. Vous ne pouvez pas ajouter de nouveaux biens ou chambres d'hôtel tant que votre compte n'est pas régularisé dans l'espace Finance.");
+      return;
+    }
     resetForm();
     setIsModalOpen(true);
   };
@@ -547,9 +553,19 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
         <div className="flex gap-2">
           <button
             onClick={openAddModal}
-            className="bg-primary text-white px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center hover:bg-primary-light transition-colors shadow-sm"
+            className={`${
+              !isAdmin && subscriptionInfo.isBlocked 
+                ? "bg-red-600/80 text-white cursor-not-allowed shadow-red-900/30" 
+                : "bg-primary text-white hover:bg-primary-light"
+            } px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center transition-colors shadow-sm`}
+            title={!isAdmin && subscriptionInfo.isBlocked ? "Compte suspendu : Dépôt mensuel impayé" : undefined}
           >
-            <Plus size={18} className="mr-2" /> Ajouter un bien / hôtel
+            {!isAdmin && subscriptionInfo.isBlocked ? (
+              <Lock size={18} className="mr-2" />
+            ) : (
+              <Plus size={18} className="mr-2" />
+            )}
+            {!isAdmin && subscriptionInfo.isBlocked ? "Ajout verrouillé (Impayé)" : "Ajouter un bien / hôtel"}
           </button>
         </div>
       </div>

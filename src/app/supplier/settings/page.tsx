@@ -101,7 +101,7 @@ export default function SupplierSettingsPage() {
           <h2 className="font-semibold text-lg">
             Abonnement: {
               isSubscriptionExpired() ? "Expiré" 
-              : userData?.subscriptionStatus === "TRIAL" ? "Période d'essai (30 Jours)" 
+              : userData?.subscriptionStatus === "TRIAL" ? "Période d'essai (15 Jours)" 
               : "Actif"
             }
           </h2>

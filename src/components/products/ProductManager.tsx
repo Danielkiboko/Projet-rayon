@@ -17,6 +17,8 @@ import {
   deleteDoc, doc, serverTimestamp, orderBy, onSnapshot 
 } from "firebase/firestore";
 import { useCurrency } from "@/context/CurrencyContext";
+import { evaluateSupplierSubscription } from "@/lib/supplierSubscription";
+import { Lock } from "lucide-react";
 
 interface ProductManagerProps {
   isAdmin: boolean;
@@ -31,6 +33,7 @@ export default function ProductManager({ isAdmin }: ProductManagerProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
+  const subscriptionInfo = evaluateSupplierSubscription(userData);
 
   // Form State
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -125,6 +128,10 @@ export default function ProductManager({ isAdmin }: ProductManagerProps) {
   };
 
   const openAddModal = () => {
+    if (!isAdmin && subscriptionInfo.isBlocked) {
+      alert("Votre compte est actuellement suspendu pour impayé de dépôt mensuel. Vous ne pouvez pas ajouter de nouveaux produits tant que votre compte n'est pas régularisé dans l'espace Finance.");
+      return;
+    }
     resetForm();
     const activeRayon = typeof window !== "undefined" ? localStorage.getItem("activeSupplierRayon") : null;
     if (activeRayon && (activeRayon === "mode" || activeRayon === "connect" || activeRayon === "immo")) {
@@ -190,6 +197,11 @@ export default function ProductManager({ isAdmin }: ProductManagerProps) {
       image: imagePreview || "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=400",
     };
 
+    if (!isAdmin && subscriptionInfo.isBlocked) {
+      alert("Action refusée : Votre compte est suspendu pour impayé. Veuillez régulariser votre dépôt.");
+      return;
+    }
+
     try {
       if (editingId) {
         await updateDoc(doc(db, "products", editingId), productData);
@@ -197,6 +209,12 @@ export default function ProductManager({ isAdmin }: ProductManagerProps) {
         await addDoc(collection(db, "products"), {
           ...productData,
           supplierId: activeSupplierId,
+          supplierRole: isAdmin ? "ADMIN" : (userData?.role || "SUPPLIER"),
+          isAdminProduct: isAdmin,
+          isOfficialRayons: isAdmin,
+          isVerified: isAdmin, // Vérifié d'office si Admin, soumis aux votes clients si Fournisseur
+          ratingsCount: isAdmin ? 1 : 0,
+          averageRating: isAdmin ? 5.0 : 0,
           status: "Disponible",
           createdAt: serverTimestamp(),
         });
@@ -394,9 +412,19 @@ export default function ProductManager({ isAdmin }: ProductManagerProps) {
           )}
           <button
             onClick={openAddModal}
-            className="bg-primary text-white px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center hover:bg-primary-light transition-colors shadow-sm"
+            className={`${
+              !isAdmin && subscriptionInfo.isBlocked 
+                ? "bg-red-600/80 text-white cursor-not-allowed shadow-red-900/30" 
+                : "bg-primary text-white hover:bg-primary-light"
+            } px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center transition-colors shadow-sm`}
+            title={!isAdmin && subscriptionInfo.isBlocked ? "Compte suspendu : Dépôt mensuel impayé" : undefined}
           >
-            <Plus size={18} className="mr-2" /> Ajouter un produit
+            {!isAdmin && subscriptionInfo.isBlocked ? (
+              <Lock size={18} className="mr-2" />
+            ) : (
+              <Plus size={18} className="mr-2" />
+            )}
+            {!isAdmin && subscriptionInfo.isBlocked ? "Ajout verrouillé (Impayé)" : "Ajouter un produit"}
           </button>
         </div>
       </div>

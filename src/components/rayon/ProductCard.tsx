@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, Star, AlertTriangle } from "lucide-react";
 import { motion } from "framer-motion";
+import { evaluateProductVerification } from "@/lib/productVerification";
 
 interface ProductCardProps {
   product: any;
@@ -14,6 +15,7 @@ interface ProductCardProps {
 export function ProductCard({ product, lang, t, category, index, handleChat }: ProductCardProps) {
   const isMode = category === "mode";
   const isSaveurs = category === "saveurs";
+  const verification = evaluateProductVerification(product);
   
   const bgClass = isMode 
     ? "bg-[#D4B08C] hover:bg-[#c49f7b] text-[#0F1D27] font-bold" 
@@ -56,9 +58,32 @@ export function ProductCard({ product, lang, t, category, index, handleChat }: P
       <div className="p-5 flex-1 flex flex-col">
         <div className="flex items-center justify-between mb-2">
           <span className="text-gray-500 text-xs font-bold tracking-wider">{product.brand || "Marque"}</span>
-          <span className="flex items-center text-green-600 text-[10px] font-bold">
-            <ShieldCheck size={12} className="mr-1" /> Verified
-          </span>
+          
+          {/* Dynamic Verification Badge */}
+          {verification.badgeType === "admin_official" ? (
+            <span className="flex items-center bg-[#0F1D27]/10 text-[#0F1D27] px-2 py-0.5 rounded text-[10px] font-bold border border-[#0F1D27]/20" title="Produit officiel vendu et certifié par Rayons.net">
+              <ShieldCheck size={12} className="mr-1 text-[#C7D300]" /> Certifié Rayons
+            </span>
+          ) : verification.badgeType === "community_verified" ? (
+            <span className="flex items-center bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded text-[10px] font-bold border border-emerald-200" title={`Certifié par les votes clients (★ ${verification.averageRating.toFixed(1)}/5)`}>
+              <ShieldCheck size={12} className="mr-1 text-emerald-600" /> Vérifié (★ {verification.averageRating.toFixed(1)})
+            </span>
+          ) : verification.badgeType === "low_rating" ? (
+            <span className="flex items-center bg-red-50 text-red-700 px-2 py-0.5 rounded text-[10px] font-bold border border-red-200" title="Cote basse : vigilance requise">
+              <AlertTriangle size={11} className="mr-1 text-red-600" /> Non certifié (★ {verification.averageRating.toFixed(1)})
+            </span>
+          ) : (
+            <span className="flex items-center text-gray-400 text-[10px] font-medium">
+              {verification.ratingsCount > 0 ? (
+                <>
+                  <Star size={11} className="mr-1 text-amber-400 fill-amber-400" />
+                  {verification.averageRating.toFixed(1)} ({verification.ratingsCount})
+                </>
+              ) : (
+                "Nouveau"
+              )}
+            </span>
+          )}
         </div>
         
         <h3 className="text-lg font-bold text-gray-900 mb-2 leading-tight">

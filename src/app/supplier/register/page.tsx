@@ -49,7 +49,7 @@ export default function SupplierRegisterPage() {
       await updateProfile(user, { displayName: name });
 
       const endDate = new Date();
-      endDate.setDate(endDate.getDate() + 30);
+      endDate.setDate(endDate.getDate() + 15); // Période d'essai officielle de 15 jours
 
       // 4. Create the supplier profile in Firestore
       const assigned = businessType === "IMMOBILIER" 
@@ -72,8 +72,10 @@ export default function SupplierRegisterPage() {
         businessType: businessType,
         rayon: primaryRayon,
         assignedRayons: assigned,
-        status: "PENDING_APPROVAL", // Maybe requires admin validation?
+        status: "PENDING_APPROVAL",
         subscriptionStatus: "TRIAL",
+        trialPeriodDays: 15,
+        depositAmount: 50, // $50 dépôt attendu après l'essai
         subscriptionEndDate: endDate,
         createdAt: serverTimestamp(),
       });

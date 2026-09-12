@@ -9,6 +9,7 @@ import { themeConfig } from "@/lib/themeConfig";
 import ProfileUpdateModal from "@/components/ProfileUpdateModal";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { isSupplier, getSupplierType } from "@/lib/permissions";
+import { evaluateSupplierSubscription } from "@/lib/supplierSubscription";
 
 export default function SupplierLayout({
   children,
@@ -145,14 +146,8 @@ export default function SupplierLayout({
     );
   }
 
-  // Subscription expired: show banner but still allow access so supplier receives notifications
-  const isSubscriptionExpired = (() => {
-    if (!userData?.subscriptionEndDate) return false;
-    const endDate = userData.subscriptionEndDate.toDate
-      ? userData.subscriptionEndDate.toDate()
-      : new Date(userData.subscriptionEndDate);
-    return new Date() > endDate;
-  })();
+  const subscriptionInfo = evaluateSupplierSubscription(userData);
+  const isSubscriptionExpired = subscriptionInfo.isBlocked;
 
   const service = activeRayon || getSupplierType(userData) || "default";
   const theme = themeConfig[service as keyof typeof themeConfig] || themeConfig["default"];
@@ -240,23 +235,41 @@ export default function SupplierLayout({
         </div>
       )}
 
-      {/* ── Subscription Expired Banner ── */}
-      {isSubscriptionExpired && (
-        <div className="bg-amber-500/10 border border-amber-500/30 p-4 rounded-xl flex items-center justify-between gap-4 mb-6">
+      {/* ── Subscription / Deposit State Banners ── */}
+      {subscriptionInfo.isBlocked ? (
+        <div className="bg-red-500/15 border-2 border-red-500/40 p-4 rounded-xl flex items-center justify-between gap-4 mb-6 shadow-lg shadow-red-950/20">
           <div className="flex items-center gap-3">
-            <ShieldAlert className="text-amber-400 shrink-0" size={22} />
+            <ShieldAlert className="text-red-400 shrink-0" size={24} />
             <div>
-              <p className="text-amber-400 font-semibold text-sm">Abonnement expiré</p>
-              <p className="text-amber-400/70 text-xs mt-0.5">
-                Votre abonnement a expiré. Vous pouvez toujours consulter vos notifications et commandes, mais la publication de nouveaux produits est suspendue jusqu'au renouvellement.
+              <p className="text-red-400 font-bold text-sm">Compte Partenaire Suspendu pour Impayé</p>
+              <p className="text-red-300/80 text-xs mt-0.5">
+                {subscriptionInfo.reason || "Votre délai est dépassé. La publication de nouveaux produits et la réponse aux messages clients sont bloquées jusqu'au règlement de votre dépôt mensuel ($50)."}
               </p>
             </div>
           </div>
           <button
             onClick={() => router.push('/supplier/finance')}
-            className="shrink-0 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition-colors whitespace-nowrap"
+            className="shrink-0 px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-lg transition-all shadow-md whitespace-nowrap"
           >
-            Renouveler
+            Régulariser ($50)
+          </button>
+        </div>
+      ) : subscriptionInfo.isTrial && (
+        <div className="bg-blue-500/10 border border-blue-500/30 p-3.5 rounded-xl flex items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-3">
+            <span className="w-2.5 h-2.5 rounded-full bg-blue-400 animate-ping shrink-0" />
+            <div>
+              <p className="text-blue-300 font-semibold text-xs">Période d'essai active (15 Jours)</p>
+              <p className="text-blue-300/70 text-[11px]">
+                Il vous reste <strong>{subscriptionInfo.daysLeft} jour{subscriptionInfo.daysLeft > 1 ? "s" : ""}</strong> d'essai gratuit. Prochaine échéance le {subscriptionInfo.formattedDueDate}.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => router.push('/supplier/finance')}
+            className="shrink-0 px-3 py-1.5 bg-blue-600/30 hover:bg-blue-600/50 text-blue-200 text-xs font-medium rounded-lg transition-colors"
+          >
+            Voir échéancier
           </button>
         </div>
       )}

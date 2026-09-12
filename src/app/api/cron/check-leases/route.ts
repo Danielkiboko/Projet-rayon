@@ -75,12 +75,52 @@ export async function GET(request: Request) {
       }
     });
 
+    // 4. Contrôle automatique des échéances d'abonnements & dépôts des fournisseurs
+    try {
+      const suppliersSnapshot = await adminDb.collection('users')
+        .where('role', 'in', ['SUPPLIER', 'supplier', 'SUPPLIER_IMMO', 'supplier_immo', 'SUPPLIER_SAVEURS'])
+        .get();
+
+      suppliersSnapshot.forEach((docSnap: any) => {
+        const sData = docSnap.data();
+        if (!sData.subscriptionEndDate) return;
+
+        const endDate = sData.subscriptionEndDate?.toDate 
+          ? sData.subscriptionEndDate.toDate() 
+          : new Date(sData.subscriptionEndDate);
+
+        // Si l'échéance est dépassée et que le fournisseur n'est pas déjà suspendu
+        if (now > endDate && sData.subscriptionStatus !== 'SUSPENDED_PAYMENT' && !sData.isBlocked) {
+          adminDb.collection('users').doc(docSnap.id).update({
+            subscriptionStatus: 'SUSPENDED_PAYMENT',
+            isBlocked: true,
+            blockedAt: now.toISOString()
+          });
+
+          const supPhone = sData.phone;
+          const supName = sData.displayName || sData.company || "Partenaire";
+          const supMessage = `URGENT: Bonjour ${supName}, votre période sur Rayons.net est arrivée à échéance. Votre compte a été suspendu (publications et messages verrouillés). Veuillez régulariser votre dépôt mensuel ($50) pour débloquer votre compte.`;
+
+          if (supPhone) {
+            sendPromises.push(sendSMS(supPhone, supMessage));
+            notifications.push(`SMS Blocage Fournisseur à ${supPhone}`);
+          }
+          if (sData.email) {
+            sendPromises.push(sendEmail(sData.email, 'Suspension de Compte Fournisseur - Rayons.net', supMessage));
+            notifications.push(`Email Blocage Fournisseur à ${sData.email}`);
+          }
+        }
+      });
+    } catch (supErr) {
+      console.error("Erreur vérification fournisseurs dans Cron:", supErr);
+    }
+
     // Attendre que tous les envois soient terminés
     await Promise.all(sendPromises);
 
     return NextResponse.json({ 
       success: true, 
-      message: `Cron exécuté avec succès. ${notifications.length} notifications envoyées.`,
+      message: `Cron exécuté avec succès. ${notifications.length} notifications et vérifications traitées.`,
       logs: notifications
     });
 

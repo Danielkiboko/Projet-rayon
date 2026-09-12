@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Wallet, ArrowDownRight, ArrowUpRight, Plus, Download, X, Search, Home, Hotel, Sparkles } from "lucide-react";
+import { Wallet, ArrowDownRight, ArrowUpRight, Plus, Download, X, Search, Home, Hotel, Sparkles, Sliders, ShieldAlert, CheckCircle, Lock, Clock } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, where, doc, updateDoc } from "firebase/firestore";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { getSupplierType } from "@/lib/permissions";
+import { evaluateSupplierSubscription } from "@/lib/supplierSubscription";
+import { ADJUSTMENT_REASONS, recordCashAdjustment, recordSubscriptionDeposit } from "@/lib/accountingLedger";
 
 interface Transaction {
   id: string;
@@ -51,6 +53,17 @@ export default function SupplierFinancePage() {
   const [hotelNightlyRate, setHotelNightlyRate] = useState("");
   
   const isImmo = getSupplierType(userData) === "immo";
+  const subscriptionInfo = evaluateSupplierSubscription(userData);
+
+  // Cash Adjustment state
+  const [isAdjustmentModalOpen, setIsAdjustmentModalOpen] = useState(false);
+  const [adjAmount, setAdjAmount] = useState("");
+  const [adjType, setAdjType] = useState<"ADD" | "SUBTRACT">("ADD");
+  const [adjReason, setAdjReason] = useState<string>(ADJUSTMENT_REASONS[0]);
+  const [adjLabel, setAdjLabel] = useState("");
+  const [adjRef, setAdjRef] = useState("");
+  const [isSubmittingAdj, setIsSubmittingAdj] = useState(false);
+  const [financeNotice, setFinanceNotice] = useState("");
 
   useEffect(() => {
     if (!loading && (!user || !userData || (userData.role !== "SUPPLIER" && userData.role !== "supplier" && userData.role !== "SUPPLIER_IMMO" && userData.role !== "supplier_immo" && userData.role !== "SUB_SUPPLIER"))) {
@@ -281,6 +294,62 @@ export default function SupplierFinancePage() {
     }
   };
 
+  const handleSaveAdjustment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const val = parseFloat(adjAmount);
+    if (isNaN(val) || val <= 0) {
+      alert("Veuillez saisir un montant valide.");
+      return;
+    }
+    const finalAmount = adjType === "ADD" ? val : -val;
+    setIsSubmittingAdj(true);
+    try {
+      await recordCashAdjustment({
+        amount: finalAmount,
+        reason: adjReason,
+        label: adjLabel,
+        referencePiece: adjRef,
+        actorType: "SUPPLIER",
+        supplierId: activeSupplierId,
+        supplierName: userData?.displayName || userData?.company || "Partenaire",
+        currentBalance: balance
+      });
+      setIsAdjustmentModalOpen(false);
+      setAdjAmount("");
+      setAdjLabel("");
+      setAdjRef("");
+      setFinanceNotice(`Ajustement de caisse de ${finalAmount > 0 ? "+" : ""}$${finalAmount} enregistré avec succès.`);
+      setTimeout(() => setFinanceNotice(""), 6000);
+    } catch (err: any) {
+      console.error("Error saving cash adjustment:", err);
+      alert(err.message || "Erreur lors de l'enregistrement de l'ajustement.");
+    } finally {
+      setIsSubmittingAdj(false);
+    }
+  };
+
+  const handlePayDeposit = async () => {
+    const depositAmount = userData?.depositAmount || 50;
+    if (!confirm(`Confirmez-vous le paiement de votre dépôt mensuel de $${depositAmount} ?\n\nCette action débloquera instantanément votre compte pour 30 jours supplémentaires.`)) {
+      return;
+    }
+    try {
+      await recordSubscriptionDeposit({
+        supplierId: activeSupplierId,
+        supplierName: userData?.displayName || userData?.company || "Partenaire",
+        amount: depositAmount,
+        paymentMethod: "Paiement direct en ligne",
+        currentBalance: balance
+      });
+      setFinanceNotice("Félicitations ! Votre dépôt mensuel a été régularisé. Vos publications et messageries sont débloquées.");
+      setTimeout(() => setFinanceNotice(""), 7000);
+      window.location.reload();
+    } catch (err: any) {
+      console.error("Error paying deposit:", err);
+      alert(err.message || "Erreur lors du paiement du dépôt.");
+    }
+  };
+
   const downloadCSV = () => {
     const headers = ["Date", "Type", "Montant (USD)", "Description", "Reference", "Statut"];
     const rows = filteredTransactions.map(t => [
@@ -338,20 +407,81 @@ export default function SupplierFinancePage() {
             {isImmo ? "Comptabilité connectée : séparez les loyers d'habitation et les recettes d'hôtels." : "Gérez vos revenus de ventes et vos paiements."}
           </p>
         </div>
-        <div className="flex space-x-3">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button 
+            onClick={() => setIsAdjustmentModalOpen(true)}
+            className="flex items-center space-x-1.5 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm"
+          >
+            <Sliders size={16} />
+            <span>Ajustement Caisse Magasin</span>
+          </button>
           <button 
             onClick={downloadCSV}
-            className="flex items-center space-x-2 bg-black/20 hover:bg-black/40 border border-white/10 text-white px-4 py-2 rounded-lg transition-colors"
+            className="flex items-center space-x-1.5 bg-black/20 hover:bg-black/40 border border-white/10 text-white px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors"
           >
-            <Download size={20} />
+            <Download size={16} />
             <span>Exporter CSV</span>
           </button>
           <button 
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+            className="flex items-center space-x-1.5 bg-primary hover:bg-primary-light text-white px-4 py-2 rounded-xl text-xs font-bold transition-colors shadow-sm"
           >
-            <Plus size={20} />
+            <Plus size={16} />
             <span>Ajouter Opération</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Finance Notice */}
+      {financeNotice && (
+        <div className="p-4 bg-emerald-500/15 border border-emerald-500/30 rounded-xl flex items-center gap-3 text-emerald-300 text-xs font-semibold">
+          <CheckCircle size={18} className="text-emerald-400 shrink-0" />
+          <span>{financeNotice}</span>
+        </div>
+      )}
+
+      {/* Supplier Deposit & Subscription Status Card */}
+      <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+        subscriptionInfo.isBlocked 
+          ? "bg-red-500/15 border-red-500/30 text-red-200"
+          : subscriptionInfo.isTrial 
+          ? "bg-blue-500/10 border-blue-500/25 text-blue-200"
+          : "bg-emerald-500/10 border-emerald-500/25 text-emerald-200"
+      }`}>
+        <div className="flex items-center gap-3.5">
+          <div className={`p-3 rounded-xl shrink-0 ${
+            subscriptionInfo.isBlocked ? "bg-red-500/20 text-red-400" :
+            subscriptionInfo.isTrial ? "bg-blue-500/20 text-blue-400" :
+            "bg-emerald-500/20 text-emerald-400"
+          }`}>
+            {subscriptionInfo.isBlocked ? <Lock size={22} /> :
+             subscriptionInfo.isTrial ? <Clock size={22} /> :
+             <CheckCircle size={22} />}
+          </div>
+          <div>
+            <h3 className="font-bold text-sm text-white">
+              {subscriptionInfo.isBlocked ? "Compte Suspendu : Dépôt Mensuel Attendu ($50)" :
+               subscriptionInfo.isTrial ? `Période d'essai active : 15 Jours (${subscriptionInfo.daysLeft}j restants)` :
+               "Abonnement Partenaire Rayons.net Actif"}
+            </h3>
+            <p className="text-xs opacity-80 mt-0.5">
+              {subscriptionInfo.isBlocked ? "Le délai est dépassé. Régularisez votre dépôt pour débloquer la publication de vos articles et la messagerie client." :
+               subscriptionInfo.isTrial ? `Prochaine échéance du premier dépôt le ${subscriptionInfo.formattedDueDate}. Profitez de vos 15 jours offerts.` :
+               `Votre compte est en règle jusqu'au ${subscriptionInfo.formattedDueDate}.`}
+            </p>
+          </div>
+        </div>
+
+        <div>
+          <button
+            onClick={handlePayDeposit}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-md ${
+              subscriptionInfo.isBlocked 
+                ? "bg-red-600 hover:bg-red-500 text-white animate-pulse" 
+                : "bg-white/10 hover:bg-white/20 text-white border border-white/20"
+            }`}
+          >
+            {subscriptionInfo.isBlocked ? "Régulariser Maintenant ($50)" : "Régler d'avance ($50)"}
           </button>
         </div>
       </div>
@@ -763,6 +893,134 @@ export default function SupplierFinancePage() {
                     className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors flex items-center disabled:opacity-50"
                   >
                     {isSubmitting ? "Enregistrement..." : "Enregistrer"}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal Ajustement de Caisse Magasin */}
+      <AnimatePresence>
+        {isAdjustmentModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-lg bg-[#0F1D27] border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+            >
+              <div className="flex items-center justify-between p-6 border-b border-white/10">
+                <div>
+                  <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                    <Sliders className="text-[#C7D300]" size={18} />
+                    Ajustement de Caisse Magasin
+                  </h2>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    Solde trésorerie actuel : <strong>${balance.toFixed(2)}</strong>
+                  </p>
+                </div>
+                <button onClick={() => setIsAdjustmentModalOpen(false)} className="text-gray-400 hover:text-white">
+                  <X size={20} />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveAdjustment} className="p-6 space-y-4 text-xs">
+                <div>
+                  <label className="text-gray-300 font-semibold block mb-1.5">Sens de l'ajustement</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setAdjType("ADD")}
+                      className={`py-2.5 rounded-xl font-bold transition-all border ${
+                        adjType === "ADD" 
+                          ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-sm" 
+                          : "bg-white/5 text-gray-400 border-white/10"
+                      }`}
+                    >
+                      + Entrée / Apport Caisse
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAdjType("SUBTRACT")}
+                      className={`py-2.5 rounded-xl font-bold transition-all border ${
+                        adjType === "SUBTRACT" 
+                          ? "bg-red-500/20 text-red-300 border-red-500/40 shadow-sm" 
+                          : "bg-white/5 text-gray-400 border-white/10"
+                      }`}
+                    >
+                      - Sortie / Prélèvement Caisse
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-gray-300 font-semibold block mb-1">Montant ($ USD) *</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    required
+                    value={adjAmount}
+                    onChange={(e) => setAdjAmount(e.target.value)}
+                    placeholder="ex: 25.00"
+                    className="w-full px-3.5 py-2.5 bg-black/30 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-[#C7D300]"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-gray-300 font-semibold block mb-1">Motif obligatoire *</label>
+                  <select
+                    value={adjReason}
+                    onChange={(e) => setAdjReason(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-black/30 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-[#C7D300]"
+                  >
+                    {ADJUSTMENT_REASONS.map((r) => (
+                      <option key={r} value={r} className="bg-[#0F1D27] text-white">
+                        {r}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-gray-300 font-semibold block mb-1">Libellé explicatif *</label>
+                  <input
+                    type="text"
+                    required
+                    value={adjLabel}
+                    onChange={(e) => setAdjLabel(e.target.value)}
+                    placeholder="ex: Régularisation suite à écart d'inventaire"
+                    className="w-full px-3.5 py-2.5 bg-black/30 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-[#C7D300]"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-gray-300 font-semibold block mb-1">Pièce justificative (Optionnel)</label>
+                  <input
+                    type="text"
+                    value={adjRef}
+                    onChange={(e) => setAdjRef(e.target.value)}
+                    placeholder="ex: REC-CAISSE-001"
+                    className="w-full px-3.5 py-2.5 bg-black/30 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-[#C7D300]"
+                  />
+                </div>
+
+                <div className="pt-2 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsAdjustmentModalOpen(false)}
+                    className="px-4 py-2.5 text-gray-400 hover:text-white transition-colors"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmittingAdj}
+                    className="px-5 py-2.5 bg-[#C7D300] hover:bg-[#b5c000] text-[#0F1D27] font-bold rounded-xl transition-all disabled:opacity-50"
+                  >
+                    {isSubmittingAdj ? "Enregistrement..." : "Valider l'Ajustement"}
                   </button>
                 </div>
               </form>

@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { MessageSquare, Send, User } from "lucide-react";
+import { MessageSquare, Send, User, Lock } from "lucide-react";
+import Link from "next/link";
 import { db } from "@/lib/firebase";
 import { collection, query, where, onSnapshot, addDoc, orderBy, serverTimestamp, doc, updateDoc } from "firebase/firestore";
 import { motion } from "framer-motion";
+import { evaluateSupplierSubscription } from "@/lib/supplierSubscription";
 
 type Chat = {
   id: string;
@@ -38,6 +40,7 @@ type ChatMessage = {
 export default function SupplierMessagesPage() {
   const { user, userData } = useAuth();
   const activeSupplierId = userData?.parentSupplierId || user?.uid;
+  const subscriptionInfo = evaluateSupplierSubscription(userData);
   const [chats, setChats] = useState<Chat[]>([]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -88,6 +91,10 @@ export default function SupplierMessagesPage() {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (subscriptionInfo.isBlocked) {
+      alert("Envoi impossible : Votre compte est actuellement suspendu pour impayé de dépôt mensuel. Veuillez régulariser votre compte dans l'espace Finance.");
+      return;
+    }
     if (!newChatMessage.trim() || !user || !activeChatId) return;
 
     try {
@@ -344,32 +351,44 @@ export default function SupplierMessagesPage() {
                   </form>
                 )}
                 
-                <div className="flex space-x-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowProformaForm(!showProformaForm)}
-                    className="bg-white/10 hover:bg-white/20 text-white p-3 rounded-xl transition-colors border border-white/10 flex items-center justify-center text-base"
-                    title={isHotelChat ? "Générer Devis Séjour Hôtel" : "Générer Proforma"}
-                  >
-                    {isHotelChat ? "🏨" : "📄"}
-                  </button>
-                  <form onSubmit={handleSendMessage} className="flex flex-1 space-x-2">
-                    <input
-                      type="text"
-                      value={newChatMessage}
-                      onChange={(e) => setNewChatMessage(e.target.value)}
-                      placeholder={isHotelChat ? "Répondre au client pour son séjour..." : "Écrivez votre message..."}
-                      className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary placeholder-gray-500 transition-all"
-                    />
+                {subscriptionInfo.isBlocked ? (
+                  <div className="p-4 bg-red-500/15 border border-red-500/30 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-3 text-red-300">
+                    <div className="flex items-center gap-2 text-xs">
+                      <Lock className="w-4 h-4 text-red-400 shrink-0" />
+                      <span>Messagerie suspendue : Dépôt mensuel impayé. Veuillez régulariser votre compte pour converser avec vos clients.</span>
+                    </div>
+                    <Link href="/supplier/finance" className="px-3.5 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg text-xs font-bold shrink-0 transition-colors shadow-sm">
+                      Régulariser ($50)
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="flex space-x-2">
                     <button
-                      type="submit"
-                      disabled={!newChatMessage.trim()}
-                      className="bg-primary hover:bg-primary-light text-white p-3 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                      type="button"
+                      onClick={() => setShowProformaForm(!showProformaForm)}
+                      className="bg-white/10 hover:bg-white/20 text-white p-3 rounded-xl transition-colors border border-white/10 flex items-center justify-center text-base"
+                      title={isHotelChat ? "Générer Devis Séjour Hôtel" : "Générer Proforma"}
                     >
-                      <Send size={20} />
+                      {isHotelChat ? "🏨" : "📄"}
                     </button>
-                  </form>
-                </div>
+                    <form onSubmit={handleSendMessage} className="flex flex-1 space-x-2">
+                      <input
+                        type="text"
+                        value={newChatMessage}
+                        onChange={(e) => setNewChatMessage(e.target.value)}
+                        placeholder={isHotelChat ? "Répondre au client pour son séjour..." : "Écrivez votre message..."}
+                        className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary placeholder-gray-500 transition-all"
+                      />
+                      <button
+                        type="submit"
+                        disabled={!newChatMessage.trim()}
+                        className="bg-primary hover:bg-primary-light text-white p-3 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                      >
+                        <Send size={20} />
+                      </button>
+                    </form>
+                  </div>
+                )}
               </div>
             </>
           )}

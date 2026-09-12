@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { Home as HomeIcon, Wifi, Building2, Globe, Shirt, User, UtensilsCrossed } from "lucide-react";
+import { Home as HomeIcon, Wifi, Building2, Globe, Shirt, User, UtensilsCrossed, ShoppingBag } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { useCart } from "@/context/CartContext";
 import { RayonsLogo } from "@/components/brand/RayonsLogo";
 
 interface RayonNavbarProps {
@@ -14,6 +15,7 @@ interface RayonNavbarProps {
 
 export function RayonNavbar({ category, lang, setLang, t }: RayonNavbarProps) {
   const { user, signOut } = useAuth();
+  const { totalItems, openCart } = useCart();
 
   return (
     <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-xs">
@@ -81,6 +83,20 @@ export function RayonNavbar({ category, lang, setLang, t }: RayonNavbarProps) {
               <Globe size={14} className="mr-1" /> {lang.toUpperCase()}
             </button>
           </div>
+
+          {/* Cart Button */}
+          <button
+            onClick={openCart}
+            className="relative p-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
+            title="Votre panier"
+          >
+            <ShoppingBag size={20} />
+            {totalItems > 0 && (
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#C7D300] text-[#0F1D27] text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white shadow-xs">
+                {totalItems}
+              </span>
+            )}
+          </button>
 
           {user ? (
             <div className="hidden sm:flex items-center gap-2">

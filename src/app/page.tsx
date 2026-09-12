@@ -3,10 +3,11 @@
 import { useState, useEffect } from "react";
 import { OptimizedImage } from "@/components/OptimizedImage";
 import Link from "next/link";
-import { Search, User, Menu, MapPin, ChevronRight, Star, Heart, TrendingUp, Home as HomeIcon, Wifi, Building, Globe, ArrowRight, Shirt, MessageCircle, Sparkles, UtensilsCrossed } from "lucide-react";
+import { Search, User, Menu, MapPin, ChevronRight, Star, Heart, TrendingUp, Home as HomeIcon, Wifi, Building, Globe, ArrowRight, Shirt, MessageCircle, Sparkles, UtensilsCrossed, ShoppingBag } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Footer } from "@/components/Footer";
 import { useChat } from "@/context/ChatContext";
+import { useCart } from "@/context/CartContext";
 import { useCurrency, CurrencyCode } from "@/context/CurrencyContext";
 import { db } from "@/lib/firebase";
 import { collection, query, getDocs, limit, where } from "firebase/firestore";
@@ -19,6 +20,7 @@ export default function Home() {
   const { user, userData, signOut } = useAuth();
   const { toggleChat, openChatForProduct } = useChat();
   const { currency, setCurrency, formatPrice } = useCurrency();
+  const { totalItems, openCart } = useCart();
 
   const [dbProducts, setDbProducts] = useState<any[]>([]);
   const [dbProperties, setDbProperties] = useState<any[]>([]);
@@ -116,6 +118,18 @@ export default function Home() {
                 <span className="hidden sm:block">Se connecter</span>
               </Link>
             )}
+            <button 
+              onClick={openCart} 
+              className="relative p-2.5 text-[#0F1D27] hover:bg-gray-100 rounded-full transition-colors group cursor-pointer" 
+              title="Votre Panier Rayons"
+            >
+              <ShoppingBag size={22} className="group-hover:scale-110 transition-transform text-[#0F1D27]" />
+              {totalItems > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-[#C7D300] text-[#0F1D27] text-[11px] font-black rounded-full flex items-center justify-center border-2 border-white shadow-xs">
+                  {totalItems}
+                </span>
+              )}
+            </button>
             <button onClick={toggleChat} className="relative p-2.5 text-[#0F1D27] hover:bg-gray-100 rounded-full transition-colors group" title="Messagerie & Support">
               <MessageCircle size={22} className="group-hover:scale-110 transition-transform" />
             </button>

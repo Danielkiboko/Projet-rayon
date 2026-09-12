@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Montserrat, Inter } from "next/font/google";
 import "./globals.css";
-import { ChatProvider } from "@/context/ChatContext";
 import { GlobalChatbot } from "@/components/GlobalChatbot";
 
 const montserrat = Montserrat({
@@ -21,9 +20,12 @@ export const metadata: Metadata = {
 
 import { AuthProvider } from "@/context/AuthContext";
 import { CurrencyProvider } from "@/context/CurrencyContext";
+import { ChatProvider } from "@/context/ChatContext";
+import { CartProvider } from "@/context/CartContext";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import AdSense from "@/components/shared/AdSense";
+import { CartDrawer } from "@/components/cart/CartDrawer";
 
 import { Toaster } from "react-hot-toast";
 
@@ -39,8 +41,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <AuthProvider>
             <CurrencyProvider>
               <ChatProvider>
-                {children}
-                <GlobalChatbot />
+                <CartProvider>
+                  {children}
+                  <GlobalChatbot />
+                  <CartDrawer />
+                </CartProvider>
               </ChatProvider>
             </CurrencyProvider>
           </AuthProvider>

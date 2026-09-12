@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { ShieldCheck, Star, AlertTriangle, ShoppingBag, MessageSquare } from "lucide-react";
+import { ShieldCheck, Star, AlertTriangle, ShoppingBag, MessageSquare, ShoppingCart } from "lucide-react";
 import { motion } from "framer-motion";
 import { evaluateProductVerification } from "@/lib/productVerification";
+import { useCart } from "@/context/CartContext";
 
 interface ProductCardProps {
   product: any;
@@ -14,6 +15,7 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, lang, t, category, index, handleChat, onBuy }: ProductCardProps) {
+  const { addToCart } = useCart();
   const isMode = category === "mode";
   const isSaveurs = category === "saveurs";
   const verification = evaluateProductVerification(product);
@@ -101,16 +103,29 @@ export function ProductCard({ product, lang, t, category, index, handleChat, onB
       
         {/* Actions */}
         <div className="flex flex-col gap-2 mt-auto">
-          {onBuy && (
+          <div className="grid grid-cols-2 gap-2">
+            {onBuy && (
+              <button 
+                type="button"
+                onClick={() => onBuy(product)}
+                className="py-2.5 bg-[#0F1D27] hover:bg-[#1a2e3b] text-[#C7D300] text-xs font-heading font-bold rounded-xl transition-all text-center flex items-center justify-center gap-1 shadow-xs active:scale-98 cursor-pointer"
+                title="Achat express direct"
+              >
+                <ShoppingBag size={13} />
+                <span>Acheter direct</span>
+              </button>
+            )}
+
             <button 
               type="button"
-              onClick={() => onBuy(product)}
-              className="w-full py-2.5 bg-[#0F1D27] hover:bg-[#1a2e3b] text-[#C7D300] text-xs font-heading font-bold rounded-xl transition-all text-center flex items-center justify-center gap-1.5 shadow-xs active:scale-98 cursor-pointer"
+              onClick={() => addToCart(product, 1)}
+              className="py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-heading font-bold rounded-xl transition-all text-center flex items-center justify-center gap-1 shadow-2xs active:scale-98 cursor-pointer"
+              title="Ajouter au panier"
             >
-              <ShoppingBag size={14} />
-              <span>Commander direct</span>
+              <ShoppingCart size={13} className="text-primary" />
+              <span>Panier</span>
             </button>
-          )}
+          </div>
 
           <div className="grid grid-cols-2 gap-2">
             <button 

@@ -7,6 +7,7 @@ import { ChevronLeft, ShoppingCart, ShoppingBag, ShieldCheck, Check, Truck, Pack
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useChat } from "@/context/ChatContext";
+import { useCart } from "@/context/CartContext";
 import { doc, getDoc, collection, getDocs, query, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { evaluateProductVerification, submitProductReview } from "@/lib/productVerification";
@@ -15,6 +16,7 @@ import { DirectBuyModal } from "@/components/DirectBuyModal";
 export default function ProductDetails({ params }: { params: { id: string } }) {
   const [lang, setLang] = useState<"fr" | "en">("fr");
   const { openChatForProduct } = useChat();
+  const { addToCart } = useCart();
   const { user } = useAuth();
   const router = useRouter();
   
@@ -269,16 +271,25 @@ export default function ProductDetails({ params }: { params: { id: string } }) {
 
             {/* Main CTAs */}
             <div className="bg-white/5 border border-white/10 rounded-2xl p-6 mb-8 space-y-3">
-              <button 
-                type="button"
-                onClick={() => setIsBuyModalOpen(true)}
-                className="w-full py-4 bg-[#C7D300] hover:bg-[#b5c000] text-[#0F1D27] font-heading font-extrabold rounded-xl transition-all shadow-lg shadow-[#C7D300]/20 flex items-center justify-center gap-2 cursor-pointer active:scale-98 text-base"
-              >
-                <ShoppingBag size={20} />
-                <span>
-                  {lang === "fr" ? "Commander maintenant avec livraison" : "Order Now with Delivery"} 
-                </span>
-              </button>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button 
+                  type="button"
+                  onClick={() => setIsBuyModalOpen(true)}
+                  className="w-full py-4 bg-[#C7D300] hover:bg-[#b5c000] text-[#0F1D27] font-heading font-extrabold rounded-xl transition-all shadow-lg shadow-[#C7D300]/20 flex items-center justify-center gap-2 cursor-pointer active:scale-98 text-sm sm:text-base"
+                >
+                  <ShoppingBag size={18} />
+                  <span>Acheter direct</span>
+                </button>
+
+                <button 
+                  type="button"
+                  onClick={() => addToCart(productData, 1)}
+                  className="w-full py-4 bg-white hover:bg-gray-100 text-[#0F1D27] font-heading font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98 text-sm sm:text-base shadow-sm"
+                >
+                  <ShoppingCart size={18} className="text-primary" />
+                  <span>Ajouter au panier</span>
+                </button>
+              </div>
 
               <button 
                 type="button"

@@ -5,7 +5,7 @@ import { Search, Package, Clock, CheckCircle, Truck, XCircle, ShoppingBag, Downl
 import { motion } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
-import { collection, query, where, onSnapshot, orderBy } from "firebase/firestore";
+import { collection, query, where, onSnapshot, orderBy, limit } from "firebase/firestore";
 import { generateOrderInvoicePDF } from "@/lib/invoiceGenerator";
 
 interface Order {
@@ -57,7 +57,8 @@ export default function SupplierOrdersPage() {
     const q = query(
       collection(db, "orders"),
       where("supplierId", "==", activeSupplierId),
-      orderBy("createdAt", "desc")
+      orderBy("createdAt", "desc"),
+      limit(50)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {

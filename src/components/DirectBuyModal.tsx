@@ -27,32 +27,7 @@ interface DirectBuyModalProps {
   product: any;
 }
 
-const KINSHASA_COMMUNES = [
-  { name: "Gombe", zone: "central", fee: 3 },
-  { name: "Kintambo", zone: "central", fee: 3 },
-  { name: "Lingwala", zone: "central", fee: 3 },
-  { name: "Barumbu", zone: "central", fee: 3 },
-  { name: "Kinshasa (Commune)", zone: "central", fee: 3 },
-  { name: "Bandalungwa", zone: "central", fee: 3 },
-  { name: "Kasa-Vubu", zone: "central", fee: 3 },
-  { name: "Kalamu", zone: "central", fee: 3 },
-  { name: "Ngaliema", zone: "inter", fee: 5 },
-  { name: "Limete", zone: "inter", fee: 5 },
-  { name: "Lemba", zone: "inter", fee: 5 },
-  { name: "Matete", zone: "inter", fee: 5 },
-  { name: "Ngaba", zone: "inter", fee: 5 },
-  { name: "Ngiri-Ngiri", zone: "inter", fee: 5 },
-  { name: "Bumbu", zone: "inter", fee: 5 },
-  { name: "Makala", zone: "inter", fee: 5 },
-  { name: "Selembao", zone: "inter", fee: 5 },
-  { name: "Mont-Ngafula", zone: "outer", fee: 8 },
-  { name: "Masina", zone: "outer", fee: 8 },
-  { name: "Ndjili", zone: "outer", fee: 8 },
-  { name: "Kimbanseke", zone: "outer", fee: 8 },
-  { name: "Kisenso", zone: "outer", fee: 8 },
-  { name: "Nsele", zone: "far", fee: 15 },
-  { name: "Maluku", zone: "far", fee: 20 },
-];
+import { KINSHASA_COMMUNES } from "@/lib/kinshasaDelivery";
 
 export function DirectBuyModal({ isOpen, onClose, product }: DirectBuyModalProps) {
   const { user, userData } = useAuth();

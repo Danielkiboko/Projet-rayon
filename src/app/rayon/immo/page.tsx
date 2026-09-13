@@ -9,7 +9,7 @@ import {
   Hotel, Star, Sparkles, Zap, Waves, CalendarCheck
 } from "lucide-react";
 import { RayonNavbar } from "@/components/rayon/RayonNavbar";
-import { collection, onSnapshot, query, where } from "firebase/firestore";
+import { collection, onSnapshot, query, where, limit } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { ProductSkeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/context/AuthContext";
@@ -89,7 +89,8 @@ function ImmoContent() {
   useEffect(() => {
     const q = query(
       collection(db, "properties"), 
-      where("status", "==", "Disponible")
+      where("status", "==", "Disponible"),
+      limit(50)
     );
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const productsList = querySnapshot.docs.map(doc => ({

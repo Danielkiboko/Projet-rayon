@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { X, Send, Loader2, MessageCircle, ChevronLeft, Building2, Shirt, Wifi } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { auth, db } from "@/lib/firebase";
-import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, getDocs, where, setDoc, doc, updateDoc, increment } from "firebase/firestore";
+import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, getDocs, where, setDoc, doc, updateDoc, increment, limit, limitToLast } from "firebase/firestore";
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
 import { useChat } from "@/context/ChatContext";
 
@@ -44,7 +44,8 @@ export function GlobalChatbot() {
 
     const q = query(
       collection(db, "chats"),
-      where("clientId", "==", user.uid)
+      where("clientId", "==", user.uid),
+      limit(25)
     );
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const fetchedChats: any[] = snapshot.docs.map(doc => ({
@@ -187,7 +188,8 @@ export function GlobalChatbot() {
 
     const q = query(
       collection(db, `chats/${currentChatId}/messages`),
-      orderBy("createdAt", "asc")
+      orderBy("createdAt", "asc"),
+      limitToLast(50)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {

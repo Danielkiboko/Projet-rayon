@@ -25,32 +25,7 @@ import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import Link from "next/link";
 import { sendClientInAppNotification } from "@/lib/inAppNotification";
 
-const KINSHASA_COMMUNES = [
-  { name: "Gombe", fee: 3 },
-  { name: "Kintambo", fee: 3 },
-  { name: "Lingwala", fee: 3 },
-  { name: "Barumbu", fee: 3 },
-  { name: "Kinshasa (Commune)", fee: 3 },
-  { name: "Bandalungwa", fee: 3 },
-  { name: "Kasa-Vubu", fee: 3 },
-  { name: "Kalamu", fee: 3 },
-  { name: "Ngaliema", fee: 5 },
-  { name: "Limete", fee: 5 },
-  { name: "Lemba", fee: 5 },
-  { name: "Matete", fee: 5 },
-  { name: "Ngaba", fee: 5 },
-  { name: "Ngiri-Ngiri", fee: 5 },
-  { name: "Bumbu", fee: 5 },
-  { name: "Makala", fee: 5 },
-  { name: "Selembao", fee: 5 },
-  { name: "Mont-Ngafula", fee: 8 },
-  { name: "Masina", fee: 8 },
-  { name: "Ndjili", fee: 8 },
-  { name: "Kimbanseke", fee: 8 },
-  { name: "Kisenso", fee: 8 },
-  { name: "Nsele", fee: 15 },
-  { name: "Maluku", fee: 20 },
-];
+import { KINSHASA_COMMUNES } from "@/lib/kinshasaDelivery";
 
 export function CartDrawer() {
   const { 

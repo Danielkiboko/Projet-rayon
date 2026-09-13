@@ -23,9 +23,15 @@ export function useSupplierDashboardStats(productsCollectionName = "products") {
     if (!user || !activeSupplierId) return;
 
     // We allow fetching from different product collections (e.g., 'properties' for Immo)
-    const qProps = query(collection(db, productsCollectionName), where("supplierId", "==", activeSupplierId));
+    const qProps = query(
+      collection(db, productsCollectionName), 
+      where("supplierId", "==", activeSupplierId),
+      limit(100)
+    );
     const unsubProducts = onSnapshot(qProps, (snapshot) => {
       setStats(prev => ({ ...prev, totalProducts: snapshot.size }));
+    }, (err) => {
+      console.warn("useSupplierDashboardStats products warning:", err.message);
     });
 
     const qOrders = query(
@@ -65,6 +71,9 @@ export function useSupplierDashboardStats(productsCollectionName = "products") {
       setStats(prev => ({ ...prev, activeOrders: active, pendingDeliveries: pending, totalRevenue: revenue }));
       setRecentOrders(ordersData.slice(0, 5));
       setRevenueData(groupPaymentsByDate(paymentsForChart));
+      setLoading(false);
+    }, (err) => {
+      console.warn("useSupplierDashboardStats orders warning:", err.message);
       setLoading(false);
     });
 

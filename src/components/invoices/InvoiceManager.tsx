@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { db } from "@/lib/firebase";
-import { collection, query, where, addDoc, serverTimestamp, deleteDoc, doc, onSnapshot, orderBy } from "firebase/firestore";
+import { collection, query, where, addDoc, serverTimestamp, deleteDoc, doc, onSnapshot, orderBy, limit } from "firebase/firestore";
 import { useAuth } from "@/context/AuthContext";
 import { useCurrency } from "@/context/CurrencyContext";
 import { generateFormalInvoicePDF, InvoiceData } from "@/lib/invoiceGenerator";
@@ -83,13 +83,17 @@ export default function InvoiceManager() {
     const q = query(
       collection(db, "invoices"),
       where("supplierId", "==", activeSupplierId),
-      orderBy("createdAt", "desc")
+      orderBy("createdAt", "desc"),
+      limit(50)
     );
 
     const unsub = onSnapshot(q, (snapshot) => {
       const data: any[] = [];
       snapshot.forEach(docSnap => data.push({ id: docSnap.id, ...docSnap.data() }));
       setInvoices(data);
+      setLoading(false);
+    }, (err) => {
+      console.warn("InvoiceManager listener warning:", err.message);
       setLoading(false);
     });
 

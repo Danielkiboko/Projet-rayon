@@ -9,7 +9,7 @@ import {
 import { db } from "@/lib/firebase";
 import { 
   collection, query, orderBy, onSnapshot, addDoc, 
-  serverTimestamp, doc, updateDoc, getDocs 
+  serverTimestamp, doc, updateDoc, getDocs, limit 
 } from "firebase/firestore";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
@@ -106,7 +106,7 @@ export default function AdminFinancePage() {
     }
 
     // 1. Listen to Transactions
-    const qTx = query(collection(db, "transactions"), orderBy("createdAt", "desc"));
+    const qTx = query(collection(db, "transactions"), orderBy("createdAt", "desc"), limit(100));
     const unsubTx = onSnapshot(qTx, (snapshot) => {
       const data: Transaction[] = [];
       snapshot.forEach((docSnap) => {
@@ -120,7 +120,7 @@ export default function AdminFinancePage() {
     });
 
     // 2. Listen to Formal Accounting Ledger
-    const qLedger = query(collection(db, "accounting_ledger"), orderBy("date", "desc"));
+    const qLedger = query(collection(db, "accounting_ledger"), orderBy("date", "desc"), limit(100));
     const unsubLedger = onSnapshot(qLedger, (snapshot) => {
       const entries: AccountingEntry[] = [];
       snapshot.forEach((docSnap) => {

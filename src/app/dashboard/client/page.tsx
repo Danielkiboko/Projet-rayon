@@ -4,7 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { collection, query, where, onSnapshot, orderBy } from "firebase/firestore";
+import { collection, query, where, onSnapshot, orderBy, limit } from "firebase/firestore";
 import { 
   Package, 
   Calendar, 
@@ -46,7 +46,8 @@ export default function ClientDashboard() {
     const qOrders = query(
       collection(db, "orders"),
       where("clientId", "==", user.uid),
-      orderBy("createdAt", "desc")
+      orderBy("createdAt", "desc"),
+      limit(30)
     );
     const unsubOrders = onSnapshot(qOrders, (snapshot) => {
       const fetchedOrders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -59,7 +60,8 @@ export default function ClientDashboard() {
     const qVisits = query(
       collection(db, "visits"),
       where("clientId", "==", user.uid),
-      orderBy("createdAt", "desc")
+      orderBy("createdAt", "desc"),
+      limit(30)
     );
     const unsubVisits = onSnapshot(qVisits, (snapshot) => {
       const fetchedVisits = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -71,7 +73,8 @@ export default function ClientDashboard() {
     // 3. Fetch Hotel Bookings
     const qHotels = query(
       collection(db, "hotel_bookings"),
-      where("clientId", "==", user.uid)
+      where("clientId", "==", user.uid),
+      limit(30)
     );
     const unsubHotels = onSnapshot(qHotels, (snapshot) => {
       const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -88,7 +91,8 @@ export default function ClientDashboard() {
     // 4. Listen to unread chats for notification badge
     const qChats = query(
       collection(db, "chats"),
-      where("clientId", "==", user.uid)
+      where("clientId", "==", user.uid),
+      limit(30)
     );
     const unsubChats = onSnapshot(qChats, (snapshot) => {
       let unread = 0;

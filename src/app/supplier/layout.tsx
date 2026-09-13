@@ -81,14 +81,15 @@ export default function SupplierLayout({
     
     const setupNotifications = async () => {
       try {
-        const { collection, query, where, onSnapshot, orderBy } = await import("firebase/firestore");
+        const { collection, query, where, onSnapshot, orderBy, limit } = await import("firebase/firestore");
         const { db } = await import("@/lib/firebase");
 
         const qNotifs = query(
           collection(db, "inapp_notifications"),
           where("supplierId", "==", activeSupplierId),
           where("read", "==", false),
-          orderBy("createdAt", "desc")
+          orderBy("createdAt", "desc"),
+          limit(20)
         );
 
         unsubNotifs = onSnapshot(qNotifs, (snapshot) => {
@@ -107,17 +108,22 @@ export default function SupplierLayout({
           items.sort((a, b) => b.time - a.time);
           setNotifications(items);
           setUnreadCount(items.length);
+        }, (err) => {
+          console.warn("Supplier notifications warning:", err.message);
         });
 
         // Setup chat listener
         const qChats = query(
           collection(db, "chats"),
           where("supplierId", "==", activeSupplierId),
-          where("unreadSupplier", "==", true)
+          where("unreadSupplier", "==", true),
+          limit(20)
         );
 
         unsubChats = onSnapshot(qChats, (snapshot) => {
           setUnreadChatCount(snapshot.docs.length);
+        }, (err) => {
+          console.warn("Supplier chats unread warning:", err.message);
         });
 
       } catch (err) {

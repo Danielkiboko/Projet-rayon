@@ -43,7 +43,7 @@ export default function AdminLayout({
 
     const setupListeners = async () => {
       try {
-        const { collection, query, where, onSnapshot } = await import("firebase/firestore");
+        const { collection, query, where, onSnapshot, limit } = await import("firebase/firestore");
         const { db } = await import("@/lib/firebase");
 
         const updateNotifications = (type: string, newItems: any[]) => {
@@ -57,7 +57,8 @@ export default function AdminLayout({
 
         const qUsers = query(
           collection(db, "users"), 
-          where("role", "in", ["SUPPLIER", "supplier", "SUPPLIER_IMMO", "supplier_immo"])
+          where("role", "in", ["SUPPLIER", "supplier", "SUPPLIER_IMMO", "supplier_immo"]),
+          limit(15)
         );
         unsubUsers = onSnapshot(qUsers, (snapshot) => {
           const items: any[] = [];
@@ -79,7 +80,11 @@ export default function AdminLayout({
           console.warn("Notifications users listener warning (handled):", err.message);
         });
 
-        const qProps = query(collection(db, "properties"), where("status", "==", "PENDING_APPROVAL"));
+        const qProps = query(
+          collection(db, "properties"), 
+          where("status", "==", "PENDING_APPROVAL"),
+          limit(15)
+        );
         unsubProps = onSnapshot(qProps, (snapshot) => {
           const items: any[] = [];
           snapshot.forEach(doc => {
@@ -98,7 +103,11 @@ export default function AdminLayout({
           console.warn("Notifications properties listener warning (handled):", err.message);
         });
 
-        const qProds = query(collection(db, "products"), where("status", "in", ["PENDING_APPROVAL", "pending_approval"]));
+        const qProds = query(
+          collection(db, "products"), 
+          where("status", "in", ["PENDING_APPROVAL", "pending_approval"]),
+          limit(15)
+        );
         unsubProds = onSnapshot(qProds, (snapshot) => {
           const items: any[] = [];
           snapshot.forEach(doc => {

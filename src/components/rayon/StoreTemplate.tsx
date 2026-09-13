@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { collection, onSnapshot } from "firebase/firestore";
+import { collection, onSnapshot, query, limit } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { ProductSkeleton } from "@/components/ui/Skeleton";
 import { useChat } from "@/context/ChatContext";
@@ -39,9 +39,9 @@ function StoreTemplateContent({ category, heroImage, dummyProducts, dict }: Stor
   }, [searchParams]);
 
   useEffect(() => {
-    const productsRef = collection(db, "products");
+    const productsQuery = query(collection(db, "products"), limit(60));
     const unsubscribe = onSnapshot(
-      productsRef,
+      productsQuery,
       (snapshot) => {
         const allProducts = snapshot.docs.map(doc => ({
           id: doc.id,

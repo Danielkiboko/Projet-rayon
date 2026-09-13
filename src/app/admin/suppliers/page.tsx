@@ -7,7 +7,7 @@ import {
   CheckCircle2, Users, ArrowRight, Building, Filter, Sparkles 
 } from "lucide-react";
 import { auth, db } from "@/lib/firebase";
-import { collection, getDocs, query, where, doc, updateDoc, onSnapshot, orderBy } from "firebase/firestore";
+import { collection, getDocs, query, where, doc, updateDoc, onSnapshot, orderBy, limit } from "firebase/firestore";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { useAuth } from "@/context/AuthContext";
 import { hasAdminAccess, isTeamMember } from "@/lib/permissions";
@@ -90,7 +90,8 @@ export default function SuppliersPage() {
         "SUPPLIER_IMMO", "supplier_immo",
         "SUPPLIER_SAVEURS", "supplier_saveurs",
         "SUB_SUPPLIER", "sub_supplier"
-      ])
+      ]),
+      limit(100)
     );
     
     const unsubscribe = onSnapshot(q, (snapshot) => {

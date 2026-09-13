@@ -14,7 +14,7 @@ import { db } from "@/lib/firebase";
 import { getSupplierType } from "@/lib/permissions";
 import { 
   collection, query, where, getDocs, addDoc, updateDoc, 
-  deleteDoc, doc, serverTimestamp, orderBy, onSnapshot 
+  deleteDoc, doc, serverTimestamp, orderBy, onSnapshot, limit 
 } from "firebase/firestore";
 import { useCurrency } from "@/context/CurrencyContext";
 import { evaluateSupplierSubscription } from "@/lib/supplierSubscription";
@@ -81,8 +81,8 @@ export default function ProductManager({ isAdmin }: ProductManagerProps) {
     let unsubscribe = () => {};
 
     if (isAdmin) {
-      // Admin: Fetch all products, real-time
-      const q = query(collection(db, "products"), orderBy("createdAt", "desc"));
+      // Admin: Fetch all products, real-time (capped to 100 recent)
+      const q = query(collection(db, "products"), orderBy("createdAt", "desc"), limit(100));
       unsubscribe = onSnapshot(q, (snapshot) => {
         const fetchedProducts: any[] = [];
         snapshot.forEach((docSnap) => {
@@ -90,10 +90,13 @@ export default function ProductManager({ isAdmin }: ProductManagerProps) {
         });
         setProducts(fetchedProducts);
         setIsLoading(false);
+      }, (error) => {
+        console.warn("Error fetching admin products (handled):", error.message);
+        setIsLoading(false);
       });
     } else {
       // Supplier: Fetch only their products, real-time with onSnapshot
-      const q = query(collection(db, "products"), where("supplierId", "==", activeSupplierId));
+      const q = query(collection(db, "products"), where("supplierId", "==", activeSupplierId), limit(100));
       unsubscribe = onSnapshot(q, (snapshot) => {
         const prods: any[] = [];
         snapshot.forEach(docSnap => prods.push({ id: docSnap.id, ...docSnap.data() }));

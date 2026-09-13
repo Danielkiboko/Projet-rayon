@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Search, Package, Clock, CheckCircle, Truck, XCircle, ShoppingBag, Download } from "lucide-react";
 import { motion } from "framer-motion";
 import { db } from "@/lib/firebase";
-import { collection, query, onSnapshot, orderBy } from "firebase/firestore";
+import { collection, query, onSnapshot, orderBy, limit } from "firebase/firestore";
 import { generateOrderInvoicePDF } from "@/lib/invoiceGenerator";
 
 interface Order {
@@ -47,7 +47,7 @@ export default function AdminOrdersPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
+    const q = query(collection(db, "orders"), orderBy("createdAt", "desc"), limit(100));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const fetched: Order[] = [];

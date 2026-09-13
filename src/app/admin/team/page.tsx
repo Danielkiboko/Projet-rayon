@@ -25,7 +25,7 @@ import {
   Truck
 } from "lucide-react";
 import { db, auth } from "@/lib/firebase";
-import { collection, query, where, getDocs, doc, updateDoc, onSnapshot, serverTimestamp } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, updateDoc, onSnapshot, serverTimestamp, limit } from "firebase/firestore";
 import { motion, AnimatePresence } from "framer-motion";
 import { isSuperAdmin, hasAdminAccess } from "@/lib/permissions";
 
@@ -95,7 +95,7 @@ export default function AdminTeamPage() {
       "ADMIN", "admin"
     ];
 
-    const q = query(collection(db, "users"), where("role", "in", staffRoles));
+    const q = query(collection(db, "users"), where("role", "in", staffRoles), limit(100));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const members: TeamMember[] = [];
       snapshot.forEach((docSnap) => {
@@ -130,7 +130,7 @@ export default function AdminTeamPage() {
     });
 
     // Also fetch pending driver deletion requests
-    const qDrivers = query(collection(db, "drivers"), where("status", "==", "pending_deletion"));
+    const qDrivers = query(collection(db, "drivers"), where("status", "==", "pending_deletion"), limit(50));
     const unsubDrivers = onSnapshot(qDrivers, (snapshot) => {
       const drivers: any[] = [];
       snapshot.forEach((docSnap) => {
@@ -142,7 +142,7 @@ export default function AdminTeamPage() {
     });
 
     // Also fetch sub-agents / agency collaborators across all suppliers
-    const qSub = query(collection(db, "users"), where("role", "in", ["SUB_SUPPLIER", "sub_supplier"]));
+    const qSub = query(collection(db, "users"), where("role", "in", ["SUB_SUPPLIER", "sub_supplier"]), limit(100));
     const unsubSub = onSnapshot(qSub, (snapshot) => {
       const subs: any[] = [];
       snapshot.forEach((docSnap) => {

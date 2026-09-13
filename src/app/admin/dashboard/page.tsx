@@ -66,7 +66,8 @@ export default function AdminDashboardPage() {
             "SUPPLIER_IMMO", "supplier_immo",
             "SUB_SUPPLIER", "sub_supplier",
             "fournisseur", "Fournisseur", "FOURNISSEUR"
-          ])
+          ]),
+          fsLimit(100)
         );
         unsubUsers = onSnapshot(qUsers, (snapUsers) => {
           let pSuppliers = 0;
@@ -81,8 +82,8 @@ export default function AdminDashboardPage() {
           console.warn("Dashboard users listener warning:", err.message);
         });
 
-        // 2. Pending & active properties (limited to 500 most recent)
-        const qProps = query(collection(db, "properties"), orderBy("createdAt", "desc"), fsLimit(500));
+        // 2. Pending & active properties (limited to 100 most recent)
+        const qProps = query(collection(db, "properties"), orderBy("createdAt", "desc"), fsLimit(100));
         unsubProps = onSnapshot(qProps, (snapProps) => {
           let pProps = 0;
           let aProps = 0;
@@ -96,8 +97,8 @@ export default function AdminDashboardPage() {
           console.warn("Dashboard properties listener warning:", err.message);
         });
 
-        // 3. Pending & active products (limited to 500 most recent)
-        const qProds = query(collection(db, "products"), orderBy("createdAt", "desc"), fsLimit(500));
+        // 3. Pending & active products (limited to 100 most recent)
+        const qProds = query(collection(db, "products"), orderBy("createdAt", "desc"), fsLimit(100));
         unsubProds = onSnapshot(qProds, (snapProducts) => {
           let pProds = 0;
           let aProds = 0;

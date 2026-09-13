@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Wallet, ArrowDownRight, ArrowUpRight, Plus, Download, X, Search, Home, Hotel, Sparkles, Sliders, ShieldAlert, CheckCircle, Lock, Clock } from "lucide-react";
 import { db } from "@/lib/firebase";
-import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, where, doc, updateDoc } from "firebase/firestore";
+import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, where, doc, updateDoc, limit } from "firebase/firestore";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { getSupplierType } from "@/lib/permissions";
@@ -77,7 +77,8 @@ export default function SupplierFinancePage() {
       const qTx = query(
         collection(db, "supplier_transactions"), 
         where("supplierId", "==", activeSupplierId),
-        orderBy("createdAt", "desc")
+        orderBy("createdAt", "desc"),
+        limit(50)
       );
       
       let manualTx: Transaction[] = [];
@@ -101,7 +102,7 @@ export default function SupplierFinancePage() {
         updateCombined();
         setIsLoading(false);
       }, (error) => {
-        console.error("Error fetching transactions:", error);
+        console.warn("Error fetching transactions (handled):", error.message);
         setIsLoading(false);
       });
 
@@ -112,19 +113,23 @@ export default function SupplierFinancePage() {
         // Fetch tenants for rent payment dropdown
         const qTenants = query(
           collection(db, "tenants"),
-          where("supplierId", "==", activeSupplierId)
+          where("supplierId", "==", activeSupplierId),
+          limit(50)
         );
         unsubTenants = onSnapshot(qTenants, (snapshot) => {
           const t: any[] = [];
           snapshot.forEach(doc => t.push({ id: doc.id, ...doc.data() }));
           setTenants(t);
+        }, (err) => {
+          console.warn("Tenants warning:", err.message);
         });
 
         // Fetch rent payments for Immo
         const qPayments = query(
           collection(db, "payments"),
           where("supplierId", "==", activeSupplierId),
-          orderBy("createdAt", "desc")
+          orderBy("createdAt", "desc"),
+          limit(50)
         );
         unsubAutomatic = onSnapshot(qPayments, (snapshot) => {
           const data: Transaction[] = [];
@@ -148,13 +153,16 @@ export default function SupplierFinancePage() {
           });
           automaticTx = data;
           updateCombined();
+        }, (err) => {
+          console.warn("Payments warning:", err.message);
         });
       } else {
         // Fetch orders for regular E-commerce
         const qOrders = query(
           collection(db, "orders"),
           where("supplierIds", "array-contains", activeSupplierId),
-          orderBy("createdAt", "desc")
+          orderBy("createdAt", "desc"),
+          limit(50)
         );
         unsubAutomatic = onSnapshot(qOrders, (snapshot) => {
           const data: Transaction[] = [];
@@ -173,10 +181,10 @@ export default function SupplierFinancePage() {
                   category: "Vente",
                   amount: myTotal,
                   currency: "USD",
-                  description: `Vente complétée - Commande #${doc.id.substring(0,6).toUpperCase()} - ${productNames}`,
+                  description: `Commande #${doc.id.slice(0, 6).toUpperCase()} (${productNames})`,
                   referenceId: doc.id,
                   status: "COMPLETED",
-                  createdAt: order.deliveredAt || order.createdAt,
+                  createdAt: order.createdAt,
                   supplierId: activeSupplierId
                 });
               }
@@ -184,6 +192,8 @@ export default function SupplierFinancePage() {
           });
           automaticTx = data;
           updateCombined();
+        }, (err) => {
+          console.warn("Orders warning:", err.message);
         });
       }
 

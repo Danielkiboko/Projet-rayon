@@ -14,7 +14,7 @@ import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
 import { 
   collection, query, where, getDocs, addDoc, updateDoc, 
-  deleteDoc, doc, serverTimestamp, orderBy, onSnapshot 
+  deleteDoc, doc, serverTimestamp, orderBy, onSnapshot, limit 
 } from "firebase/firestore";
 import { useCurrency } from "@/context/CurrencyContext";
 import { evaluateSupplierSubscription } from "@/lib/supplierSubscription";
@@ -111,8 +111,8 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
     let unsubscribe = () => {};
 
     if (isAdmin) {
-      // Admin: Fetch all properties, real-time
-      const q = query(collection(db, "properties"), orderBy("createdAt", "desc"));
+      // Admin: Fetch all properties, real-time (capped to 100 recent)
+      const q = query(collection(db, "properties"), orderBy("createdAt", "desc"), limit(100));
       unsubscribe = onSnapshot(q, (snapshot) => {
         const fetchedProperties: any[] = [];
         snapshot.forEach((docSnap) => {
@@ -120,14 +120,20 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
         });
         setProperties(fetchedProperties);
         setIsLoading(false);
+      }, (error) => {
+        console.warn("Error fetching admin properties (handled):", error.message);
+        setIsLoading(false);
       });
     } else {
       // Supplier: Fetch only their properties
-      const q = query(collection(db, "properties"), where("supplierId", "==", user.uid));
+      const q = query(collection(db, "properties"), where("supplierId", "==", user.uid), limit(100));
       unsubscribe = onSnapshot(q, (snapshot) => {
         const prods: any[] = [];
         snapshot.forEach(docSnap => prods.push({ id: docSnap.id, ...docSnap.data() }));
         setProperties(prods);
+        setIsLoading(false);
+      }, (error) => {
+        console.warn("Error fetching supplier properties (handled):", error.message);
         setIsLoading(false);
       });
     }

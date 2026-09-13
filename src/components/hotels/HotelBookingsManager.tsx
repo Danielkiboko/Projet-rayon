@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { db } from "@/lib/firebase";
 import { 
   collection, query, where, onSnapshot, orderBy, 
-  doc, updateDoc, addDoc, serverTimestamp 
+  doc, updateDoc, addDoc, serverTimestamp, limit 
 } from "firebase/firestore";
 import { useAuth } from "@/context/AuthContext";
 import { useCurrency } from "@/context/CurrencyContext";
@@ -49,7 +49,8 @@ export default function HotelBookingsManager() {
 
     const q = query(
       collection(db, "hotel_bookings"),
-      where("supplierId", "==", activeSupplierId)
+      where("supplierId", "==", activeSupplierId),
+      limit(50)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {

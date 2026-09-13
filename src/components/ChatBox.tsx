@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, setDoc } from "firebase/firestore";
+import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, setDoc, limitToLast } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Send, Loader2, FileText } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -44,7 +44,8 @@ export function ChatBox({ chatId, otherUserName = "Utilisateur" }: ChatBoxProps)
     setIsLoading(true);
     const q = query(
       collection(db, "chats", chatId, "messages"),
-      orderBy("createdAt", "asc")
+      orderBy("createdAt", "asc"),
+      limitToLast(50)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {

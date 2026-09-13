@@ -9,7 +9,7 @@ import {
 import { themeConfig } from "@/lib/themeConfig";
 import { getSupplierType } from "@/lib/permissions";
 import { db } from "@/lib/firebase";
-import { collection, query, where, onSnapshot, doc, updateDoc } from "firebase/firestore";
+import { collection, query, where, onSnapshot, doc, updateDoc, limit } from "firebase/firestore";
 import toast from "react-hot-toast";
 
 interface SubAgentMember {
@@ -60,7 +60,8 @@ export default function SupplierTeamPage() {
 
     const q = query(
       collection(db, "users"),
-      where("parentSupplierId", "==", user.uid)
+      where("parentSupplierId", "==", user.uid),
+      limit(50)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {

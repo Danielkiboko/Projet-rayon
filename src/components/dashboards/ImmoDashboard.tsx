@@ -64,10 +64,12 @@ export default function ImmoDashboard() {
       setRawPayments(fetchedPayments);
       setRevenueData(groupPaymentsByDate(fetchedPayments));
       setTotalCollected(sumCollected);
+    }, (err) => {
+      console.warn("Immo payments warning:", err.message);
     });
 
     // 1. Fetch Properties
-    const qProps = query(collection(db, "properties"), where("supplierId", "==", activeSupplierId));
+    const qProps = query(collection(db, "properties"), where("supplierId", "==", activeSupplierId), limit(100));
     const unsubProps = onSnapshot(qProps, (snapshot) => {
       let totalUnits = 0;
       let propertiesCount = snapshot.size;
@@ -88,9 +90,11 @@ export default function ImmoDashboard() {
       });
 
       setStats(prev => ({ ...prev, totalProperties: propertiesCount, totalUnits }));
+    }, (err) => {
+      console.warn("Immo properties warning:", err.message);
     });
 
-    const qTenants = query(collection(db, "tenants"), where("supplierId", "==", activeSupplierId));
+    const qTenants = query(collection(db, "tenants"), where("supplierId", "==", activeSupplierId), limit(100));
     const unsubTenants = onSnapshot(qTenants, (snapshot) => {
       let activeTenants = 0;
       let totalRent = 0;
@@ -140,16 +144,21 @@ export default function ImmoDashboard() {
         occupiedUnits: activeTenants
       }));
       setLoading(false);
+    }, (err) => {
+      console.warn("Immo tenants warning:", err.message);
+      setLoading(false);
     });
 
     // 3. Fetch Visits
-    const qVisits = query(collection(db, "visits"), where("supplierId", "==", activeSupplierId), orderBy("createdAt", "desc"));
+    const qVisits = query(collection(db, "visits"), where("supplierId", "==", activeSupplierId), orderBy("createdAt", "desc"), limit(50));
     const unsubVisits = onSnapshot(qVisits, (snapshot) => {
       const visitsData: any[] = [];
       snapshot.forEach(doc => {
         visitsData.push({ id: doc.id, ...doc.data() });
       });
       setVisits(visitsData);
+    }, (err) => {
+      console.warn("Immo visits warning:", err.message);
     });
 
     return () => {

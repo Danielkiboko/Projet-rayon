@@ -4,6 +4,7 @@ import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/context/AuthContext"
 import { motion } from "framer-motion"
+import { isSupplier, isTeamMember, hasAdminAccess } from "@/lib/permissions"
 
 export default function DashboardRedirect() {
   const router = useRouter()
@@ -22,30 +23,21 @@ export default function DashboardRedirect() {
       role = "SUPER_ADMIN";
     }
 
+    if (isSupplier(userData)) {
+      router.replace("/supplier");
+      return;
+    }
+
+    if (hasAdminAccess(user, userData) || isTeamMember(userData)) {
+      router.replace("/admin/dashboard");
+      return;
+    }
+
     switch (role) {
       case "DELIVERY":
       case "DRIVER":
       case "LIVREUR":
         router.replace("/driver")
-        break
-      case "SUPPLIER":
-      case "FOURNISSEUR":
-      case "SUB_SUPPLIER":
-      case "SUPPLIER_IMMO":
-      case "SUPPLIER_MODE":
-      case "SUPPLIER_SAVEURS":
-      case "SUPPLIER_CONNECT":
-        router.replace("/supplier")
-        break
-      case "SUB_ADMIN":
-      case "SUPER_ADMIN":
-      case "SUPERADMIN":
-      case "ADMIN":
-      case "ADMIN_FINANCE":
-      case "ADMIN_DB":
-      case "ADMIN_OPS":
-      case "ADMIN_TECH":
-        router.replace("/admin/dashboard")
         break
       case "CLIENT":
       default:

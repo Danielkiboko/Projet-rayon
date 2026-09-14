@@ -111,13 +111,21 @@ export default function PropertyManager({ isAdmin }: PropertyManagerProps) {
     let unsubscribe = () => {};
 
     if (isAdmin) {
-      // Admin: Fetch all properties, real-time (capped to 100 recent)
-      const q = query(collection(db, "properties"), orderBy("createdAt", "desc"), limit(100));
+      // Admin: Fetch all properties (capped to 200). Avoid orderBy("createdAt") in Firebase to prevent hiding docs missing this field.
+      const q = query(collection(db, "properties"), limit(200));
       unsubscribe = onSnapshot(q, (snapshot) => {
         const fetchedProperties: any[] = [];
         snapshot.forEach((docSnap) => {
           fetchedProperties.push({ id: docSnap.id, ...docSnap.data() });
         });
+        
+        // Sort locally by createdAt desc
+        fetchedProperties.sort((a, b) => {
+          const tA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+          const tB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+          return tB - tA;
+        });
+
         setProperties(fetchedProperties);
         setIsLoading(false);
       }, (error) => {

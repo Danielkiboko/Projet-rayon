@@ -28,28 +28,29 @@ export function initFirebaseAdmin() {
         // 1. Remove surrounding quotes
         privateKey = privateKey.replace(/^["']|["']$/g, '');
 
-        // 2. Handle literal \n or escaped slashes
-        privateKey = privateKey.replace(/\\\\n/g, '\n').replace(/\\n/g, '\n').replace(/\r/g, '');
+        // 2. Handle literal \n or escaped slashes just in case
+        privateKey = privateKey.replace(/\\n/g, '\n').replace(/\r/g, '');
 
-        // 3. Ensure BEGIN and END markers exist
-        if (!privateKey.includes('-----BEGIN PRIVATE KEY-----')) {
-          privateKey = `-----BEGIN PRIVATE KEY-----\n${privateKey}\n-----END PRIVATE KEY-----`;
-        }
+        // 3. Extract the base64 content and reconstruct perfectly
+        const pemRegex = /-----BEGIN PRIVATE KEY-----([\s\S]+?)-----END PRIVATE KEY-----/;
+        const match = privateKey.match(pemRegex);
 
-        // 4. Ensure BEGIN and END markers are on their own lines
-        privateKey = privateKey.replace(/-----BEGIN PRIVATE KEY-----/g, '-----BEGIN PRIVATE KEY-----\n');
-        privateKey = privateKey.replace(/-----END PRIVATE KEY-----/g, '\n-----END PRIVATE KEY-----');
-
-        // 5. Clean up lines: trim every line, remove empty lines
-        let lines = privateKey.split('\n').map(l => l.trim()).filter(Boolean);
-        privateKey = lines.join('\n') + '\n';
-
-        // 6. Fix any remaining spaces in the base64 part (if Vercel squashed it)
-        const match = privateKey.match(/(-----BEGIN PRIVATE KEY-----\n)([\s\S]+)(\n-----END PRIVATE KEY-----)/);
+        let cleanBase64 = "";
         if (match) {
-          const base64Part = match[2].replace(/\s+/g, '\n');
-          privateKey = `${match[1]}${base64Part}${match[3]}\n`;
+          cleanBase64 = match[1].replace(/\s+/g, '');
+        } else {
+          // If no markers were found, assume the whole string is the raw base64 key
+          cleanBase64 = privateKey.replace(/\s+/g, '');
         }
+
+        // 4. Re-chunk into 64-character lines (standard OpenSSL PEM format)
+        const chunks = [];
+        for (let i = 0; i < cleanBase64.length; i += 64) {
+          chunks.push(cleanBase64.slice(i, i + 64));
+        }
+
+        // 5. Rebuild with proper markers and trailing newline
+        privateKey = `-----BEGIN PRIVATE KEY-----\n${chunks.join('\n')}\n-----END PRIVATE KEY-----\n`;
 
         const clientEmail = (process.env.FIREBASE_CLIENT_EMAIL || '').replace(/^["']|["']$/g, '').trim();
         const projectId = (process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'rayon-projet').replace(/^["']|["']$/g, '').trim();

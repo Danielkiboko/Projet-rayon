@@ -49,7 +49,7 @@ export default function ImmoDashboard() {
       collection(db, "payments"),
       where("supplierId", "==", activeSupplierId),
       orderBy("createdAt", "desc"),
-      limit(50)
+      limit(500)
     );
     const unsubPayments = onSnapshot(qPayments, (snapshot) => {
       const fetchedPayments: any[] = [];
@@ -69,7 +69,7 @@ export default function ImmoDashboard() {
     });
 
     // 1. Fetch Properties
-    const qProps = query(collection(db, "properties"), where("supplierId", "==", activeSupplierId), limit(100));
+    const qProps = query(collection(db, "properties"), where("supplierId", "==", activeSupplierId), limit(1000));
     const unsubProps = onSnapshot(qProps, (snapshot) => {
       let totalUnits = 0;
       let propertiesCount = snapshot.size;
@@ -94,7 +94,7 @@ export default function ImmoDashboard() {
       console.warn("Immo properties warning:", err.message);
     });
 
-    const qTenants = query(collection(db, "tenants"), where("supplierId", "==", activeSupplierId), limit(100));
+    const qTenants = query(collection(db, "tenants"), where("supplierId", "==", activeSupplierId), limit(1000));
     const unsubTenants = onSnapshot(qTenants, (snapshot) => {
       let activeTenants = 0;
       let totalRent = 0;
@@ -150,7 +150,7 @@ export default function ImmoDashboard() {
     });
 
     // 3. Fetch Visits
-    const qVisits = query(collection(db, "visits"), where("supplierId", "==", activeSupplierId), orderBy("createdAt", "desc"), limit(50));
+    const qVisits = query(collection(db, "visits"), where("supplierId", "==", activeSupplierId), orderBy("createdAt", "desc"), limit(200));
     const unsubVisits = onSnapshot(qVisits, (snapshot) => {
       const visitsData: any[] = [];
       snapshot.forEach(doc => {

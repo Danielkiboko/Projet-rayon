@@ -28,6 +28,7 @@ interface Supplier {
   parentSupplierId?: string;
   businessType?: string;
   serviceAttached?: string;
+  createdAt?: any;
 }
 
 export default function SuppliersPage() {
@@ -65,43 +66,38 @@ export default function SuppliersPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  // Keep this empty function so other functions that call fetchSuppliers() don't break
-  const fetchSuppliers = () => {};
-
-  useEffect(() => {
+  // Fetch suppliers manually so we can trigger it after approvals
+  const fetchSuppliers = async () => {
     if (!user) return;
-    const userRole = (userData?.role || "").toString().toLowerCase();
-    const isAdminUser = 
-      user.email === "danielkiboko218@gmail.com" || 
-      user.email === "admin@rayons.net" || 
-      ["admin", "superadmin", "super_admin", "sub_admin", "admin_finance", "admin_db"].includes(userRole) ||
-      hasAdminAccess(user, userData);
-    
-    if (!isAdminUser) {
-      setIsLoading(false);
-      return;
-    }
-
-    // Fetch ONLY commercial suppliers (vendors who sell in rays and pay subscription)
-    const q = query(
-      collection(db, "users"), 
-      where("role", "in", [
-        "SUPPLIER", "supplier", "Supplier", 
-        "SUPPLIER_IMMO", "supplier_immo",
-        "SUPPLIER_SAVEURS", "supplier_saveurs",
-        "SUB_SUPPLIER", "sub_supplier"
-      ]),
-      limit(100)
-    );
-    
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    setIsLoading(true);
+    try {
+      // We fetch recently created users and filter locally to avoid the 10-item limit of 'in' queries
+      // and to catch all variations of supplier roles. 
+      // Avoid orderBy("createdAt") to prevent hiding users without this field.
+      const q = query(
+        collection(db, "users"),
+        limit(500)
+      );
+      const snapshot = await getDocs(q);
       const fetchedSuppliers: Supplier[] = [];
+      
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
+        const role = (data.role || "").toUpperCase();
+        
+        const isSupplierRole = [
+          "SUPPLIER", "FOURNISSEUR", "SUB_SUPPLIER", 
+          "SUPPLIER_IMMO", "SUPPLIER_MODE", 
+          "SUPPLIER_CONNECT", "SUPPLIER_SAVEURS"
+        ].includes(role);
+
+        if (!isSupplierRole) return;
+        
         // Skip internal staff / fonctionnaires from commercial suppliers list
         if (data.isInternalStaff || isTeamMember(data)) {
           return;
         }
+
         fetchedSuppliers.push({
           id: docSnap.id,
           name: data.displayName || "Sans nom",
@@ -118,17 +114,41 @@ export default function SuppliersPage() {
           parentSupplierId: data.parentSupplierId || data.createdBy,
           businessType: data.businessType,
           serviceAttached: data.serviceAttached,
+          createdAt: data.createdAt, // Store createdAt to sort later
         });
       });
+
+      // Sort locally by createdAt desc
+      fetchedSuppliers.sort((a: any, b: any) => {
+        const tA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+        const tB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+        return tB - tA;
+      });
+
       setSuppliers(fetchedSuppliers);
-      setIsLoading(false);
-    }, (error) => {
+    } catch (error: any) {
       console.error("Error fetching suppliers:", error);
       setError("Erreur d'accès aux fournisseurs : " + error.message);
+    } finally {
       setIsLoading(false);
-    });
+    }
+  };
 
-    return () => unsubscribe();
+  useEffect(() => {
+    if (!user) return;
+    const userRole = (userData?.role || "").toString().toLowerCase();
+    const isAdminUser = 
+      user.email === "danielkiboko218@gmail.com" || 
+      user.email === "admin@rayons.net" || 
+      ["admin", "superadmin", "super_admin", "sub_admin", "admin_finance", "admin_db"].includes(userRole) ||
+      hasAdminAccess(user, userData);
+    
+    if (!isAdminUser) {
+      setIsLoading(false);
+      return;
+    }
+
+    fetchSuppliers();
   }, [user, userData]);
 
   const openReviewModal = (supplier: Supplier) => {

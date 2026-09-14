@@ -26,7 +26,7 @@ export function useSupplierDashboardStats(productsCollectionName = "products") {
     const qProps = query(
       collection(db, productsCollectionName), 
       where("supplierId", "==", activeSupplierId),
-      limit(100)
+      limit(1000)
     );
     const unsubProducts = onSnapshot(qProps, (snapshot) => {
       setStats(prev => ({ ...prev, totalProducts: snapshot.size }));
@@ -38,7 +38,7 @@ export function useSupplierDashboardStats(productsCollectionName = "products") {
       collection(db, "orders"),
       where("supplierIds", "array-contains", activeSupplierId),
       orderBy("createdAt", "desc"),
-      limit(50)
+      limit(500)
     );
 
     const unsubOrders = onSnapshot(qOrders, (snapshot) => {

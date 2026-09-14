@@ -31,9 +31,25 @@ export function initFirebaseAdmin() {
         // 2. Handle literal \n or escaped slashes
         privateKey = privateKey.replace(/\\\\n/g, '\n').replace(/\\n/g, '\n').replace(/\r/g, '');
 
-        // 3. Clean up lines: trim every line, remove empty lines, join with single newline
-        const lines = privateKey.split('\n').map(l => l.trim()).filter(Boolean);
+        // 3. Ensure BEGIN and END markers exist
+        if (!privateKey.includes('-----BEGIN PRIVATE KEY-----')) {
+          privateKey = `-----BEGIN PRIVATE KEY-----\n${privateKey}\n-----END PRIVATE KEY-----`;
+        }
+
+        // 4. Ensure BEGIN and END markers are on their own lines
+        privateKey = privateKey.replace(/-----BEGIN PRIVATE KEY-----/g, '-----BEGIN PRIVATE KEY-----\n');
+        privateKey = privateKey.replace(/-----END PRIVATE KEY-----/g, '\n-----END PRIVATE KEY-----');
+
+        // 5. Clean up lines: trim every line, remove empty lines
+        let lines = privateKey.split('\n').map(l => l.trim()).filter(Boolean);
         privateKey = lines.join('\n') + '\n';
+
+        // 6. Fix any remaining spaces in the base64 part (if Vercel squashed it)
+        const match = privateKey.match(/(-----BEGIN PRIVATE KEY-----\n)([\s\S]+)(\n-----END PRIVATE KEY-----)/);
+        if (match) {
+          const base64Part = match[2].replace(/\s+/g, '\n');
+          privateKey = `${match[1]}${base64Part}${match[3]}\n`;
+        }
 
         const clientEmail = (process.env.FIREBASE_CLIENT_EMAIL || '').replace(/^["']|["']$/g, '').trim();
         const projectId = (process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'rayon-projet').replace(/^["']|["']$/g, '').trim();

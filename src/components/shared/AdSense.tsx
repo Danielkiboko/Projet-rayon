@@ -2,10 +2,12 @@
 
 import Script from "next/script";
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 
 export default function AdSense() {
   const adSenseId = process.env.NEXT_PUBLIC_ADSENSE_ID;
   const [isDev, setIsDev] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     if (process.env.NODE_ENV === "development") {
@@ -14,6 +16,12 @@ export default function AdSense() {
   }, []);
 
   if (!adSenseId) {
+    return null;
+  }
+
+  // Do not show ads on control panels / dashboards
+  const isDashboardRoute = pathname?.startsWith("/admin") || pathname?.startsWith("/supplier") || pathname?.startsWith("/dashboard");
+  if (isDashboardRoute) {
     return null;
   }
 

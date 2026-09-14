@@ -71,27 +71,28 @@ export default function SuppliersPage() {
     if (!user) return;
     setIsLoading(true);
     try {
-      // We fetch recently created users and filter locally to avoid the 10-item limit of 'in' queries
-      // and to catch all variations of supplier roles. 
-      // Avoid orderBy("createdAt") to prevent hiding users without this field.
-      const q = query(
-        collection(db, "users"),
-        limit(500)
-      );
-      const snapshot = await getDocs(q);
-      const fetchedSuppliers: Supplier[] = [];
-      
-      snapshot.forEach((docSnap) => {
-        const data = docSnap.data();
-        const role = (data.role || "").toUpperCase();
-        
-        const isSupplierRole = [
-          "SUPPLIER", "FOURNISSEUR", "SUB_SUPPLIER", 
-          "SUPPLIER_IMMO", "SUPPLIER_MODE", 
-          "SUPPLIER_CONNECT", "SUPPLIER_SAVEURS"
-        ].includes(role);
+      // Since there can be many users, a global limit(500) will miss suppliers if there are >500 clients.
+      // We explicitly query for supplier roles. We split into chunks of 10 to be safe with Firestore's 'in' limits.
+      const supplierRoles1 = [
+        "SUPPLIER", "FOURNISSEUR", "SUB_SUPPLIER", 
+        "SUPPLIER_IMMO", "SUPPLIER_MODE", "SUPPLIER_CONNECT", "SUPPLIER_SAVEURS"
+      ];
+      const supplierRoles2 = [
+        "supplier", "fournisseur", "sub_supplier",
+        "supplier_immo", "supplier_mode", "supplier_connect", "supplier_saveurs"
+      ];
 
-        if (!isSupplierRole) return;
+      const q1 = query(collection(db, "users"), where("role", "in", supplierRoles1));
+      const q2 = query(collection(db, "users"), where("role", "in", supplierRoles2));
+
+      const [snap1, snap2] = await Promise.all([getDocs(q1), getDocs(q2)]);
+      const fetchedSuppliers: Supplier[] = [];
+      const seenIds = new Set<string>();
+
+      const processSnap = (docSnap: any) => {
+        if (seenIds.has(docSnap.id)) return;
+        seenIds.add(docSnap.id);
+        const data = docSnap.data();
         
         // Skip internal staff / fonctionnaires from commercial suppliers list
         if (data.isInternalStaff || isTeamMember(data)) {
@@ -116,7 +117,10 @@ export default function SuppliersPage() {
           serviceAttached: data.serviceAttached,
           createdAt: data.createdAt, // Store createdAt to sort later
         });
-      });
+      };
+
+      snap1.forEach(processSnap);
+      snap2.forEach(processSnap);
 
       // Sort locally by createdAt desc
       fetchedSuppliers.sort((a: any, b: any) => {

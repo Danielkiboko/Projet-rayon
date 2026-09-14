@@ -128,11 +128,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     try {
       if (user) {
-        const { setDoc, doc, serverTimestamp } = await import("firebase/firestore");
-        await setDoc(doc(db, "users", user.uid), {
-          isOnline: false,
-          lastConnection: serverTimestamp()
-        }, { merge: true }).catch(console.error);
+        import("firebase/firestore").then(({ setDoc, doc, serverTimestamp }) => {
+          setDoc(doc(db, "users", user.uid), {
+            isOnline: false,
+            lastConnection: serverTimestamp()
+          }, { merge: true }).catch(console.error);
+        });
       }
       await firebaseSignOut(auth);
       router.push("/login");

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Montserrat, Inter } from "next/font/google";
 import "./globals.css";
 import { GlobalChatbot } from "@/components/GlobalChatbot";
@@ -53,6 +54,24 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <SpeedInsights />
         <AdSense />
         <Toaster position="top-center" />
+        
+        {/* Google Analytics */}
+        <Script
+          strategy="afterInteractive"
+          src={`https://www.googletagmanager.com/gtag/js?id=G-HPP4V5XYSV`}
+        />
+        <Script
+          id="google-analytics"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', 'G-HPP4V5XYSV');
+            `,
+          }}
+        />
       </body>
     </html>
   );

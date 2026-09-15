@@ -34,7 +34,7 @@ export function evaluateSupplierSubscription(userData: any): SupplierSubscriptio
     userData.role === "ADMIN" || 
     userData.role === "admin" || 
     userData.role === "SUB_ADMIN" ||
-    userData.email === "danielkiboko218@gmail.com"
+    userData.email === "danielkiboko18@gmail.com"
   ) {
     return {
       isBlocked: false,

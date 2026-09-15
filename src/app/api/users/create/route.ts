@@ -27,7 +27,7 @@ export async function POST(req: Request) {
     const callerEmail = (decodedToken.email || '').toLowerCase().trim();
 
     // Bootstrap rule: If the caller is a designated superAdmin
-    const isSuperAdminEmail = callerEmail === 'danielkiboko218@gmail.com' || callerEmail === 'admin@rayons.net';
+    const isSuperAdminEmail = callerEmail === 'danielkiboko18@gmail.com';
     if (!callerRole && isSuperAdminEmail) {
       callerRole = 'superAdmin';
     }

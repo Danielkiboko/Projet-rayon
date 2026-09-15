@@ -37,7 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (docSnap.exists()) {
               const data = docSnap.data();
               let role = data.role;
-              if (currentUser.email === 'danielkiboko218@gmail.com' || currentUser.email === 'admin@rayons.net') {
+              if (currentUser.email === 'danielkiboko18@gmail.com') {
                 role = role || 'SUPER_ADMIN';
                 // Silently refresh token in background to get updated claims
                 currentUser.getIdToken(true).catch(() => {});
@@ -49,7 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               setUserData({ ...data, role });
             } else {
               let role: string | undefined = undefined;
-              if (currentUser.email === 'danielkiboko218@gmail.com' || currentUser.email === 'admin@rayons.net') {
+              if (currentUser.email === 'danielkiboko18@gmail.com') {
                 role = 'SUPER_ADMIN';
                 currentUser.getIdToken(true).catch(() => {});
               } else {
@@ -63,17 +63,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             try {
               const tokenResult = await getIdTokenResult(currentUser);
               let role = tokenResult.claims.role as string | undefined;
-              if (!role && (currentUser.email === 'danielkiboko218@gmail.com' || currentUser.email === 'admin@rayons.net')) {
+              if (!role && (currentUser.email === 'danielkiboko18@gmail.com')) {
                 role = 'SUPER_ADMIN';
               }
               setUserData({
-                role: role || (currentUser.email === 'danielkiboko218@gmail.com' ? 'SUPER_ADMIN' : 'CLIENT'),
+                role: role || (currentUser.email === 'danielkiboko18@gmail.com' ? 'SUPER_ADMIN' : 'CLIENT'),
                 email: currentUser.email,
                 displayName: currentUser.displayName || 'Utilisateur'
               });
             } catch (e) {
               console.error("Error fetching claims:", e);
-              if (currentUser.email === 'danielkiboko218@gmail.com' || currentUser.email === 'admin@rayons.net') {
+              if (currentUser.email === 'danielkiboko18@gmail.com') {
                 setUserData({ role: 'SUPER_ADMIN', email: currentUser.email, displayName: currentUser.displayName || 'Daniel Kiboko' });
               } else {
                 setUserData({ role: 'CLIENT', email: currentUser.email, displayName: currentUser.displayName || 'Client' });

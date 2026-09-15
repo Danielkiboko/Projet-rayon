@@ -142,7 +142,7 @@ export default function SuppliersPage() {
     if (!user) return;
     const userRole = (userData?.role || "").toString().toLowerCase();
     const isAdminUser = 
-      user.email === "danielkiboko218@gmail.com" || 
+      user.email === "danielkiboko18@gmail.com" || 
       user.email === "admin@rayons.net" || 
       ["admin", "superadmin", "super_admin", "sub_admin", "admin_finance", "admin_db"].includes(userRole) ||
       hasAdminAccess(user, userData);

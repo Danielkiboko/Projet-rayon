@@ -19,7 +19,7 @@ export default function DashboardRedirect() {
     let role = userData?.role?.toUpperCase();
     
     // Hardcode super admin email for redirect if no role is explicitly set in Firestore
-    if (!role && user?.email === "danielkiboko218@gmail.com") {
+    if (!role && user?.email === "danielkiboko18@gmail.com") {
       role = "SUPER_ADMIN";
     }
 

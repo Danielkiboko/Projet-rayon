@@ -4,7 +4,7 @@ service cloud.firestore {
   // Helper to check role
   function isSuperAdmin() {
     return request.auth != null && (
-      request.auth.token.email == 'danielkiboko218@gmail.com' ||
+      request.auth.token.email == 'danielkiboko18@gmail.com' ||
       request.auth.token.email == 'admin@rayons.net' ||
       request.auth.token.role == 'superAdmin' ||
       request.auth.token.role == 'SUPER_ADMIN' ||

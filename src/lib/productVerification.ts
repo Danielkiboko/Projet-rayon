@@ -37,7 +37,7 @@ export function evaluateProductVerification(product: any): ProductVerificationSt
     product.isOfficialRayons === true ||
     product.supplierRole === "ADMIN" || 
     product.supplierRole === "admin" || 
-    product.supplierEmail === "danielkiboko18@gmail.com" ||
+    product.supplierEmail === "danielkiboko218@gmail.com" ||
     product.supplierId === "admin" ||
     !product.supplierId; // Si pas de supplierId spécifié sur un produit initial
 

@@ -32,7 +32,7 @@ export async function POST(req: Request) {
         supplierPhone = supplierDoc.data().phone || "";
       }
     } else if (supplierId === "admin") {
-      supplierEmail = "danielkiboko18@gmail.com";
+      supplierEmail = "danielkiboko218@gmail.com";
     }
 
     // Fetch Client Details

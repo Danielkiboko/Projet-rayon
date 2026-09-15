@@ -19,7 +19,7 @@ export async function POST(req: Request) {
     let callerRole = decodedToken.role;
     const callerUid = decodedToken.uid;
     const callerEmail = (decodedToken.email || '').toLowerCase().trim();
-    const isSuperAdmin = callerEmail === "danielkiboko18@gmail.com";
+    const isSuperAdmin = callerEmail === "danielkiboko218@gmail.com";
 
     // Fallback to Firestore if token has no role claim
     if (!callerRole) {

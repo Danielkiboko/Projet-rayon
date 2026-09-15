@@ -5,7 +5,7 @@
 export const isSuperAdmin = (user: any, userData: any): boolean => {
   const email = (user?.email || "").toLowerCase().trim();
   const role = (userData?.role || "").toUpperCase();
-  return email === "danielkiboko18@gmail.com" || role === "SUPER_ADMIN" || role === "SUPERADMIN";
+  return email === "danielkiboko218@gmail.com" || role === "SUPER_ADMIN" || role === "SUPERADMIN";
 };
 
 /**

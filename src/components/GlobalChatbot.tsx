@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { X, Send, Loader2, MessageCircle, ChevronLeft, Building2, Shirt, Wifi } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { auth, db } from "@/lib/firebase";
@@ -11,6 +11,7 @@ import { useChat } from "@/context/ChatContext";
 
 export function GlobalChatbot() {
   const router = useRouter();
+  const pathname = usePathname();
   const { isChatOpen, closeChat, toggleChat, activeProduct, closeActiveProductChat } = useChat();
   const { user } = useAuth();
   
@@ -322,6 +323,12 @@ export function GlobalChatbot() {
       setSelectedChatId(null);
     }
   };
+
+  // Do not show the client chatbot on dashboard routes
+  const isDashboardRoute = pathname?.startsWith("/admin") || pathname?.startsWith("/supplier") || pathname?.startsWith("/driver") || pathname?.startsWith("/dashboard");
+  if (isDashboardRoute) {
+    return null;
+  }
 
   if (!isChatOpen) {
     return (

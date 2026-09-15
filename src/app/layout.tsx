@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import { Montserrat, Inter } from "next/font/google";
 import "./globals.css";
-import { GlobalChatbot } from "@/components/GlobalChatbot";
+import { GlobalChatbot } from "@/modules/shared/components/GlobalChatbot";
 
 const montserrat = Montserrat({
   variable: "--font-montserrat",
@@ -23,10 +23,10 @@ import { AuthProvider } from "@/context/AuthContext";
 import { CurrencyProvider } from "@/context/CurrencyContext";
 import { ChatProvider } from "@/context/ChatContext";
 import { CartProvider } from "@/context/CartContext";
-import { ThemeProvider } from "@/components/ThemeProvider";
+import { ThemeProvider } from "@/modules/shared/components/ThemeProvider";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-import AdSense from "@/components/shared/AdSense";
-import { CartDrawer } from "@/components/cart/CartDrawer";
+import AdSense from "@/modules/shared/components/shared/AdSense";
+import { CartDrawer } from "@/modules/client/components/cart/CartDrawer";
 
 import { Toaster } from "react-hot-toast";
 

@@ -1,20 +1,20 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { OptimizedImage } from "@/components/OptimizedImage";
+import { OptimizedImage } from "@/modules/shared/components/OptimizedImage";
 import Link from "next/link";
 import { Search, User, Menu, MapPin, ChevronRight, Star, Heart, TrendingUp, Home as HomeIcon, Wifi, Building, Globe, ArrowRight, Shirt, MessageCircle, Sparkles, UtensilsCrossed, ShoppingBag } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { Footer } from "@/components/Footer";
+import { Footer } from "@/modules/shared/components/Footer";
 import { useChat } from "@/context/ChatContext";
 import { useCart } from "@/context/CartContext";
 import { useCurrency, CurrencyCode } from "@/context/CurrencyContext";
 import { db } from "@/lib/firebase";
 import { collection, query, getDocs, limit, where } from "firebase/firestore";
-import { CurrencySelector } from "@/components/CurrencySelector";
-import { RayonsLogo } from "@/components/brand/RayonsLogo";
-import { UniversalSearchBar } from "@/components/home/UniversalSearchBar";
-import NotificationBell from "@/components/notifications/NotificationBell";
+import { CurrencySelector } from "@/modules/shared/components/CurrencySelector";
+import { RayonsLogo } from "@/modules/shared/components/brand/RayonsLogo";
+import { UniversalSearchBar } from "@/modules/client/components/home/UniversalSearchBar";
+import NotificationBell from "@/modules/shared/components/notifications/NotificationBell";
 
 
 export default function Home() {

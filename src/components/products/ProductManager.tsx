@@ -218,9 +218,26 @@ export default function ProductManager({ isAdmin }: ProductManagerProps) {
           isVerified: isAdmin, // Vérifié d'office si Admin, soumis aux votes clients si Fournisseur
           ratingsCount: isAdmin ? 1 : 0,
           averageRating: isAdmin ? 5.0 : 0,
-          status: "Disponible",
+          status: isAdmin ? "Disponible" : "pending_approval",
           createdAt: serverTimestamp(),
         });
+
+        if (!isAdmin) {
+          // Add notification for admins
+          try {
+            await addDoc(collection(db, "inapp_notifications"), {
+               type: "admin_alert",
+               title: "Nouveau produit à valider",
+               message: `Le fournisseur a ajouté un nouveau produit: ${productTitle}. Veuillez l'examiner.`,
+               time: Date.now(),
+               link: "/admin/products", // admins can review it here
+               read: false,
+               createdAt: serverTimestamp()
+            });
+          } catch (notifError) {
+            console.error("Error notifying admins:", notifError);
+          }
+        }
       }
       setIsModalOpen(false);
       resetForm();
